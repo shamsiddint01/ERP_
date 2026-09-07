@@ -1,0 +1,32 @@
+node_modules/
+dist/
+coverage/
+generated/
+*.tsbuildinfo
+
+# Environment variables / secrets
+.env
+.env.*
+!.env.example
+
+# Database files
+*.sqlite
+*.sqlite3
+*.db
+
+# Logs
+*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# IDE / editor files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# OS-generated files
+.DS_Store
+Thumbs.db
