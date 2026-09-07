@@ -8,7 +8,11 @@ import { CustomersPage } from './pages/customers/CustomersPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { InventoryPage } from './pages/inventory/InventoryPage';
 import { WarehousesPage } from './pages/inventory/WarehousesPage';
+import { InvoicesPage } from './pages/invoices/InvoicesPage';
 import { LoginPage } from './pages/LoginPage';
+import { OrderDetailPage } from './pages/orders/OrderDetailPage';
+import { OrdersPage } from './pages/orders/OrdersPage';
+import { PaymentsPage } from './pages/payments/PaymentsPage';
 import { ProductsPage } from './pages/products/ProductsPage';
 import { PurchaseOrderDetailPage } from './pages/purchases/PurchaseOrderDetailPage';
 import { PurchasesPage } from './pages/purchases/PurchasesPage';
@@ -29,6 +33,10 @@ export default function App() {
           <Route path="/" element={<DashboardPage />} />
           <Route path="/customers" element={<CustomersPage />} />
           <Route path="/customers/:id" element={<CustomerDetailPage />} />
+          <Route path="/orders" element={<OrdersPage />} />
+          <Route path="/orders/:id" element={<OrderDetailPage />} />
+          <Route path="/invoices" element={<InvoicesPage />} />
+          <Route path="/payments" element={<PaymentsPage />} />
           <Route path="/products" element={<ProductsPage />} />
           <Route path="/inventory" element={<InventoryPage />} />
           <Route path="/warehouses" element={<WarehousesPage />} />

@@ -20,7 +20,7 @@ export interface AuditLogPage {
   pageSize: number;
 }
 
-export async function listAuditLogs(page: number, pageSize: number) {
-  const { data } = await apiClient.get<AuditLogPage>('/audit-logs', { params: { page, pageSize } });
+export async function listAuditLogs(page: number, pageSize: number, filters?: { entityType?: string; entityId?: string }) {
+  const { data } = await apiClient.get<AuditLogPage>('/audit-logs', { params: { page, pageSize, ...filters } });
   return data;
 }

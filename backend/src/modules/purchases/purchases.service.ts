@@ -4,6 +4,7 @@ import { PrismaService } from '../../prisma/prisma.service.js';
 import { AuditEntityRegistryService } from '../../shared/audit/audit-entity-registry.service.js';
 import type { PaginatedResult } from '../../shared/types/paginated-result.js';
 import { generateDocumentNumber } from '../../shared/utils/document-number.util.js';
+import { computeLineItemTotals } from '../../shared/utils/line-item-totals.util.js';
 import { InventoryService } from '../inventory/inventory.service.js';
 import type { CreatePurchaseOrderDto, PurchaseOrderItemDto } from './dto/create-purchase-order.dto.js';
 import type { QueryPurchaseOrderDto } from './dto/query-purchase-order.dto.js';
@@ -19,20 +20,7 @@ const PO_INCLUDE = {
 } satisfies Prisma.PurchaseOrderInclude;
 
 function computeTotals(items: PurchaseOrderItemDto[]) {
-  let subtotal = 0;
-  let taxTotal = 0;
-  let discountTotal = 0;
-  const lines = items.map((item) => {
-    const lineSubtotal = item.quantity * item.unitPrice;
-    const lineTax = lineSubtotal * ((item.taxPercent ?? 0) / 100);
-    const lineDiscount = item.discountAmount ?? 0;
-    const lineTotal = lineSubtotal + lineTax - lineDiscount;
-    subtotal += lineSubtotal;
-    taxTotal += lineTax;
-    discountTotal += lineDiscount;
-    return { ...item, taxPercent: item.taxPercent ?? 0, discountAmount: lineDiscount, lineTotal };
-  });
-  return { subtotal, taxTotal, discountTotal, grandTotal: subtotal + taxTotal - discountTotal, lines };
+  return computeLineItemTotals(items);
 }
 
 @Injectable()

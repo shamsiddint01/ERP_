@@ -206,6 +206,16 @@ export interface DashboardSummary {
   lowStockCount: number;
   outOfStockCount: number;
   recentMovements: StockMovement[];
+  totalRevenue: number;
+  ordersCount: number;
+  pendingOrdersCount: number;
+  outstandingPaymentsAmount: number;
+  paidInvoicesCount: number;
+}
+
+export interface RevenueChartPoint {
+  date: string;
+  revenue: number;
 }
 
 export type SupplierStatus = 'ACTIVE' | 'INACTIVE';
@@ -274,4 +284,101 @@ export interface PurchaseOrder {
   createdBy: { id: string; fullName: string; username: string } | null;
   approvedBy: { id: string; fullName: string; username: string } | null;
   items: PurchaseOrderItem[];
+}
+
+export type OrderStatus = 'DRAFT' | 'CONFIRMED' | 'PROCESSING' | 'COMPLETED' | 'CANCELLED';
+export type OrderPaymentStatus = 'UNPAID' | 'PARTIALLY_PAID' | 'PAID' | 'REFUNDED';
+
+export interface OrderItem {
+  id: string;
+  productId: string;
+  quantity: string;
+  unitPrice: string;
+  taxPercent: string;
+  discountAmount: string;
+  lineTotal: string;
+  product: { id: string; name: string; sku: string; unit: string };
+}
+
+export interface OrderInvoiceRef {
+  id: string;
+  invoiceNumber: string;
+  status: string;
+  grandTotal: string;
+  amountPaid: string;
+}
+
+export interface Order {
+  id: string;
+  orderNumber: string;
+  status: OrderStatus;
+  paymentStatus: OrderPaymentStatus;
+  subtotal: string;
+  discountTotal: string;
+  taxTotal: string;
+  grandTotal: string;
+  amountPaid: string;
+  orderDate: string;
+  confirmedAt: string | null;
+  completedAt: string | null;
+  cancelledAt: string | null;
+  cancellationReason: string | null;
+  notes: string | null;
+  createdAt: string;
+  customer: { id: string; name: string; companyName: string | null };
+  warehouse: { id: string; name: string; code: string | null };
+  responsibleEmployee: { id: string; fullName: string } | null;
+  items: OrderItem[];
+  invoices: OrderInvoiceRef[];
+}
+
+export type InvoiceStatus = 'DRAFT' | 'SENT' | 'PARTIALLY_PAID' | 'PAID' | 'OVERDUE' | 'VOID';
+
+export interface InvoiceItem {
+  id: string;
+  productId: string | null;
+  description: string;
+  quantity: string;
+  unitPrice: string;
+  taxPercent: string;
+  discountAmount: string;
+  lineTotal: string;
+  product: { id: string; name: string; sku: string } | null;
+}
+
+export interface Invoice {
+  id: string;
+  invoiceNumber: string;
+  status: InvoiceStatus;
+  issueDate: string;
+  dueDate: string;
+  subtotal: string;
+  taxTotal: string;
+  discountTotal: string;
+  grandTotal: string;
+  amountPaid: string;
+  createdAt: string;
+  customer: { id: string; name: string; companyName: string | null };
+  order: { id: string; orderNumber: string; status: string } | null;
+  items: InvoiceItem[];
+}
+
+export type PaymentMethod = 'CASH' | 'CARD' | 'BANK_TRANSFER' | 'ONLINE' | 'CHEQUE';
+export type PaymentStatus = 'PENDING' | 'COMPLETED' | 'FAILED' | 'REFUNDED';
+
+export interface Payment {
+  id: string;
+  paymentNumber: string;
+  direction: 'INBOUND' | 'OUTBOUND';
+  amount: string;
+  currency: string;
+  method: PaymentMethod;
+  status: PaymentStatus;
+  referenceType: 'ORDER' | 'INVOICE' | 'PURCHASE_ORDER' | 'EXPENSE' | 'OTHER' | null;
+  referenceId: string | null;
+  paidAt: string | null;
+  notes: string | null;
+  createdAt: string;
+  payerCustomer: { id: string; name: string; companyName: string | null } | null;
+  recordedBy: { id: string; fullName: string; username: string } | null;
 }

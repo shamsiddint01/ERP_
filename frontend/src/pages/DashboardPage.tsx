@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
-import { Alert, Card, Col, Row, Statistic, Table, Typography } from 'antd';
-import { getDashboardSummary } from '../api/dashboard';
+import { Card, Col, Row, Statistic, Table, Typography } from 'antd';
+import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { getDashboardSummary, getRevenueChart } from '../api/dashboard';
 import { useAuthStore } from '../store/auth.store';
 import type { StockMovement } from '../types';
 
@@ -16,17 +17,46 @@ const MOVEMENT_TYPE_LABELS: Record<string, string> = {
 export function DashboardPage() {
   const user = useAuthStore((state) => state.user);
   const summaryQuery = useQuery({ queryKey: ['dashboard-summary'], queryFn: getDashboardSummary });
+  const revenueChartQuery = useQuery({ queryKey: ['revenue-chart'], queryFn: () => getRevenueChart(14) });
 
   return (
     <div>
       <Typography.Title level={3}>Xush kelibsiz, {user?.fullName}</Typography.Title>
-      <Alert
-        style={{ marginBottom: 24 }}
-        type="info"
-        showIcon
-        title="Customers/Products/Inventory statistikasi jonli"
-        description="Daromad, xarajat va sotuvlar bo'yicha moliyaviy statistikalar Sales/Finance modullari qurilgach (keyingi bosqichlarda) shu yerga qo'shiladi."
-      />
+
+      <Row gutter={16} style={{ marginBottom: 16 }}>
+        <Col span={6}>
+          <Card>
+            <Statistic title="Jami daromad (yakunlangan sotuvlar)" value={summaryQuery.data?.totalRevenue ?? 0} loading={summaryQuery.isLoading} suffix="UZS" />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic title="Buyurtmalar" value={summaryQuery.data?.ordersCount ?? 0} loading={summaryQuery.isLoading} />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic
+              title="Kutilayotgan buyurtmalar"
+              value={summaryQuery.data?.pendingOrdersCount ?? 0}
+              loading={summaryQuery.isLoading}
+              styles={{ content: { color: '#1677ff' } }}
+            />
+          </Card>
+        </Col>
+        <Col span={6}>
+          <Card>
+            <Statistic
+              title="Kutilayotgan to'lovlar"
+              value={summaryQuery.data?.outstandingPaymentsAmount ?? 0}
+              loading={summaryQuery.isLoading}
+              suffix="UZS"
+              styles={{ content: { color: '#faad14' } }}
+            />
+          </Card>
+        </Col>
+      </Row>
+
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={4}>
           <Card>
@@ -45,7 +75,7 @@ export function DashboardPage() {
         </Col>
         <Col span={4}>
           <Card>
-            <Statistic title="Kutilayotgan xaridlar" value={summaryQuery.data?.pendingPurchaseOrdersCount ?? 0} loading={summaryQuery.isLoading} />
+            <Statistic title="To'langan hisob-fakturalar" value={summaryQuery.data?.paidInvoicesCount ?? 0} loading={summaryQuery.isLoading} />
           </Card>
         </Col>
         <Col span={4}>
@@ -69,6 +99,18 @@ export function DashboardPage() {
           </Card>
         </Col>
       </Row>
+
+      <Card title="Daromad dinamikasi (so'nggi 14 kun)" style={{ marginBottom: 24 }}>
+        <ResponsiveContainer width="100%" height={260}>
+          <LineChart data={revenueChartQuery.data}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+            <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={(v: string) => v.slice(5)} />
+            <YAxis tick={{ fontSize: 11 }} />
+            <Tooltip formatter={(value) => Number(value).toLocaleString('uz-UZ')} />
+            <Line type="monotone" dataKey="revenue" stroke="#1677ff" strokeWidth={2} dot={false} />
+          </LineChart>
+        </ResponsiveContainer>
+      </Card>
 
       <Card title="So'nggi ombor harakatlari">
         <Table<StockMovement>

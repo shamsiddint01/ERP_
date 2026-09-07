@@ -21,6 +21,10 @@ import { InventoryModule } from './modules/inventory/inventory.module.js';
 import { DashboardModule } from './modules/dashboard/dashboard.module.js';
 import { SuppliersModule } from './modules/suppliers/suppliers.module.js';
 import { PurchasesModule } from './modules/purchases/purchases.module.js';
+import { FinanceLedgerModule } from './shared/finance/finance.module.js';
+import { OrdersModule } from './modules/orders/orders.module.js';
+import { InvoicesModule } from './modules/invoices/invoices.module.js';
+import { PaymentsModule } from './modules/payments/payments.module.js';
 
 @Module({
   imports: [
@@ -41,6 +45,10 @@ import { PurchasesModule } from './modules/purchases/purchases.module.js';
     DashboardModule,
     SuppliersModule,
     PurchasesModule,
+    FinanceLedgerModule,
+    OrdersModule,
+    InvoicesModule,
+    PaymentsModule,
   ],
   controllers: [AppController],
   providers: [

@@ -109,6 +109,104 @@ export class InventoryService {
     });
   }
 
+  /**
+   * Carves out stock for an order that has been confirmed but not yet
+   * fulfilled — quantityOnHand is untouched, only quantityReserved grows, so
+   * "available to sell" (onHand - reserved) shrinks immediately without
+   * physically moving anything yet. Used by Orders.confirm().
+   */
+  async reserveStock(params: { productId: string; warehouseId: string; quantity: number }, tx?: TransactionClient): Promise<void> {
+    if (!tx) {
+      return this.prisma.$transaction((trx) => this.reserveStock(params, trx));
+    }
+
+    const stock = await tx.inventoryStock.findUnique({
+      where: { productId_warehouseId: { productId: params.productId, warehouseId: params.warehouseId } },
+    });
+    const available = stock ? Number(stock.quantityOnHand) - Number(stock.quantityReserved) : 0;
+    if (!stock || available < params.quantity) {
+      throw new ConflictException(`Insufficient stock to reserve: available ${available}, requested ${params.quantity}`);
+    }
+
+    const updateResult = await tx.inventoryStock.updateMany({
+      where: { id: stock.id, version: stock.version },
+      data: { quantityReserved: { increment: params.quantity }, version: { increment: 1 } },
+    });
+    if (updateResult.count === 0) {
+      throw new ConflictException('Stock was modified concurrently — please retry');
+    }
+  }
+
+  /** Releases a reservation without touching physical stock — used by Orders.cancel(). */
+  async releaseReservedStock(params: { productId: string; warehouseId: string; quantity: number }, tx?: TransactionClient): Promise<void> {
+    if (!tx) {
+      return this.prisma.$transaction((trx) => this.releaseReservedStock(params, trx));
+    }
+
+    const stock = await tx.inventoryStock.findUnique({
+      where: { productId_warehouseId: { productId: params.productId, warehouseId: params.warehouseId } },
+    });
+    if (!stock) return;
+
+    const updateResult = await tx.inventoryStock.updateMany({
+      where: { id: stock.id, version: stock.version },
+      data: { quantityReserved: { decrement: Math.min(params.quantity, Number(stock.quantityReserved)) }, version: { increment: 1 } },
+    });
+    if (updateResult.count === 0) {
+      throw new ConflictException('Stock was modified concurrently — please retry');
+    }
+  }
+
+  /**
+   * Turns a reservation into an actual stock decrease — quantityOnHand and
+   * quantityReserved both drop together, and a StockMovement(STOCK_OUT) is
+   * written so the ledger still shows every physical change. Used by
+   * Orders.complete().
+   */
+  async fulfillReservedStock(
+    params: { productId: string; warehouseId: string; quantity: number; referenceType: StockReferenceType; referenceId: string; performedByUserId?: string },
+    tx?: TransactionClient,
+  ): Promise<StockMovementWithRelations> {
+    if (!tx) {
+      return this.prisma.$transaction((trx) => this.fulfillReservedStock(params, trx));
+    }
+
+    const stock = await tx.inventoryStock.findUnique({
+      where: { productId_warehouseId: { productId: params.productId, warehouseId: params.warehouseId } },
+    });
+    if (!stock) throw new ConflictException('No stock recorded for this product at this warehouse');
+
+    const previousQuantity = Number(stock.quantityOnHand);
+    const newQuantity = previousQuantity - params.quantity;
+    const newReserved = Math.max(0, Number(stock.quantityReserved) - params.quantity);
+
+    const updateResult = await tx.inventoryStock.updateMany({
+      where: { id: stock.id, version: stock.version },
+      data: { quantityOnHand: newQuantity, quantityReserved: newReserved, version: { increment: 1 } },
+    });
+    if (updateResult.count === 0) {
+      throw new ConflictException('Stock was modified concurrently — please retry');
+    }
+
+    return tx.stockMovement.create({
+      data: {
+        productId: params.productId,
+        warehouseId: params.warehouseId,
+        movementType: 'STOCK_OUT',
+        quantity: params.quantity,
+        previousQuantity,
+        balanceAfter: newQuantity,
+        referenceType: params.referenceType,
+        referenceId: params.referenceId,
+        performedByUserId: params.performedByUserId,
+      },
+      include: {
+        product: { select: { id: true, name: true, sku: true } },
+        warehouse: { select: { id: true, name: true } },
+      },
+    });
+  }
+
   stockIn(dto: StockInDto, userId: string) {
     return this.adjustStock({
       productId: dto.productId,
