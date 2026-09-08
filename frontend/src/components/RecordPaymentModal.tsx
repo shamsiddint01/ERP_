@@ -7,7 +7,7 @@ import type { PaymentMethod } from '../types';
 interface RecordPaymentModalProps {
   open: boolean;
   onClose: () => void;
-  referenceType: 'ORDER' | 'INVOICE';
+  referenceType: 'ORDER' | 'INVOICE' | 'PURCHASE_ORDER';
   referenceId: string;
   remaining: number;
 }
@@ -47,6 +47,10 @@ export function RecordPaymentModal({ open, onClose, referenceType, referenceId, 
       queryClient.invalidateQueries({ queryKey: ['payments'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
       queryClient.invalidateQueries({ queryKey: ['customer'] });
+      queryClient.invalidateQueries({ queryKey: ['purchase-order'] });
+      queryClient.invalidateQueries({ queryKey: ['purchases'] });
+      queryClient.invalidateQueries({ queryKey: ['supplier'] });
+      queryClient.invalidateQueries({ queryKey: ['reports'] });
       form.resetFields();
       onClose();
     },

@@ -211,6 +211,16 @@ export interface DashboardSummary {
   pendingOrdersCount: number;
   outstandingPaymentsAmount: number;
   paidInvoicesCount: number;
+  finance: {
+    cash: number;
+    bank: number;
+    totalCash: number;
+    accountsReceivable: number;
+    accountsPayable: number;
+    totalRevenue: number;
+    totalExpenses: number;
+    netProfit: number;
+  };
 }
 
 export interface RevenueChartPoint {
@@ -380,5 +390,163 @@ export interface Payment {
   notes: string | null;
   createdAt: string;
   payerCustomer: { id: string; name: string; companyName: string | null } | null;
+  payeeSupplier: { id: string; companyName: string } | null;
   recordedBy: { id: string; fullName: string; username: string } | null;
+}
+
+// =========================================================================
+// FINANCE (Chart of Accounts, Expenses, Reports) — Phase 5
+// =========================================================================
+
+export type AccountCategory = 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE';
+export type AccountType = 'CASH' | 'BANK' | 'RECEIVABLE' | 'PAYABLE' | 'REVENUE' | 'EXPENSE' | 'EQUITY' | 'INVENTORY';
+
+export interface Account {
+  id: string;
+  code: string;
+  name: string;
+  type: AccountType;
+  category: AccountCategory;
+  parentId: string | null;
+  parent: { id: string; code: string; name: string } | null;
+  description: string | null;
+  isPostable: boolean;
+  isSystemAccount: boolean;
+  currency: string;
+  openingBalance: string;
+  currentBalance: string;
+  isActive: boolean;
+  createdAt: string;
+  children?: Account[];
+}
+
+export interface ExpenseCategoryItem {
+  id: string;
+  name: string;
+  isSystem: boolean;
+  accountId: string | null;
+  account: { id: string; code: string; name: string } | null;
+  _count?: { expenses: number };
+}
+
+export type ExpenseStatus = 'DRAFT' | 'PENDING' | 'APPROVED' | 'PAID' | 'REJECTED' | 'CANCELLED';
+
+export interface Expense {
+  id: string;
+  expenseNumber: string;
+  categoryId: string;
+  category: ExpenseCategoryItem;
+  amount: string;
+  expenseDate: string;
+  description: string | null;
+  vendorSupplierId: string | null;
+  vendorSupplier: { id: string; companyName: string } | null;
+  responsibleEmployeeId: string | null;
+  responsibleEmployee: { id: string; fullName: string } | null;
+  paymentMethod: PaymentMethod;
+  paymentAccountId: string | null;
+  paymentAccount: { id: string; code: string; name: string } | null;
+  status: ExpenseStatus;
+  approvedBy: { id: string; fullName: string; username: string } | null;
+  approvedAt: string | null;
+  paidAt: string | null;
+  receiptAttachmentUrl: string | null;
+  createdBy: { id: string; fullName: string; username: string } | null;
+  createdAt: string;
+}
+
+export interface TrialBalanceRow {
+  accountId: string;
+  code: string;
+  name: string;
+  category: AccountCategory;
+  debit: number;
+  credit: number;
+}
+
+export interface TrialBalanceReport {
+  asOf: string;
+  rows: TrialBalanceRow[];
+  totalDebit: number;
+  totalCredit: number;
+  isBalanced: boolean;
+}
+
+export interface ProfitAndLossLine {
+  accountId: string;
+  code: string;
+  name: string;
+  amount: number;
+}
+
+export interface ProfitAndLossReport {
+  from: string | null;
+  to: string;
+  revenueLines: ProfitAndLossLine[];
+  expenseLines: ProfitAndLossLine[];
+  totalRevenue: number;
+  totalExpense: number;
+  netIncome: number;
+}
+
+export interface BalanceSheetLine {
+  accountId: string | null;
+  code: string | null;
+  name: string;
+  amount: number;
+}
+
+export interface BalanceSheetReport {
+  asOf: string;
+  assetLines: BalanceSheetLine[];
+  liabilityLines: BalanceSheetLine[];
+  equityLines: BalanceSheetLine[];
+  totalAssets: number;
+  totalLiabilities: number;
+  totalEquity: number;
+  isBalanced: boolean;
+}
+
+export interface CashFlowEntry {
+  entryNumber: string;
+  entryDate: string;
+  description: string;
+  referenceType: string | null;
+  account: { id: string; code: string; name: string };
+  debit: number;
+  credit: number;
+}
+
+export interface CashFlowReport {
+  from: string | null;
+  to: string;
+  openingBalance: number;
+  inflows: number;
+  outflows: number;
+  netChange: number;
+  closingBalance: number;
+  entries: CashFlowEntry[];
+}
+
+export interface GeneralLedgerRow {
+  entryNumber: string;
+  entryDate: string;
+  description: string;
+  referenceType: string | null;
+  referenceId: string | null;
+  account: { id: string; code: string; name: string; category: AccountCategory };
+  debit: number;
+  credit: number;
+  runningBalance: number;
+}
+
+export interface GeneralLedgerReport {
+  rows: GeneralLedgerRow[];
+  count: number;
+}
+
+export interface ReconciliationReport {
+  controlBalance: number;
+  subledgerTotal: number;
+  variance: number;
 }

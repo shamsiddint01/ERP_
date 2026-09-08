@@ -2,9 +2,11 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AuditEntityRegistryService } from '../../shared/audit/audit-entity-registry.service.js';
+import { FinanceLedgerService } from '../../shared/finance/finance-ledger.service.js';
 import type { PaginatedResult } from '../../shared/types/paginated-result.js';
 import { generateDocumentNumber } from '../../shared/utils/document-number.util.js';
 import { computeLineItemTotals } from '../../shared/utils/line-item-totals.util.js';
+import { computePaymentStatus } from '../../shared/utils/payment-status.util.js';
 import { InventoryService } from '../inventory/inventory.service.js';
 import type { CreatePurchaseOrderDto, PurchaseOrderItemDto } from './dto/create-purchase-order.dto.js';
 import type { QueryPurchaseOrderDto } from './dto/query-purchase-order.dto.js';
@@ -28,6 +30,7 @@ export class PurchasesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly inventoryService: InventoryService,
+    private readonly financeLedger: FinanceLedgerService,
     registry: AuditEntityRegistryService,
   ) {
     registry.register('PurchaseOrder', (id) => this.prisma.purchaseOrder.findUnique({ where: { id } }));
@@ -194,6 +197,13 @@ export class PurchasesService {
 
       await tx.supplier.update({ where: { id: po.supplierId }, data: { balance: { increment: supplierDebtIncrease } } });
 
+      if (supplierDebtIncrease > 0) {
+        await this.financeLedger.recordPurchaseReceipt(
+          { amount: supplierDebtIncrease, poId: po.id, poNumber: po.poNumber, createdByUserId: userId },
+          tx,
+        );
+      }
+
       const refreshedItems = await tx.purchaseOrderItem.findMany({ where: { purchaseOrderId: id } });
       const fullyReceived = refreshedItems.every((item) => Number(item.quantityReceived) >= Number(item.quantity));
 
@@ -213,5 +223,30 @@ export class PurchasesService {
       throw new ConflictException(`Cannot cancel a purchase order once receiving has started (current: ${po.status})`);
     }
     return this.prisma.purchaseOrder.update({ where: { id }, data: { status: 'CANCELLED' }, include: PO_INCLUDE });
+  }
+
+  /** Shared by PaymentsService: applies a completed supplier payment's amount to a purchase order and reconciles its payment status. */
+  async applyPayment(purchaseOrderId: string, amount: number, tx: Prisma.TransactionClient) {
+    const po = await tx.purchaseOrder.findUniqueOrThrow({ where: { id: purchaseOrderId } });
+    if (po.status === 'CANCELLED') throw new BadRequestException('Cannot record a payment against a cancelled purchase order');
+    const remaining = Number(po.grandTotal) - Number(po.amountPaid);
+    if (amount > remaining) {
+      throw new BadRequestException(`Payment amount ${amount} exceeds the remaining balance ${remaining}`);
+    }
+    const newAmountPaid = Number(po.amountPaid) + amount;
+    return tx.purchaseOrder.update({
+      where: { id: purchaseOrderId },
+      data: { amountPaid: newAmountPaid, paymentStatus: computePaymentStatus(newAmountPaid, Number(po.grandTotal)) },
+    });
+  }
+
+  /** Shared by PaymentsService.refund(): reverses a previously-applied supplier payment amount. */
+  async reversePayment(purchaseOrderId: string, amount: number, tx: Prisma.TransactionClient) {
+    const po = await tx.purchaseOrder.findUniqueOrThrow({ where: { id: purchaseOrderId } });
+    const newAmountPaid = Math.max(0, Number(po.amountPaid) - amount);
+    return tx.purchaseOrder.update({
+      where: { id: purchaseOrderId },
+      data: { amountPaid: newAmountPaid, paymentStatus: computePaymentStatus(newAmountPaid, Number(po.grandTotal)) },
+    });
   }
 }

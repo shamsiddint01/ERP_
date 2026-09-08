@@ -139,6 +139,18 @@ enum AccountType {
   REVENUE
   EXPENSE
   EQUITY
+  INVENTORY
+}
+
+/// The 5 fundamental account categories every AccountType rolls up into —
+/// drives normal-balance rules (ASSET/EXPENSE = debit-normal,
+/// LIABILITY/EQUITY/REVENUE = credit-normal) and the financial statements.
+enum AccountCategory {
+  ASSET
+  LIABILITY
+  EQUITY
+  REVENUE
+  EXPENSE
 }
 
 enum TransactionType {
@@ -163,10 +175,12 @@ enum TransactionReferenceType {
 }
 
 enum ExpenseStatus {
+  DRAFT
   PENDING
   APPROVED
   PAID
   REJECTED
+  CANCELLED
 }
 
 enum EmployeeStatus {
@@ -255,7 +269,9 @@ model User {
   approvedPurchaseOrders  PurchaseOrder[]   @relation("PurchaseOrderApprovedBy")
   recordedPayments        Payment[]         @relation("PaymentRecordedBy")
   createdExpenses         Expense[]         @relation("ExpenseCreatedBy")
+  approvedExpenses        Expense[]         @relation("ExpenseApprovedBy")
   createdTransactions     Transaction[]     @relation("TransactionCreatedBy")
+  createdJournalEntries   JournalEntry[]    @relation("JournalEntryCreatedBy")
   stockMovements          StockMovement[]   @relation("StockMovementPerformedBy")
   requestedStockTransfers StockTransfer[]   @relation("StockTransferRequestedBy")
   requestedReportJobs     ReportExportJob[] @relation("ReportJobRequestedBy")
@@ -516,6 +532,7 @@ model Supplier {
   supplierProducts SupplierProduct[]
   purchaseOrders   PurchaseOrder[]
   payments         Payment[]         @relation("PaymentPayeeSupplier")
+  expenses         Expense[]
 
   @@map("suppliers")
 }
@@ -724,17 +741,31 @@ model Payment {
 // =========================================================================
 
 model Account {
-  id             String      @id @default(uuid())
-  name           String
-  type           AccountType
-  currency       String      @default("UZS")
-  openingBalance Decimal     @default(0) @map("opening_balance") @db.Decimal(18, 2)
-  currentBalance Decimal     @default(0) @map("current_balance") @db.Decimal(18, 2)
-  isActive       Boolean     @default(true) @map("is_active")
-  createdAt      DateTime    @default(now()) @map("created_at")
-  updatedAt      DateTime    @updatedAt @map("updated_at")
+  id              String          @id @default(uuid())
+  code            String          @unique
+  name            String
+  type            AccountType
+  category        AccountCategory
+  parentId        String?         @map("parent_id")
+  parent          Account?        @relation("AccountHierarchy", fields: [parentId], references: [id])
+  children        Account[]       @relation("AccountHierarchy")
+  description     String?
+  /// Header/group accounts (e.g. "1000 Assets") exist purely for hierarchy
+  /// display and roll-up totals — journal lines may only post to isPostable=true leaves.
+  isPostable      Boolean         @default(true) @map("is_postable")
+  /// System accounts (seeded, load-bearing for the accounting engine) cannot be deactivated via the API.
+  isSystemAccount Boolean         @default(false) @map("is_system_account")
+  currency        String          @default("UZS")
+  openingBalance  Decimal         @default(0) @map("opening_balance") @db.Decimal(18, 2)
+  currentBalance  Decimal         @default(0) @map("current_balance") @db.Decimal(18, 2)
+  isActive        Boolean         @default(true) @map("is_active")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
 
-  transactions Transaction[]
+  transactions  Transaction[]
+  journalLines  JournalLine[]
+  expenseCategories ExpenseCategory[]
+  expensePayments   Expense[]         @relation("ExpensePaymentAccount")
 
   @@map("accounts")
 }
@@ -755,10 +786,54 @@ model Transaction {
   createdBy         User                      @relation("TransactionCreatedBy", fields: [createdByUserId], references: [id])
   createdAt         DateTime                  @default(now()) @map("created_at")
 
+  /// Optional link to the double-entry JournalEntry that actually backs this
+  /// row (nullable so historical Phase 4 rows, created before the Chart of
+  /// Accounts existed, remain valid and untouched).
+  journalEntryId String?       @unique @map("journal_entry_id")
+  journalEntry   JournalEntry? @relation(fields: [journalEntryId], references: [id])
+
   @@index([referenceType, referenceId])
   @@index([transactionDate])
   @@index([accountId])
   @@map("transactions")
+}
+
+/// The header of a balanced double-entry posting — see JournalLine for the
+/// actual debit/credit rows. entryDate/description mirror Transaction so a
+/// JournalEntry can stand alone even where no Transaction row exists (e.g.
+/// Expense postings, which never had a Transaction-writing path before this phase).
+model JournalEntry {
+  id              String                    @id @default(uuid())
+  entryNumber     String                    @unique @map("entry_number")
+  entryDate       DateTime                  @map("entry_date") @db.Date
+  description     String
+  referenceType   TransactionReferenceType? @map("reference_type")
+  referenceId     String?                   @map("reference_id")
+  createdByUserId String                    @map("created_by_user_id")
+  createdBy       User                      @relation("JournalEntryCreatedBy", fields: [createdByUserId], references: [id])
+  createdAt       DateTime                  @default(now()) @map("created_at")
+
+  lines       JournalLine[]
+  transaction Transaction?
+
+  @@index([referenceType, referenceId])
+  @@index([entryDate])
+  @@map("journal_entries")
+}
+
+model JournalLine {
+  id             String       @id @default(uuid())
+  journalEntryId String       @map("journal_entry_id")
+  journalEntry   JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+  accountId      String       @map("account_id")
+  account        Account      @relation(fields: [accountId], references: [id])
+  debit          Decimal      @default(0) @db.Decimal(18, 2)
+  credit         Decimal      @default(0) @db.Decimal(18, 2)
+  description    String?
+
+  @@index([accountId])
+  @@index([journalEntryId])
+  @@map("journal_lines")
 }
 
 // =========================================================================
@@ -769,6 +844,10 @@ model ExpenseCategory {
   id        String   @id @default(uuid())
   name      String   @unique
   isSystem  Boolean  @default(false) @map("is_system")
+  /// The Expense-type Chart of Accounts leaf this category posts to
+  /// (e.g. "Rent" category -> "5100 Rent Expense" account).
+  accountId String?  @map("account_id")
+  account   Account? @relation(fields: [accountId], references: [id])
   createdAt DateTime @default(now()) @map("created_at")
 
   expenses Expense[]
@@ -778,15 +857,25 @@ model ExpenseCategory {
 
 model Expense {
   id                    String          @id @default(uuid())
+  expenseNumber         String          @unique @map("expense_number")
   categoryId            String          @map("category_id")
   category              ExpenseCategory @relation(fields: [categoryId], references: [id])
   amount                Decimal         @db.Decimal(18, 2)
   expenseDate           DateTime        @map("expense_date") @db.Date
   description           String?
+  vendorSupplierId      String?         @map("vendor_supplier_id")
+  vendorSupplier        Supplier?       @relation(fields: [vendorSupplierId], references: [id])
   responsibleEmployeeId String?         @map("responsible_employee_id")
   responsibleEmployee   Employee?       @relation(fields: [responsibleEmployeeId], references: [id])
   paymentMethod         PaymentMethod   @map("payment_method")
-  status                ExpenseStatus   @default(PENDING)
+  /// Which Cash/Bank account was actually debited-out when paid — set at PAID time, not before.
+  paymentAccountId      String?         @map("payment_account_id")
+  paymentAccount        Account?        @relation("ExpensePaymentAccount", fields: [paymentAccountId], references: [id])
+  status                ExpenseStatus   @default(DRAFT)
+  approvedByUserId      String?         @map("approved_by_user_id")
+  approvedBy            User?           @relation("ExpenseApprovedBy", fields: [approvedByUserId], references: [id])
+  approvedAt            DateTime?       @map("approved_at")
+  paidAt                DateTime?       @map("paid_at")
   receiptAttachmentUrl  String?         @map("receipt_attachment_url")
   createdByUserId       String          @map("created_by_user_id")
   createdBy             User            @relation("ExpenseCreatedBy", fields: [createdByUserId], references: [id])

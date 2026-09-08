@@ -8,6 +8,10 @@ export class QueryPaymentDto extends PaginationQueryDto {
   customerId?: string;
 
   @IsOptional()
+  @IsUUID()
+  supplierId?: string;
+
+  @IsOptional()
   @IsEnum(PaymentMethod)
   method?: PaymentMethod;
 

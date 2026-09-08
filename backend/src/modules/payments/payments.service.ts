@@ -7,11 +7,13 @@ import type { PaginatedResult } from '../../shared/types/paginated-result.js';
 import { generateDocumentNumber } from '../../shared/utils/document-number.util.js';
 import { InvoicesService } from '../invoices/invoices.service.js';
 import { OrdersService } from '../orders/orders.service.js';
+import { PurchasesService } from '../purchases/purchases.service.js';
 import type { CreatePaymentDto } from './dto/create-payment.dto.js';
 import type { QueryPaymentDto } from './dto/query-payment.dto.js';
 
 const PAYMENT_INCLUDE = {
   payerCustomer: { select: { id: true, name: true, companyName: true } },
+  payeeSupplier: { select: { id: true, companyName: true } },
   recordedBy: { select: { id: true, fullName: true, username: true } },
 } satisfies Prisma.PaymentInclude;
 
@@ -21,6 +23,7 @@ export class PaymentsService {
     private readonly prisma: PrismaService,
     private readonly ordersService: OrdersService,
     private readonly invoicesService: InvoicesService,
+    private readonly purchasesService: PurchasesService,
     private readonly financeLedger: FinanceLedgerService,
     registry: AuditEntityRegistryService,
   ) {
@@ -32,6 +35,7 @@ export class PaymentsService {
     const pageSize = query.pageSize ?? 20;
     const where: Prisma.PaymentWhereInput = {
       payerCustomerId: query.customerId,
+      payeeSupplierId: query.supplierId,
       method: query.method,
       status: query.status,
       ...(query.search && { paymentNumber: { contains: query.search, mode: 'insensitive' } }),
@@ -64,13 +68,51 @@ export class PaymentsService {
   }
 
   /**
-   * Records money received against an Order or Invoice, in one transaction:
-   * reconciles the target's amountPaid/status (rejecting overpayment), keeps
-   * a linked Order in sync when the target is its Invoice, updates the
-   * customer's outstanding balance, and posts a PAYMENT_IN ledger entry.
+   * Records a completed payment in one transaction. Two shapes:
+   *  - Customer payment (referenceType ORDER/INVOICE, direction INBOUND):
+   *    reconciles the target's amountPaid/status (rejecting overpayment),
+   *    keeps a linked Order in sync when the target is its Invoice, decreases
+   *    the customer's outstanding balance, and posts Dr Cash/Bank / Cr AR.
+   *  - Supplier payment (referenceType PURCHASE_ORDER, direction OUTBOUND):
+   *    reconciles the purchase order's amountPaid/status, decreases the
+   *    supplier's outstanding balance, and posts Dr AP / Cr Cash/Bank.
    */
   async create(dto: CreatePaymentDto, userId: string) {
     return this.prisma.$transaction(async (tx) => {
+      if (dto.referenceType === 'PURCHASE_ORDER') {
+        const po = await tx.purchaseOrder.findUnique({ where: { id: dto.referenceId } });
+        if (!po) throw new NotFoundException('Purchase order not found');
+        await this.purchasesService.applyPayment(dto.referenceId, dto.amount, tx);
+
+        const paymentNumber = await generateDocumentNumber('PAY', () => tx.payment.count());
+        const payment = await tx.payment.create({
+          data: {
+            paymentNumber,
+            direction: 'OUTBOUND',
+            amount: dto.amount,
+            method: dto.method,
+            status: 'COMPLETED',
+            payeeSupplierId: po.supplierId,
+            referenceType: dto.referenceType,
+            referenceId: dto.referenceId,
+            externalTransactionId: dto.externalTransactionId,
+            paidAt: new Date(),
+            recordedByUserId: userId,
+            notes: dto.notes,
+          },
+          include: PAYMENT_INCLUDE,
+        });
+
+        await tx.supplier.update({ where: { id: po.supplierId }, data: { balance: { decrement: dto.amount } } });
+
+        await this.financeLedger.recordSupplierPayment(
+          { amount: dto.amount, method: dto.method, paymentId: payment.id, paymentNumber: payment.paymentNumber, createdByUserId: userId },
+          tx,
+        );
+
+        return payment;
+      }
+
       let payerCustomerId: string;
 
       if (dto.referenceType === 'ORDER') {
@@ -109,15 +151,8 @@ export class PaymentsService {
 
       await tx.customer.update({ where: { id: payerCustomerId }, data: { balance: { decrement: dto.amount } } });
 
-      await this.financeLedger.recordTransaction(
-        {
-          type: 'PAYMENT_IN',
-          amount: dto.amount,
-          referenceType: 'PAYMENT',
-          referenceId: payment.id,
-          description: `Payment ${payment.paymentNumber} received via ${dto.method}`,
-          createdByUserId: userId,
-        },
+      await this.financeLedger.recordCustomerPayment(
+        { amount: dto.amount, method: dto.method, paymentId: payment.id, paymentNumber: payment.paymentNumber, createdByUserId: userId },
         tx,
       );
 
@@ -137,6 +172,19 @@ export class PaymentsService {
       }
 
       const amount = Number(payment.amount);
+
+      if (payment.referenceType === 'PURCHASE_ORDER') {
+        await this.purchasesService.reversePayment(payment.referenceId, amount, tx);
+        if (payment.payeeSupplierId) {
+          await tx.supplier.update({ where: { id: payment.payeeSupplierId }, data: { balance: { increment: amount } } });
+        }
+        await this.financeLedger.recordSupplierRefund(
+          { amount, method: payment.method, paymentId: payment.id, paymentNumber: payment.paymentNumber, createdByUserId: userId },
+          tx,
+        );
+        return tx.payment.update({ where: { id }, data: { status: 'REFUNDED' }, include: PAYMENT_INCLUDE });
+      }
+
       if (payment.referenceType === 'ORDER') {
         await this.ordersService.reversePayment(payment.referenceId, amount, tx);
       } else if (payment.referenceType === 'INVOICE') {
@@ -149,15 +197,8 @@ export class PaymentsService {
         await tx.customer.update({ where: { id: payment.payerCustomerId }, data: { balance: { increment: amount } } });
       }
 
-      await this.financeLedger.recordTransaction(
-        {
-          type: 'REFUND',
-          amount: -amount,
-          referenceType: 'PAYMENT',
-          referenceId: payment.id,
-          description: `Refund for payment ${payment.paymentNumber}`,
-          createdByUserId: userId,
-        },
+      await this.financeLedger.recordCustomerRefund(
+        { amount, method: payment.method, paymentId: payment.id, paymentNumber: payment.paymentNumber, createdByUserId: userId },
         tx,
       );
 

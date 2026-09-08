@@ -25,6 +25,9 @@ import { FinanceLedgerModule } from './shared/finance/finance.module.js';
 import { OrdersModule } from './modules/orders/orders.module.js';
 import { InvoicesModule } from './modules/invoices/invoices.module.js';
 import { PaymentsModule } from './modules/payments/payments.module.js';
+import { AccountsModule } from './modules/accounts/accounts.module.js';
+import { ExpensesModule } from './modules/expenses/expenses.module.js';
+import { ReportsModule } from './modules/reports/reports.module.js';
 
 @Module({
   imports: [
@@ -49,6 +52,9 @@ import { PaymentsModule } from './modules/payments/payments.module.js';
     OrdersModule,
     InvoicesModule,
     PaymentsModule,
+    AccountsModule,
+    ExpensesModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [

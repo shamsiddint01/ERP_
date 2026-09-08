@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
+import { ACCOUNT_CODES } from '../../shared/finance/account-codes.constant.js';
 import { InventoryService } from '../inventory/inventory.service.js';
 
 const PENDING_ORDER_STATUSES = ['DRAFT', 'CONFIRMED', 'PROCESSING'] as const;
@@ -45,6 +46,8 @@ export class DashboardService {
       0,
     );
 
+    const financeKpis = await this.getFinanceKpis();
+
     return {
       customersCount,
       productsCount,
@@ -59,6 +62,33 @@ export class DashboardService {
       pendingOrdersCount,
       outstandingPaymentsAmount,
       paidInvoicesCount,
+      finance: financeKpis,
+    };
+  }
+
+  /** Real double-entry-derived KPIs — every figure comes from Account.currentBalance, never re-derived from Order/Invoice rows. */
+  private async getFinanceKpis() {
+    const accounts = await this.prisma.account.findMany({
+      where: { code: { in: [ACCOUNT_CODES.CASH, ACCOUNT_CODES.BANK, ACCOUNT_CODES.ACCOUNTS_RECEIVABLE, ACCOUNT_CODES.ACCOUNTS_PAYABLE, ACCOUNT_CODES.SALES_REVENUE] } },
+    });
+    const balanceByCode = new Map(accounts.map((a) => [a.code, Number(a.currentBalance)]));
+
+    const expenseAccounts = await this.prisma.account.findMany({ where: { category: 'EXPENSE', isPostable: true } });
+    const totalExpenses = expenseAccounts.reduce((sum, a) => sum + Number(a.currentBalance), 0);
+
+    const totalRevenue = balanceByCode.get(ACCOUNT_CODES.SALES_REVENUE) ?? 0;
+    const cash = balanceByCode.get(ACCOUNT_CODES.CASH) ?? 0;
+    const bank = balanceByCode.get(ACCOUNT_CODES.BANK) ?? 0;
+
+    return {
+      cash,
+      bank,
+      totalCash: cash + bank,
+      accountsReceivable: balanceByCode.get(ACCOUNT_CODES.ACCOUNTS_RECEIVABLE) ?? 0,
+      accountsPayable: balanceByCode.get(ACCOUNT_CODES.ACCOUNTS_PAYABLE) ?? 0,
+      totalRevenue,
+      totalExpenses,
+      netProfit: totalRevenue - totalExpenses,
     };
   }
 

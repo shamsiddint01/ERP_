@@ -1,11 +1,13 @@
 import {
   AppstoreOutlined,
   AuditOutlined,
+  BankOutlined,
   DashboardOutlined,
   DatabaseOutlined,
   DollarOutlined,
   FileTextOutlined,
   LogoutOutlined,
+  PieChartOutlined,
   SafetyCertificateOutlined,
   SettingOutlined,
   ShopOutlined,
@@ -14,6 +16,7 @@ import {
   TeamOutlined,
   TruckOutlined,
   UserOutlined,
+  WalletOutlined,
 } from '@ant-design/icons';
 import { Avatar, Dropdown, Layout, Menu, Space, Typography } from 'antd';
 import { useMemo } from 'react';
@@ -42,6 +45,9 @@ export function AppLayout() {
       { key: '/warehouses', icon: <ShopOutlined />, label: <Link to="/warehouses">Omborlar</Link>, show: hasPermission('inventory', 'VIEW') },
       { key: '/suppliers', icon: <TruckOutlined />, label: <Link to="/suppliers">Yetkazib beruvchilar</Link>, show: hasPermission('suppliers', 'VIEW') },
       { key: '/purchases', icon: <ShoppingCartOutlined />, label: <Link to="/purchases">Xaridlar</Link>, show: hasPermission('purchases', 'VIEW') },
+      { key: '/finance/accounts', icon: <BankOutlined />, label: <Link to="/finance/accounts">Hisoblar rejasi</Link>, show: hasPermission('finance', 'VIEW') },
+      { key: '/expenses', icon: <WalletOutlined />, label: <Link to="/expenses">Xarajatlar</Link>, show: hasPermission('expenses', 'VIEW') },
+      { key: '/finance/reports', icon: <PieChartOutlined />, label: <Link to="/finance/reports">Moliyaviy hisobotlar</Link>, show: hasPermission('reports', 'VIEW') },
       { key: '/users', icon: <TeamOutlined />, label: <Link to="/users">Foydalanuvchilar</Link>, show: hasPermission('users', 'VIEW') },
       { key: '/roles', icon: <SafetyCertificateOutlined />, label: <Link to="/roles">Rollar</Link>, show: hasPermission('roles', 'VIEW') },
       { key: '/audit-log', icon: <AuditOutlined />, label: <Link to="/audit-log">Audit jurnali</Link>, show: hasPermission('audit_logs', 'VIEW') },
@@ -51,6 +57,10 @@ export function AppLayout() {
     // not survive into the array actually passed to <Menu items={...}>.
     return candidates.filter((item) => item.show).map(({ key, icon, label }) => ({ key, icon, label }));
   }, [hasPermission]);
+
+  // `/finance/*` has two-segment menu keys (e.g. "/finance/accounts"); everything else is one segment.
+  const pathParts = location.pathname.split('/');
+  const selectedMenuKey = pathParts[1] === 'finance' ? `/${pathParts[1]}/${pathParts[2] ?? ''}` : `/${pathParts[1] ?? ''}`;
 
   async function handleLogout() {
     await logout().catch(() => undefined);
@@ -62,7 +72,7 @@ export function AppLayout() {
     <Layout style={{ minHeight: '100vh' }}>
       <Sider breakpoint="lg" collapsedWidth="0">
         <div style={{ color: '#fff', textAlign: 'center', padding: '16px 0', fontWeight: 600, fontSize: 18 }}>ERP</div>
-        <Menu theme="dark" mode="inline" selectedKeys={[`/${location.pathname.split('/')[1] ?? ''}`]} items={menuItems} />
+        <Menu theme="dark" mode="inline" selectedKeys={[selectedMenuKey]} items={menuItems} />
       </Sider>
       <Layout>
         <Header style={{ background: '#fff', padding: '0 24px', display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>

@@ -13,7 +13,7 @@ export interface PaymentQuery {
 }
 
 export interface CreatePaymentPayload {
-  referenceType: 'ORDER' | 'INVOICE';
+  referenceType: 'ORDER' | 'INVOICE' | 'PURCHASE_ORDER';
   referenceId: string;
   amount: number;
   method: PaymentMethod;

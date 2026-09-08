@@ -38,7 +38,7 @@ function createPrismaMock(order: ReturnType<typeof createFakeOrder>) {
 function createService(prisma: ReturnType<typeof createPrismaMock>, overrides: Record<string, unknown> = {}) {
   const registry = new AuditEntityRegistryService();
   const inventoryService = { reserveStock: vi.fn().mockResolvedValue(undefined), releaseReservedStock: vi.fn().mockResolvedValue(undefined), fulfillReservedStock: vi.fn().mockResolvedValue({}) };
-  const financeLedger = { recordTransaction: vi.fn().mockResolvedValue({}) };
+  const financeLedger = { recordSale: vi.fn().mockResolvedValue({}) };
   const invoicesService = { createFromOrder: vi.fn().mockResolvedValue({ id: 'inv1', invoiceNumber: 'INV-2026-000001', grandTotal: '1000' }) };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return new OrdersService(prisma as any, { ...inventoryService, ...overrides.inventoryService } as any, financeLedger as any, invoicesService as any, registry);

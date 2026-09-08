@@ -6,6 +6,9 @@ import { AuditLogPage } from './pages/AuditLogPage';
 import { CustomerDetailPage } from './pages/customers/CustomerDetailPage';
 import { CustomersPage } from './pages/customers/CustomersPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { ExpensesPage } from './pages/expenses/ExpensesPage';
+import { AccountsPage } from './pages/finance/AccountsPage';
+import { ReportsPage } from './pages/finance/ReportsPage';
 import { InventoryPage } from './pages/inventory/InventoryPage';
 import { WarehousesPage } from './pages/inventory/WarehousesPage';
 import { InvoicesPage } from './pages/invoices/InvoicesPage';
@@ -44,6 +47,9 @@ export default function App() {
           <Route path="/suppliers/:id" element={<SupplierDetailPage />} />
           <Route path="/purchases" element={<PurchasesPage />} />
           <Route path="/purchases/:id" element={<PurchaseOrderDetailPage />} />
+          <Route path="/finance/accounts" element={<AccountsPage />} />
+          <Route path="/finance/reports" element={<ReportsPage />} />
+          <Route path="/expenses" element={<ExpensesPage />} />
           <Route path="/users" element={<UsersPage />} />
           <Route path="/roles" element={<RolesPage />} />
           <Route path="/audit-log" element={<AuditLogPage />} />

@@ -57,6 +57,51 @@ export function DashboardPage() {
         </Col>
       </Row>
 
+      <Row gutter={16} style={{ marginBottom: 16 }}>
+        <Col span={4}>
+          <Card>
+            <Statistic title="Kassa (Cash)" value={summaryQuery.data?.finance.cash ?? 0} loading={summaryQuery.isLoading} suffix="UZS" />
+          </Card>
+        </Col>
+        <Col span={4}>
+          <Card>
+            <Statistic title="Bank" value={summaryQuery.data?.finance.bank ?? 0} loading={summaryQuery.isLoading} suffix="UZS" />
+          </Card>
+        </Col>
+        <Col span={4}>
+          <Card>
+            <Statistic title="Debitorlik (AR)" value={summaryQuery.data?.finance.accountsReceivable ?? 0} loading={summaryQuery.isLoading} suffix="UZS" />
+          </Card>
+        </Col>
+        <Col span={4}>
+          <Card>
+            <Statistic title="Kreditorlik (AP)" value={summaryQuery.data?.finance.accountsPayable ?? 0} loading={summaryQuery.isLoading} suffix="UZS" />
+          </Card>
+        </Col>
+        <Col span={4}>
+          <Card>
+            <Statistic
+              title="Jami xarajatlar"
+              value={summaryQuery.data?.finance.totalExpenses ?? 0}
+              loading={summaryQuery.isLoading}
+              suffix="UZS"
+              styles={{ content: { color: '#f5222d' } }}
+            />
+          </Card>
+        </Col>
+        <Col span={4}>
+          <Card>
+            <Statistic
+              title="Sof foyda (Net Profit)"
+              value={summaryQuery.data?.finance.netProfit ?? 0}
+              loading={summaryQuery.isLoading}
+              suffix="UZS"
+              styles={{ content: { color: (summaryQuery.data?.finance.netProfit ?? 0) >= 0 ? '#3f8600' : '#f5222d' } }}
+            />
+          </Card>
+        </Col>
+      </Row>
+
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={4}>
           <Card>

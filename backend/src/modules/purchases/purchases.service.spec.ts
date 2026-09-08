@@ -40,8 +40,9 @@ function createPrismaMock(po: ReturnType<typeof createFakePo>) {
 function createService(prisma: ReturnType<typeof createPrismaMock>, inventoryService: Partial<InventoryService> = {}) {
   const registry = new AuditEntityRegistryService();
   const fakeInventory = { adjustStock: vi.fn().mockResolvedValue({}), ...inventoryService };
+  const financeLedger = { recordPurchaseReceipt: vi.fn().mockResolvedValue({}) };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return new PurchasesService(prisma as any, fakeInventory as any, registry);
+  return new PurchasesService(prisma as any, fakeInventory as any, financeLedger as any, registry);
 }
 
 describe('PurchasesService.receive', () => {

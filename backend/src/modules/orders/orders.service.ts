@@ -191,13 +191,11 @@ export class OrdersService {
         );
       }
 
-      await this.financeLedger.recordTransaction(
+      await this.financeLedger.recordSale(
         {
-          type: 'SALE_REVENUE',
           amount: Number(order.grandTotal),
-          referenceType: 'ORDER',
-          referenceId: order.id,
-          description: `Sale revenue for order ${order.orderNumber}`,
+          orderId: order.id,
+          orderNumber: order.orderNumber,
           createdByUserId: userId,
         },
         tx,

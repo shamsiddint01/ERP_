@@ -14,20 +14,28 @@ function createPrismaMock() {
       update: vi.fn().mockImplementation(({ data }) => Promise.resolve({ id: 'pay1', ...data })),
     },
     customer: { update: vi.fn().mockResolvedValue({}) },
+    supplier: { update: vi.fn().mockResolvedValue({}) },
+    purchaseOrder: { findUnique: vi.fn(), findUniqueOrThrow: vi.fn() },
   };
   return { $transaction: vi.fn((cb: (tx: unknown) => unknown) => cb(txStub)), __tx: txStub };
 }
 
 function createService(
   prisma: ReturnType<typeof createPrismaMock>,
-  overrides: { ordersService?: Record<string, unknown>; invoicesService?: Record<string, unknown> } = {},
+  overrides: { ordersService?: Record<string, unknown>; invoicesService?: Record<string, unknown>; purchasesService?: Record<string, unknown> } = {},
 ) {
   const registry = new AuditEntityRegistryService();
   const ordersService = { applyPayment: vi.fn().mockResolvedValue({}), reversePayment: vi.fn().mockResolvedValue({}), ...overrides.ordersService };
   const invoicesService = { applyPayment: vi.fn().mockResolvedValue({}), reversePayment: vi.fn().mockResolvedValue({}), ...overrides.invoicesService };
-  const financeLedger = { recordTransaction: vi.fn().mockResolvedValue({}) };
+  const purchasesService = { applyPayment: vi.fn().mockResolvedValue({}), reversePayment: vi.fn().mockResolvedValue({}), ...overrides.purchasesService };
+  const financeLedger = {
+    recordCustomerPayment: vi.fn().mockResolvedValue({}),
+    recordCustomerRefund: vi.fn().mockResolvedValue({}),
+    recordSupplierPayment: vi.fn().mockResolvedValue({}),
+    recordSupplierRefund: vi.fn().mockResolvedValue({}),
+  };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return new PaymentsService(prisma as any, ordersService as any, invoicesService as any, financeLedger as any, registry);
+  return new PaymentsService(prisma as any, ordersService as any, invoicesService as any, purchasesService as any, financeLedger as any, registry);
 }
 
 describe('PaymentsService.create', () => {

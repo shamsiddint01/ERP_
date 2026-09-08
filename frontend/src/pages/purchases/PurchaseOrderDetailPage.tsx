@@ -1,4 +1,4 @@
-import { ArrowLeftOutlined, InboxOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, DollarOutlined, InboxOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { App, Button, Card, Col, Descriptions, Form, InputNumber, Modal, Popconfirm, Row, Space, Spin, Table, Tag, Typography } from 'antd';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -11,6 +11,7 @@ import {
   submitPurchaseOrder,
   type ReceiveItemPayload,
 } from '../../api/purchases';
+import { RecordPaymentModal } from '../../components/RecordPaymentModal';
 import { useAuthStore } from '../../store/auth.store';
 import type { PurchaseOrderItem, PurchaseOrderStatus } from '../../types';
 
@@ -87,6 +88,7 @@ export function PurchaseOrderDetailPage() {
   const hasPermission = useAuthStore((state) => state.hasPermission);
   const queryClient = useQueryClient();
   const [receiveModalOpen, setReceiveModalOpen] = useState(false);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
 
   const poQuery = useQuery({ queryKey: ['purchase-order', id], queryFn: () => getPurchaseOrder(id!), enabled: !!id });
 
@@ -169,6 +171,13 @@ export function PurchaseOrderDetailPage() {
                   Qabul qilish
                 </Button>
               )}
+              {['RECEIVED', 'PARTIALLY_RECEIVED'].includes(po.status) &&
+                Number(po.amountPaid) < Number(po.grandTotal) &&
+                hasPermission('payments', 'CREATE') && (
+                  <Button icon={<DollarOutlined />} onClick={() => setPaymentModalOpen(true)}>
+                    To'lov qilish
+                  </Button>
+                )}
               {['DRAFT', 'PENDING', 'APPROVED'].includes(po.status) && canEdit && (
                 <Popconfirm title="Buyurtmani bekor qilish?" onConfirm={() => cancelMutation.mutate()}>
                   <Button danger loading={cancelMutation.isPending}>
@@ -184,6 +193,9 @@ export function PurchaseOrderDetailPage() {
           <Descriptions.Item label="Sana">{new Date(po.orderDate).toLocaleDateString('uz-UZ')}</Descriptions.Item>
           <Descriptions.Item label="Yaratdi">{po.createdBy?.fullName ?? '—'}</Descriptions.Item>
           {po.approvedBy && <Descriptions.Item label="Tasdiqladi">{po.approvedBy.fullName}</Descriptions.Item>}
+          <Descriptions.Item label="To'langan">
+            {Number(po.amountPaid).toLocaleString('uz-UZ')} / {Number(po.grandTotal).toLocaleString('uz-UZ')} ({po.paymentStatus})
+          </Descriptions.Item>
           {po.notes && <Descriptions.Item label="Izoh">{po.notes}</Descriptions.Item>}
         </Descriptions>
       </Card>
@@ -214,6 +226,13 @@ export function PurchaseOrderDetailPage() {
       </Card>
 
       <ReceiveModal open={receiveModalOpen} onClose={() => setReceiveModalOpen(false)} items={po.items} poId={po.id} />
+      <RecordPaymentModal
+        open={paymentModalOpen}
+        onClose={() => setPaymentModalOpen(false)}
+        referenceType="PURCHASE_ORDER"
+        referenceId={po.id}
+        remaining={Number(po.grandTotal) - Number(po.amountPaid)}
+      />
     </div>
   );
 }
