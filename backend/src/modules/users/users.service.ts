@@ -1,4 +1,5 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AuditEntityRegistryService } from '../../shared/audit/audit-entity-registry.service.js';
@@ -40,44 +41,54 @@ export class UsersService {
       where: { OR: [{ username: dto.username }, { email: dto.email }] },
     });
     if (existing) throw new ConflictException('Username or email already in use');
+    if (dto.employeeId) await this.assertEmployeeLinkable(dto.employeeId);
 
     const passwordHash = await bcrypt.hash(dto.password, PASSWORD_SALT_ROUNDS);
-    const user = await this.prisma.user.create({
-      data: {
-        fullName: dto.fullName,
-        email: dto.email,
-        phone: dto.phone,
-        username: dto.username,
-        passwordHash,
-        roleId: dto.roleId,
-        employeeId: dto.employeeId,
-        avatarUrl: dto.avatarUrl,
-        status: 'ACTIVE',
-      },
-      include: { role: { select: { id: true, name: true } } },
-    });
-    return this.sanitize(user);
+    try {
+      const user = await this.prisma.user.create({
+        data: {
+          fullName: dto.fullName,
+          email: dto.email,
+          phone: dto.phone,
+          username: dto.username,
+          passwordHash,
+          roleId: dto.roleId,
+          employeeId: dto.employeeId,
+          avatarUrl: dto.avatarUrl,
+          status: 'ACTIVE',
+        },
+        include: { role: { select: { id: true, name: true } } },
+      });
+      return this.sanitize(user);
+    } catch (error) {
+      throw this.translateEmployeeLinkError(error);
+    }
   }
 
   async update(id: string, dto: UpdateUserDto) {
     await this.findOne(id);
+    if (dto.employeeId) await this.assertEmployeeLinkable(dto.employeeId);
 
     const passwordHash = dto.password ? await bcrypt.hash(dto.password, PASSWORD_SALT_ROUNDS) : undefined;
-    const user = await this.prisma.user.update({
-      where: { id },
-      data: {
-        fullName: dto.fullName,
-        email: dto.email,
-        phone: dto.phone,
-        roleId: dto.roleId,
-        employeeId: dto.employeeId,
-        avatarUrl: dto.avatarUrl,
-        status: dto.status,
-        ...(passwordHash ? { passwordHash } : {}),
-      },
-      include: { role: { select: { id: true, name: true } } },
-    });
-    return this.sanitize(user);
+    try {
+      const user = await this.prisma.user.update({
+        where: { id },
+        data: {
+          fullName: dto.fullName,
+          email: dto.email,
+          phone: dto.phone,
+          roleId: dto.roleId,
+          employeeId: dto.employeeId,
+          avatarUrl: dto.avatarUrl,
+          status: dto.status,
+          ...(passwordHash ? { passwordHash } : {}),
+        },
+        include: { role: { select: { id: true, name: true } } },
+      });
+      return this.sanitize(user);
+    } catch (error) {
+      throw this.translateEmployeeLinkError(error);
+    }
   }
 
   async remove(id: string) {
@@ -92,5 +103,17 @@ export class UsersService {
 
   private sanitize<T extends Record<string, unknown>>(user: T) {
     return sanitizeEntity(user);
+  }
+
+  private async assertEmployeeLinkable(employeeId: string): Promise<void> {
+    const employee = await this.prisma.employee.findUnique({ where: { id: employeeId } });
+    if (!employee || employee.deletedAt) throw new NotFoundException('Employee not found');
+  }
+
+  private translateEmployeeLinkError(error: unknown): unknown {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      return new ConflictException('This employee is already linked to another user account');
+    }
+    return error;
   }
 }

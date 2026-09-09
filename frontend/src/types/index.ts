@@ -550,3 +550,116 @@ export interface ReconciliationReport {
   subledgerTotal: number;
   variance: number;
 }
+
+// =========================================================================
+// EMPLOYEES / DEPARTMENTS / POSITIONS / ATTENDANCE — Phase 6
+// =========================================================================
+
+export type DepartmentStatus = 'ACTIVE' | 'INACTIVE';
+export type PositionStatus = 'ACTIVE' | 'INACTIVE';
+export type EmployeeStatus = 'ACTIVE' | 'ON_LEAVE' | 'SUSPENDED' | 'TERMINATED';
+export type AttendanceStatus = 'PRESENT' | 'ABSENT' | 'LATE' | 'HALF_DAY' | 'ON_LEAVE' | 'HOLIDAY';
+export type LeaveType = 'VACATION' | 'SICK' | 'PERSONAL';
+
+export interface DepartmentListItem {
+  id: string;
+  name: string;
+  code: string;
+  description: string | null;
+  status: DepartmentStatus;
+  managerEmployee: { id: string; fullName: string } | null;
+  employeeCount: number;
+  activeEmployeeCount: number;
+  inactiveEmployeeCount: number;
+  createdAt: string;
+}
+
+export interface DepartmentDetail {
+  id: string;
+  name: string;
+  code: string;
+  description: string | null;
+  status: DepartmentStatus;
+  managerEmployee: { id: string; fullName: string } | null;
+  positions: Array<{ id: string; title: string; code: string; status: PositionStatus }>;
+  employees: Array<{ id: string; employeeCode: string; fullName: string; status: EmployeeStatus; position: { id: string; title: string } | null }>;
+}
+
+export interface PositionItem {
+  id: string;
+  title: string;
+  code: string;
+  description: string | null;
+  status: PositionStatus;
+  departmentId: string;
+  department: { id: string; name: string; code: string };
+  _count?: { employees: number };
+}
+
+export interface EmployeeListItem {
+  id: string;
+  employeeCode: string;
+  firstName: string;
+  lastName: string;
+  middleName: string | null;
+  fullName: string;
+  phone: string;
+  email: string | null;
+  status: EmployeeStatus;
+  hireDate: string;
+  department: { id: string; name: string; code: string } | null;
+  position: { id: string; title: string; code: string } | null;
+}
+
+export interface EmployeeDetail extends EmployeeListItem {
+  dateOfBirth: string | null;
+  address: string | null;
+  terminationDate: string | null;
+  salary: string | null;
+  notes: string | null;
+  manager: { id: string; employeeCode: string; fullName: string } | null;
+  directReports: Array<{ id: string; employeeCode: string; fullName: string; status: EmployeeStatus }>;
+  user: { id: string; username: string; fullName: string; status: string; lastActiveAt: string | null } | null;
+}
+
+export interface EmployeeActivity {
+  attendanceRecords: AttendanceRecordItem[];
+  attendanceSummary: { presentCount: number; lateCount: number; absentCount: number; totalOvertimeMinutes: number; recordCount: number };
+  orders: Array<{ id: string; orderNumber: string; status: string; grandTotal: string; orderDate: string }>;
+  expenses: Array<{ id: string; expenseNumber: string; status: string; amount: string; expenseDate: string }>;
+  activity: Array<{ id: string; action: string; description: string | null; createdAt: string; actor: { id: string; fullName: string; username: string } | null }>;
+}
+
+export interface EmployeesOverview {
+  totalEmployees: number;
+  activeCount: number;
+  onLeaveCount: number;
+  suspendedCount: number;
+  terminatedCount: number;
+  departmentCount: number;
+  recentEmployees: EmployeeListItem[];
+}
+
+export interface AttendanceRecordItem {
+  id: string;
+  employeeId: string;
+  workDate: string;
+  checkInAt: string | null;
+  checkOutAt: string | null;
+  hoursWorked: string | null;
+  status: AttendanceStatus;
+  leaveType: LeaveType | null;
+  lateMinutes: number;
+  overtimeMinutes: number;
+  notes: string | null;
+  employee: { id: string; employeeCode: string; fullName: string; department: { id: string; name: string } | null };
+}
+
+export interface AttendanceOverview {
+  totalActiveEmployees: number;
+  presentToday: number;
+  lateToday: number;
+  absentToday: number;
+  onLeaveToday: number;
+  averageWorkingHours: number;
+}

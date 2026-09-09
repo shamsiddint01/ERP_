@@ -32,4 +32,8 @@ export class UpdateSettingsDto {
   @IsOptional()
   @IsObject()
   notificationSettings?: Record<string, unknown>;
+
+  @IsOptional()
+  @IsObject()
+  workScheduleSettings?: Record<string, unknown>;
 }

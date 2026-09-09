@@ -28,6 +28,10 @@ import { PaymentsModule } from './modules/payments/payments.module.js';
 import { AccountsModule } from './modules/accounts/accounts.module.js';
 import { ExpensesModule } from './modules/expenses/expenses.module.js';
 import { ReportsModule } from './modules/reports/reports.module.js';
+import { DepartmentsModule } from './modules/departments/departments.module.js';
+import { PositionsModule } from './modules/positions/positions.module.js';
+import { EmployeesModule } from './modules/employees/employees.module.js';
+import { AttendanceModule } from './modules/attendance/attendance.module.js';
 
 @Module({
   imports: [
@@ -55,6 +59,10 @@ import { ReportsModule } from './modules/reports/reports.module.js';
     AccountsModule,
     ExpensesModule,
     ReportsModule,
+    DepartmentsModule,
+    PositionsModule,
+    EmployeesModule,
+    AttendanceModule,
   ],
   controllers: [AppController],
   providers: [

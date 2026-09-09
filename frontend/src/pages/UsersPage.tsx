@@ -4,6 +4,7 @@ import { App, Button, Form, Input, Modal, Select, Space, Table, Tag, Typography 
 import { useState } from 'react';
 import { createUser, deactivateUser, listUsers } from '../api/users';
 import { listRoles } from '../api/roles';
+import { listEmployees } from '../api/employees';
 import { useAuthStore } from '../store/auth.store';
 import type { UserListItem } from '../types';
 
@@ -23,6 +24,11 @@ export function UsersPage() {
 
   const usersQuery = useQuery({ queryKey: ['users'], queryFn: listUsers });
   const rolesQuery = useQuery({ queryKey: ['roles'], queryFn: listRoles });
+  const employeesQuery = useQuery({
+    queryKey: ['employees', { pageSize: 100, status: 'ACTIVE' }],
+    queryFn: () => listEmployees({ pageSize: 100, status: 'ACTIVE' }),
+    enabled: modalOpen,
+  });
 
   const createMutation = useMutation({
     mutationFn: createUser,
@@ -112,6 +118,15 @@ export function UsersPage() {
           </Form.Item>
           <Form.Item name="roleId" label="Rol" rules={[{ required: true }]}>
             <Select options={rolesQuery.data?.map((role) => ({ label: role.name, value: role.id }))} />
+          </Form.Item>
+          <Form.Item name="employeeId" label="Bog'langan xodim (ixtiyoriy)">
+            <Select
+              allowClear
+              showSearch
+              loading={employeesQuery.isLoading}
+              options={employeesQuery.data?.items.map((e) => ({ label: `${e.employeeCode} — ${e.fullName}`, value: e.id }))}
+              filterOption={(input, option) => ((option?.label as string) ?? '').toLowerCase().includes(input.toLowerCase())}
+            />
           </Form.Item>
         </Form>
       </Modal>

@@ -2,10 +2,15 @@ import { Route, Routes } from 'react-router-dom';
 import { AppLayout } from './components/AppLayout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { useAuthBootstrap } from './hooks/useAuthBootstrap';
+import { AttendancePage } from './pages/attendance/AttendancePage';
 import { AuditLogPage } from './pages/AuditLogPage';
 import { CustomerDetailPage } from './pages/customers/CustomerDetailPage';
 import { CustomersPage } from './pages/customers/CustomersPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { DepartmentDetailPage } from './pages/departments/DepartmentDetailPage';
+import { DepartmentsPage } from './pages/departments/DepartmentsPage';
+import { EmployeeDetailPage } from './pages/employees/EmployeeDetailPage';
+import { EmployeesPage } from './pages/employees/EmployeesPage';
 import { ExpensesPage } from './pages/expenses/ExpensesPage';
 import { AccountsPage } from './pages/finance/AccountsPage';
 import { ReportsPage } from './pages/finance/ReportsPage';
@@ -19,6 +24,7 @@ import { PaymentsPage } from './pages/payments/PaymentsPage';
 import { ProductsPage } from './pages/products/ProductsPage';
 import { PurchaseOrderDetailPage } from './pages/purchases/PurchaseOrderDetailPage';
 import { PurchasesPage } from './pages/purchases/PurchasesPage';
+import { PositionsPage } from './pages/positions/PositionsPage';
 import { RolesPage } from './pages/RolesPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { SupplierDetailPage } from './pages/suppliers/SupplierDetailPage';
@@ -50,6 +56,12 @@ export default function App() {
           <Route path="/finance/accounts" element={<AccountsPage />} />
           <Route path="/finance/reports" element={<ReportsPage />} />
           <Route path="/expenses" element={<ExpensesPage />} />
+          <Route path="/departments" element={<DepartmentsPage />} />
+          <Route path="/departments/:id" element={<DepartmentDetailPage />} />
+          <Route path="/positions" element={<PositionsPage />} />
+          <Route path="/employees" element={<EmployeesPage />} />
+          <Route path="/employees/:id" element={<EmployeeDetailPage />} />
+          <Route path="/attendance" element={<AttendancePage />} />
           <Route path="/users" element={<UsersPage />} />
           <Route path="/roles" element={<RolesPage />} />
           <Route path="/audit-log" element={<AuditLogPage />} />

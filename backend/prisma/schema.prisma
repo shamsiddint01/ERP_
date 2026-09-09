@@ -186,7 +186,18 @@ enum ExpenseStatus {
 enum EmployeeStatus {
   ACTIVE
   ON_LEAVE
+  SUSPENDED
   TERMINATED
+}
+
+enum DepartmentStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum PositionStatus {
+  ACTIVE
+  INACTIVE
 }
 
 enum AttendanceStatus {
@@ -196,6 +207,12 @@ enum AttendanceStatus {
   HALF_DAY
   ON_LEAVE
   HOLIDAY
+}
+
+enum LeaveType {
+  VACATION
+  SICK
+  PERSONAL
 }
 
 enum ReportType {
@@ -893,12 +910,15 @@ model Expense {
 // =========================================================================
 
 model Department {
-  id                String    @id @default(uuid())
+  id                String           @id @default(uuid())
   name              String
-  managerEmployeeId String?   @unique @map("manager_employee_id")
-  managerEmployee   Employee? @relation("DepartmentManager", fields: [managerEmployeeId], references: [id])
-  createdAt         DateTime  @default(now()) @map("created_at")
-  updatedAt         DateTime  @updatedAt @map("updated_at")
+  code              String           @unique
+  description       String?
+  status            DepartmentStatus @default(ACTIVE)
+  managerEmployeeId String?          @unique @map("manager_employee_id")
+  managerEmployee   Employee?        @relation("DepartmentManager", fields: [managerEmployeeId], references: [id])
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
 
   positions     Position[]
   employees     Employee[]            @relation("EmployeeDepartment")
@@ -908,11 +928,14 @@ model Department {
 }
 
 model Position {
-  id           String     @id @default(uuid())
+  id           String         @id @default(uuid())
   title        String
-  departmentId String     @map("department_id")
-  department   Department @relation(fields: [departmentId], references: [id])
-  createdAt    DateTime   @default(now()) @map("created_at")
+  code         String         @unique
+  description  String?
+  status       PositionStatus @default(ACTIVE)
+  departmentId String         @map("department_id")
+  department   Department     @relation(fields: [departmentId], references: [id])
+  createdAt    DateTime       @default(now()) @map("created_at")
 
   employees     Employee[]
   workHistories EmployeeWorkHistory[]
@@ -922,29 +945,44 @@ model Position {
 
 model Employee {
   id              String         @id @default(uuid())
+  employeeCode    String         @unique @map("employee_code")
+  firstName       String         @map("first_name")
+  lastName        String         @map("last_name")
+  middleName      String?        @map("middle_name")
+  /// Denormalized display name (firstName + middleName + lastName), kept in
+  /// sync server-side so existing Order/Expense "responsibleEmployee" selects
+  /// (built in Phase 4/5 against this single field) never have to change.
   fullName        String         @map("full_name")
   phone           String
   email           String?
+  dateOfBirth     DateTime?      @map("date_of_birth") @db.Date
+  address         String?
   departmentId    String?        @map("department_id")
   department      Department?    @relation("EmployeeDepartment", fields: [departmentId], references: [id])
   positionId      String?        @map("position_id")
   position        Position?      @relation(fields: [positionId], references: [id])
+  managerId       String?        @map("manager_id")
+  manager         Employee?      @relation("EmployeeManager", fields: [managerId], references: [id])
   hireDate        DateTime       @map("hire_date") @db.Date
   status          EmployeeStatus @default(ACTIVE)
   terminationDate DateTime?      @map("termination_date") @db.Date
   salary          Decimal?       @db.Decimal(18, 2)
-  address         String?
+  notes           String?
   deletedAt       DateTime?      @map("deleted_at")
   createdAt       DateTime       @default(now()) @map("created_at")
   updatedAt       DateTime       @updatedAt @map("updated_at")
 
   user                User?
   managedDepartment   Department?           @relation("DepartmentManager")
+  directReports       Employee[]            @relation("EmployeeManager")
   workHistories       EmployeeWorkHistory[]
   attendanceRecords   AttendanceRecord[]
   responsibleOrders   Order[]
   responsibleExpenses Expense[]
 
+  @@index([departmentId])
+  @@index([positionId])
+  @@index([status])
   @@map("employees")
 }
 
@@ -977,6 +1015,7 @@ model AttendanceRecord {
   checkOutAt      DateTime?        @map("check_out_at")
   hoursWorked     Decimal?         @map("hours_worked") @db.Decimal(5, 2)
   status          AttendanceStatus @default(PRESENT)
+  leaveType       LeaveType?       @map("leave_type")
   lateMinutes     Int              @default(0) @map("late_minutes")
   overtimeMinutes Int              @default(0) @map("overtime_minutes")
   notes           String?
@@ -1065,6 +1104,8 @@ model CompanySettings {
   taxSettings          Json?    @map("tax_settings")
   invoiceSettings      Json?    @map("invoice_settings")
   notificationSettings Json?    @map("notification_settings")
+  /// Extensible work-schedule config, e.g. { startTime: "09:00", endTime: "18:00", lateThresholdMinutes: 0 } — read by AttendanceService, never hard-coded.
+  workScheduleSettings Json?    @map("work_schedule_settings")
   updatedAt            DateTime @updatedAt @map("updated_at")
 
   @@map("company_settings")
