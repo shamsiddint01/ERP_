@@ -1,10 +1,11 @@
+import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient, PermissionAction, type AccountCategory, type AccountType, type TransactionReferenceType } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { PERMISSION_MODULES } from '../src/shared/constants/permission-modules.constant.js';
 import { ACCOUNT_CODES } from '../src/shared/finance/account-codes.constant.js';
 import { generateDocumentNumber } from '../src/shared/utils/document-number.util.js';
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 
 const DEBIT_NORMAL_CATEGORIES: AccountCategory[] = ['ASSET', 'EXPENSE'];
 
