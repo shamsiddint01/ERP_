@@ -1,6 +1,7 @@
 import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req, Res, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import type { CookieOptions, Response } from 'express';
 import { CurrentUser } from '../../shared/decorators/current-user.decorator.js';
 import { Public } from '../../shared/decorators/public.decorator.js';
@@ -18,6 +19,9 @@ export class AuthController {
     private readonly config: ConfigService,
   ) {}
 
+  // Tighter than the global 100/min limit — brute-force protection on the
+  // credential-checking endpoints (per client IP).
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
   @Public()
   @Post('login')
   @HttpCode(HttpStatus.OK)
@@ -31,6 +35,9 @@ export class AuthController {
     return { accessToken, user };
   }
 
+  // Looser than login — a valid httpOnly cookie is required, and multi-tab /
+  // page-reload bursts are normal. Still bounded against cookie-replay floods.
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
   @Public()
   @Post('refresh')
   @HttpCode(HttpStatus.OK)

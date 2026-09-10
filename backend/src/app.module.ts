@@ -1,9 +1,10 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
-import { AppController } from './app.controller.js';
-import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { AllExceptionsFilter } from './shared/filters/all-exceptions.filter.js';
+import { HttpLoggerInterceptor } from './shared/interceptors/http-logger.interceptor.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { RedisModule } from './infrastructure/redis/redis.module.js';
 import { AuditRegistryModule } from './shared/audit/audit-registry.module.js';
@@ -36,12 +37,17 @@ import { AttendanceModule } from './modules/attendance/attendance.module.js';
 import { CompensationModule } from './modules/compensation/compensation.module.js';
 import { PayrollModule } from './modules/payroll/payroll.module.js';
 import { NotificationsModule } from './modules/notifications/notifications.module.js';
+import { HealthModule } from './modules/health/health.module.js';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     ScheduleModule.forRoot(),
-    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
+    // Global abuse guard, per client IP. Headroom for a data-heavy SPA session
+    // (a page can fire several calls); auth endpoints add their own tighter
+    // limits (see AuthController). Behind a proxy, set TRUST_PROXY so the real
+    // client IP is used.
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 300 }]),
     PrismaModule,
     RedisModule,
     AuditRegistryModule,
@@ -71,12 +77,14 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     CompensationModule,
     PayrollModule,
     NotificationsModule,
+    HealthModule,
   ],
-  controllers: [AppController],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },
     { provide: APP_GUARD, useClass: PermissionsGuard },
     { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_FILTER, useClass: AllExceptionsFilter },
+    { provide: APP_INTERCEPTOR, useClass: HttpLoggerInterceptor },
     { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
   ],
 })

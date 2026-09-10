@@ -124,20 +124,39 @@ pnpm dev                      # http://localhost:5173 (proxies /api -> :3001)
 
 ## Environment variables (`backend/.env`)
 
-| Variable | Purpose | Example |
-|---|---|---|
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql://erp:erp_dev_password@localhost:5433/erp_db?schema=public` |
-| `REDIS_HOST` / `REDIS_PORT` | Redis for the RBAC permission cache | `localhost` / `6380` |
-| `JWT_ACCESS_SECRET` | Signs the 15-minute access token — **required**, no default | a long random string |
-| `JWT_ACCESS_EXPIRES_IN` | Access-token lifetime | `15m` |
-| `JWT_REFRESH_EXPIRES_IN` | Refresh-token / session lifetime | `7d` |
-| `PORT` | HTTP port | `3001` |
-| `NODE_ENV` | `development` / `production` | `development` |
-| `CORS_ORIGIN` | Allowed browser origin (credentials mode) | `http://localhost:5173` |
-| `SEED_ADMIN_PASSWORD` | Optional — admin password used by `db:seed` | — |
+Copy `backend/.env.example` → `backend/.env`. `.env` is gitignored; only
+`.env.example` (placeholders only) is committed. **Never commit real secrets.**
 
-`.env` is gitignored; only `.env.example` (with placeholder secrets) is
-committed. Never commit real secrets.
+**Required in production:**
+
+| Variable | Purpose |
+|---|---|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `JWT_ACCESS_SECRET` | Signs the 15-min access token. In production the app **refuses to boot** if it is missing, shorter than 32 chars, or an obvious placeholder (`change_me`, `secret`, …). Generate: `openssl rand -base64 48`. |
+| `CORS_ORIGIN` | Allowed browser origin(s), comma-separated. If unset in production, cross-origin browser requests are blocked and a warning is logged (it never falls back to `*`). |
+| `NODE_ENV` | `production` — switches on JSON logs, the strong-secret check, the secure-cookie flag, and disables Swagger by default. |
+
+**Optional (sensible defaults):**
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `PORT` | `3000` | HTTP port |
+| `REDIS_HOST` / `REDIS_PORT` | `localhost` / `6379` | RBAC permission cache only (falls back to Postgres if down) |
+| `JWT_ACCESS_EXPIRES_IN` | `15m` | Access-token lifetime |
+| `JWT_REFRESH_EXPIRES_IN` | `7d` | Refresh-token / session lifetime |
+| `ENABLE_SWAGGER` | `false` in prod | Set `true` to serve `/api/docs` in production |
+| `TRUST_PROXY` | unset | Reverse-proxy hop count (`1` for the provided nginx) or `true`; makes `req.ip` / rate-limiting use the real client IP |
+
+**Development / tooling only:**
+
+| Variable | Purpose |
+|---|---|
+| `SEED_ADMIN_PASSWORD` | Password for the seeded `admin` user (`pnpm db:seed`); default `ChangeMe123!` |
+
+There is **no `JWT_REFRESH_SECRET`** — refresh tokens are random bytes with a
+bcrypt-hashed secret stored per session, not JWTs. There is **no
+`VITE_API_URL`** — the frontend always calls a relative `/api/v1` and a reverse
+proxy routes it (see *Production Deployment*).
 
 ---
 
@@ -183,7 +202,7 @@ committed. Never commit real secrets.
 
 ### Current verified status
 
-- Backend: **171 tests pass**, build clean, lint clean.
+- Backend: **181 tests pass**, build clean, lint clean.
 - Frontend: build clean, lint clean (one pre-existing non-blocking
   `react/set-state-in-effect` advisory in `RolesPage.tsx`).
 - Prisma: `validate` / `generate` / `migrate status` all pass; 10 migrations
@@ -192,16 +211,225 @@ committed. Never commit real secrets.
   zero variance.
 - Concurrency guards verified under live parallel requests (5× concurrent
   order-complete → exactly one succeeds, four get 409; books stay balanced).
+- Production images build and run: the backend container boots in production
+  mode (JSON logs, Swagger off, strong-secret check), passes its health check,
+  serves a full sales/finance flow against an external Postgres/Redis, and
+  shuts down cleanly on `SIGTERM` (exit 0).
 
 ---
 
 ## API documentation (Swagger)
 
-With the backend running, open **`http://localhost:3001/api/docs`**. All routes
-are under the `/api/v1` prefix and (except `auth/login`, `auth/refresh`) require
-a `Bearer` access token; use the **Authorize** button. Note: Swagger is
-currently served in all environments — put it behind a reverse-proxy rule or
-`NODE_ENV` gate if that matters for your deployment.
+With the backend running in development, open
+**`http://localhost:3001/api/docs`**. All routes are under the `/api/v1`
+prefix and (except `auth/login`, `auth/refresh`) require a `Bearer` access
+token; use the **Authorize** button.
+
+In production (`NODE_ENV=production`) Swagger is **disabled** by default. Set
+`ENABLE_SWAGGER=true` to expose it (e.g. on an internal environment).
+
+---
+
+## Production Deployment
+
+### Topology
+
+```
+                Internet (HTTPS)
+                      │
+              ┌───────▼────────┐        TLS terminates here
+              │  Reverse proxy │        (nginx / Traefik / cloud LB)
+              └───────┬────────┘
+        /             │            /api  (same origin)
+  ┌─────▼─────┐  ┌────▼─────────────────────┐
+  │ frontend  │  │ backend (NestJS :3001)   │
+  │ nginx SPA │  │  ├─ PostgreSQL (managed) │
+  │  + /api → │  │  └─ Redis (managed, opt.)│
+  │  backend  │  └──────────────────────────┘
+  └───────────┘
+```
+
+The browser and the API are served from **one origin**. The SPA makes
+relative `/api/v1/...` requests; the proxy sends `/api/*` to the backend and
+everything else to the SPA with an `index.html` fallback (client-side routing).
+Because it is same-origin, CORS is not exercised in a standard production
+deployment — `CORS_ORIGIN` still matters if you ever host the API on a
+separate hostname.
+
+### Prerequisites
+
+- A PostgreSQL 15/16 database and its `DATABASE_URL`.
+- (Optional) a Redis instance — only the RBAC permission cache uses it, and it
+  falls back to Postgres, so the app runs without it.
+- Node.js 22 **or** Docker, to build the artifacts.
+- A TLS-terminating reverse proxy in front (nginx, Traefik, or a cloud load
+  balancer). Serve everything over HTTPS: the refresh-token cookie is issued
+  with `Secure` when `NODE_ENV=production`, so it will not survive a plain-HTTP
+  hop.
+
+### Option A — Docker (provided)
+
+Images: `backend/Dockerfile` (multi-stage, runs as the non-root `node` user,
+built-in `HEALTHCHECK` on `/api/v1/health`) and `frontend/Dockerfile` (builds
+the SPA, serves it with nginx, proxies `/api` to `backend:3001` — see
+`frontend/nginx.conf`). `docker-compose.prod.yml` wires the two together and
+expects **managed/external** Postgres and Redis (there is a commented-out block
+to run them in-stack if you must).
+
+```bash
+# 1. configure
+cp backend/.env.example backend/.env      # set DATABASE_URL, JWT_ACCESS_SECRET,
+                                          # CORS_ORIGIN, NODE_ENV=production, …
+
+# 2. build
+docker compose -f docker-compose.prod.yml build
+
+# 3. back up the database (see "Backup & restore" below)
+
+# 4. run migrations (one-off container, never `migrate reset` in production)
+docker compose -f docker-compose.prod.yml run --rm backend npx prisma migrate deploy
+
+# 5. start
+docker compose -f docker-compose.prod.yml up -d
+
+# 6. verify
+curl -fsS http://localhost:8080/api/v1/health        # {"status":"ok",...}
+curl -fsS http://localhost:8080/api/v1/health/ready   # database + redis "up"
+```
+
+The compose file publishes the frontend on `:8080`; put your real reverse
+proxy / LB (HTTPS, real hostname) in front of that.
+
+### Option B — plain Node + a static host
+
+**Backend**
+
+```bash
+cd backend
+npm ci                       # package-lock.json is the committed lockfile
+npx prisma generate
+npm run build                # -> dist/
+# with backend/.env present and NODE_ENV=production:
+npx prisma migrate deploy
+node dist/main               # or run under pm2 / systemd
+```
+
+**Frontend**
+
+```bash
+cd frontend
+npm ci
+npm run build                # -> dist/  (static files)
+```
+
+Copy `frontend/dist/` to your web server / CDN and configure it to:
+serve `index.html` for any unmatched path (SPA fallback), and proxy
+`/api/` to the backend origin. `frontend/nginx.conf` is a working reference.
+
+### Release checklist / order of operations
+
+1. **Back up** the database.
+2. Build backend + frontend artifacts (or images).
+3. Deploy the backend (do not start serving yet, or start with the old
+   version still live behind the proxy).
+4. `npx prisma migrate deploy` — forward-only. Never `migrate reset`,
+   `migrate dev`, or `db push` against production.
+5. Start / switch traffic to the new backend. Deploy the new frontend assets.
+6. **Verify health:** `GET /api/v1/health` (200) and `GET /api/v1/health/ready`
+   (`database: up`; 503 means do not route traffic yet).
+7. **Verify a critical workflow:** log in; open the dashboard; create → confirm
+   → complete a small sales order; confirm the invoice is issued and the Trial
+   Balance still balances.
+8. Roll back = redeploy the previous image/build. Migrations are additive and
+   were reviewed to be backward-compatible with the previous release; a schema
+   rollback needs a new forward migration, not a `reset`.
+
+### Health endpoints
+
+| Endpoint | Meaning | Codes |
+|---|---|---|
+| `GET /api/v1/health` | Liveness — process is up | always `200` |
+| `GET /api/v1/health/ready` | Readiness — `database` reachable (fatal), `redis` reachable (only `degraded`) | `200` ok/degraded, `503` when the database is down |
+
+Both are public and return no connection strings or secrets. Point your
+orchestrator's liveness probe at `/health` and its readiness probe at
+`/health/ready`.
+
+### Logging
+
+`NODE_ENV=production` switches the logger to **one JSON object per line**
+(`{ level, pid, timestamp, context, message }`) — ship stdout to your log
+aggregator. Each request is logged once as
+`METHOD /path STATUS DURATIONms user=<id>` (context `HTTP`); headers, cookies
+and bodies are never logged, so tokens, passwords and secrets cannot leak.
+Health-probe paths are excluded from request logging. Development keeps the
+familiar coloured NestJS output.
+
+### Error responses
+
+A global exception filter guarantees clients only ever see
+`{ statusCode, message, error }`: `HttpException`s pass through unchanged,
+known Prisma errors map to `409` / `404` / `400`, and anything else is a
+generic `500` — the real error and stack are logged server-side only. No
+stack traces, file paths, SQL, or env values reach the client.
+
+### Backup & restore (PostgreSQL)
+
+Use placeholders for host / db / user; supply the password via `PGPASSWORD` or
+`~/.pgpass`, never on the command line in shared history.
+
+```bash
+# --- Backup (compressed custom format) ---
+pg_dump --format=custom --no-owner --no-privileges \
+  --host="$PGHOST" --port=5432 --username="$PGUSER" --dbname="$PGDATABASE" \
+  --file="erp-$(date +%Y%m%d-%H%M%S).dump"
+
+# --- Restore into a fresh, empty database ---
+createdb --host="$PGHOST" --username="$PGUSER" erp_restore
+pg_restore --no-owner --no-privileges --clean --if-exists \
+  --host="$PGHOST" --username="$PGUSER" --dbname="erp_restore" \
+  erp-YYYYMMDD-HHMMSS.dump
+
+# After restore, run migrate deploy so the schema matches the deployed code:
+DATABASE_URL="postgresql://$PGUSER@$PGHOST:5432/erp_restore" npx prisma migrate deploy
+```
+
+- **Frequency:** at least nightly full dumps; enable PITR / WAL archiving (or
+  your managed provider's equivalent) for point-in-time recovery. Keep dumps
+  off-host. Test a restore on a schedule.
+- **Disaster recovery:** provision a new database → restore the latest dump →
+  `prisma migrate deploy` → deploy the app pointed at it → run the health and
+  critical-workflow checks above. The audit log (`audit_logs`) and the
+  double-entry journal (`journal_entries` / `journal_lines`) are append-only and
+  are the source of truth for reconstructing financial history.
+
+### Common deployment checks
+
+```bash
+# API up and DB reachable
+curl -fsS https://<host>/api/v1/health/ready | jq
+
+# Swagger is NOT exposed in production (expect 404 unless ENABLE_SWAGGER=true)
+curl -s -o /dev/null -w '%{http_code}\n' https://<host>/api/docs
+
+# Protected endpoint rejects an anonymous caller
+curl -s -o /dev/null -w '%{http_code}\n' https://<host>/api/v1/customers   # 401
+
+# Migrations applied
+cd backend && npx prisma migrate status
+```
+
+### Troubleshooting
+
+| Symptom | Likely cause |
+|---|---|
+| Backend exits immediately with `JWT_ACCESS_SECRET must be set to a strong value` | `NODE_ENV=production` with a missing / weak `JWT_ACCESS_SECRET`. Set a 32+ char random value. |
+| `/health/ready` returns `503` / `database: down` | Wrong `DATABASE_URL`, DB not reachable from the container/host, or migrations not applied. |
+| Browser calls to `/api/...` 404 | Reverse proxy not routing `/api` to the backend, or SPA fallback catching it first — `/api` must be matched *before* the catch-all. |
+| Login works but the session drops on refresh | Serving over plain HTTP: the `Secure` refresh cookie is not stored. Terminate TLS in front. |
+| `CORS` errors in the browser console | API is on a different origin than the SPA and that origin is not in `CORS_ORIGIN` (comma-separated). Same-origin deployments don't hit this. |
+| `prisma:warn ... libssl/openssl` in logs | Base image lacks OpenSSL — the provided `backend/Dockerfile` installs it; a custom image must too. |
+| Redis unreachable | Non-fatal: `/health/ready` reports `redis: down` / `degraded`, the RBAC cache falls back to Postgres. Fix Redis to restore caching. |
 
 ---
 
@@ -291,12 +519,18 @@ currently served in all environments — put it behind a reverse-proxy rule or
 - **Notifications** poll every 60 s (no WebSocket/SSE). The daily digest cron
   fires at 07:00 server time; `POST /notifications/scan` (Admin) runs it on
   demand. If you read but don't action an item, the next daily scan re-notifies.
-- **Deployment** assumes a reverse proxy that serves the built frontend and
-  routes `/api` to the backend on the same origin (the frontend calls a
-  relative `/api/v1` base URL — there is no `VITE_API_URL`). Set `CORS_ORIGIN`,
-  a strong `JWT_ACCESS_SECRET`, and `NODE_ENV=production` for a real deployment.
-- **Logging** is NestJS's default console logger; wire in a structured logger
-  for production log aggregation.
+- **Deployment** is same-origin: the frontend calls a relative `/api/v1` base
+  URL and a reverse proxy routes `/api` to the backend (there is no
+  `VITE_API_URL`). See *Production Deployment* for the full model, Docker
+  files, and checklist.
+- **Logging** in production is line-delimited JSON to stdout (level, timestamp,
+  context, message) plus one line per request; there is no built-in shipping —
+  point your aggregator at stdout.
 - **Reports** load the full matching dataset in memory (no streaming); fine for
   a single company's volume, revisit for very large ledgers.
+- **Rate limiting** is per-instance in memory (`@nestjs/throttler` default
+  store): 100 req/min globally, 10/min on `login`, 30/min on `refresh`, keyed
+  by client IP. Behind a proxy, ensure the real client IP reaches the app
+  (`X-Forwarded-For` / `trust proxy`) or the limit applies per proxy. Multiple
+  backend instances each keep their own counter.
 - Password policy is a minimum length of 8 with no complexity rule.

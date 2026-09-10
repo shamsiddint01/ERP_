@@ -1,0 +1,58 @@
+# -----------------------------------------------------------------------------
+# Production app stack: backend (NestJS) + frontend (nginx serving the SPA and
+# proxying /api). PostgreSQL and Redis are expected to be MANAGED / EXTERNAL
+# services — point DATABASE_URL / REDIS_HOST at them in backend/.env. The dev
+# docker-compose.yml (local Postgres + Redis) is separate and unchanged.
+#
+#   docker compose -f docker-compose.prod.yml build
+#   docker compose -f docker-compose.prod.yml run --rm backend pnpm prisma migrate deploy
+#   docker compose -f docker-compose.prod.yml up -d
+# -----------------------------------------------------------------------------
+services:
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    env_file: ./backend/.env
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+      TRUST_PROXY: "1" # the frontend nginx is the single proxy hop
+    expose:
+      - "3001"
+    # No host port published — only the frontend/nginx talks to it.
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "8080:80" # put a TLS-terminating reverse proxy / load balancer in front
+
+# --- Optional: run Postgres + Redis in-stack instead of using managed services.
+#     Uncomment, set strong credentials, and update backend/.env accordingly.
+#
+#  postgres:
+#    image: postgres:16-alpine
+#    restart: unless-stopped
+#    environment:
+#      POSTGRES_USER: erp
+#      POSTGRES_PASSWORD: __set_a_strong_password__
+#      POSTGRES_DB: erp_db
+#    volumes:
+#      - erp_pgdata:/var/lib/postgresql/data
+#    healthcheck:
+#      test: ["CMD-SHELL", "pg_isready -U erp -d erp_db"]
+#      interval: 10s
+#      timeout: 5s
+#      retries: 5
+#
+#  redis:
+#    image: redis:7-alpine
+#    restart: unless-stopped
+#    volumes:
+#      - erp_redisdata:/data
+#
+#volumes:
+#  erp_pgdata:
+#  erp_redisdata:
