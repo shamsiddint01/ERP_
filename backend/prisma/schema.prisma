@@ -172,6 +172,7 @@ enum TransactionReferenceType {
   EXPENSE
   INVOICE
   MANUAL
+  PAYROLL
 }
 
 enum ExpenseStatus {
@@ -213,6 +214,42 @@ enum LeaveType {
   VACATION
   SICK
   PERSONAL
+}
+
+enum SalaryType {
+  HOURLY
+  DAILY
+  MONTHLY
+}
+
+enum PayrollPeriodStatus {
+  OPEN
+  CLOSED
+}
+
+enum PayrollStatus {
+  DRAFT
+  CALCULATING
+  CALCULATED
+  APPROVED
+  PAID
+  CANCELLED
+}
+
+enum PayrollComponentType {
+  BONUS
+  ALLOWANCE
+  DEDUCTION
+}
+
+/// Itemized breakdown row on a Payroll — mirrors PayrollComponentType plus the
+/// two attendance-derived rows (BASE, OVERTIME) that don't come from a configured component.
+enum PayrollLineType {
+  BASE
+  OVERTIME
+  BONUS
+  ALLOWANCE
+  DEDUCTION
 }
 
 enum ReportType {
@@ -280,18 +317,21 @@ model User {
   updatedAt    DateTime   @updatedAt @map("updated_at")
 
   sessions                UserSession[]
-  auditLogs               AuditLog[]        @relation("AuditActor")
+  auditLogs               AuditLog[]             @relation("AuditActor")
   notifications           Notification[]
-  createdPurchaseOrders   PurchaseOrder[]   @relation("PurchaseOrderCreatedBy")
-  approvedPurchaseOrders  PurchaseOrder[]   @relation("PurchaseOrderApprovedBy")
-  recordedPayments        Payment[]         @relation("PaymentRecordedBy")
-  createdExpenses         Expense[]         @relation("ExpenseCreatedBy")
-  approvedExpenses        Expense[]         @relation("ExpenseApprovedBy")
-  createdTransactions     Transaction[]     @relation("TransactionCreatedBy")
-  createdJournalEntries   JournalEntry[]    @relation("JournalEntryCreatedBy")
-  stockMovements          StockMovement[]   @relation("StockMovementPerformedBy")
-  requestedStockTransfers StockTransfer[]   @relation("StockTransferRequestedBy")
-  requestedReportJobs     ReportExportJob[] @relation("ReportJobRequestedBy")
+  createdPurchaseOrders   PurchaseOrder[]        @relation("PurchaseOrderCreatedBy")
+  approvedPurchaseOrders  PurchaseOrder[]        @relation("PurchaseOrderApprovedBy")
+  recordedPayments        Payment[]              @relation("PaymentRecordedBy")
+  createdExpenses         Expense[]              @relation("ExpenseCreatedBy")
+  approvedExpenses        Expense[]              @relation("ExpenseApprovedBy")
+  createdTransactions     Transaction[]          @relation("TransactionCreatedBy")
+  createdJournalEntries   JournalEntry[]         @relation("JournalEntryCreatedBy")
+  stockMovements          StockMovement[]        @relation("StockMovementPerformedBy")
+  requestedStockTransfers StockTransfer[]        @relation("StockTransferRequestedBy")
+  requestedReportJobs     ReportExportJob[]      @relation("ReportJobRequestedBy")
+  createdCompensations    EmployeeCompensation[] @relation("CompensationCreatedBy")
+  createdPayrolls         Payroll[]              @relation("PayrollCreatedBy")
+  approvedPayrolls        Payroll[]              @relation("PayrollApprovedBy")
 
   @@map("users")
 }
@@ -779,10 +819,11 @@ model Account {
   createdAt       DateTime        @default(now()) @map("created_at")
   updatedAt       DateTime        @updatedAt @map("updated_at")
 
-  transactions  Transaction[]
-  journalLines  JournalLine[]
+  transactions      Transaction[]
+  journalLines      JournalLine[]
   expenseCategories ExpenseCategory[]
   expensePayments   Expense[]         @relation("ExpensePaymentAccount")
+  payrollPayments   Payroll[]         @relation("PayrollPaymentAccount")
 
   @@map("accounts")
 }
@@ -830,8 +871,10 @@ model JournalEntry {
   createdBy       User                      @relation("JournalEntryCreatedBy", fields: [createdByUserId], references: [id])
   createdAt       DateTime                  @default(now()) @map("created_at")
 
-  lines       JournalLine[]
-  transaction Transaction?
+  lines           JournalLine[]
+  transaction     Transaction?
+  payrollApproval Payroll?      @relation("PayrollApprovalJournal")
+  payrollPayment  Payroll?      @relation("PayrollPaymentJournal")
 
   @@index([referenceType, referenceId])
   @@index([entryDate])
@@ -973,12 +1016,14 @@ model Employee {
   updatedAt       DateTime       @updatedAt @map("updated_at")
 
   user                User?
-  managedDepartment   Department?           @relation("DepartmentManager")
-  directReports       Employee[]            @relation("EmployeeManager")
+  managedDepartment   Department?            @relation("DepartmentManager")
+  directReports       Employee[]             @relation("EmployeeManager")
   workHistories       EmployeeWorkHistory[]
   attendanceRecords   AttendanceRecord[]
   responsibleOrders   Order[]
   responsibleExpenses Expense[]
+  compensations       EmployeeCompensation[]
+  payrolls            Payroll[]
 
   @@index([departmentId])
   @@index([positionId])
@@ -1025,6 +1070,160 @@ model AttendanceRecord {
   @@unique([employeeId, workDate])
   @@index([workDate])
   @@map("attendance_records")
+}
+
+// =========================================================================
+// 17. PAYROLL
+// =========================================================================
+
+/// A named pay period (e.g. "September 2026") that one Payroll row per
+/// employee belongs to. CLOSED periods are historical/locked — new payrolls
+/// cannot be created against them (enforced in PayrollPeriodsService).
+model PayrollPeriod {
+  id          String              @id @default(uuid())
+  name        String
+  periodStart DateTime            @map("period_start") @db.Date
+  periodEnd   DateTime            @map("period_end") @db.Date
+  status      PayrollPeriodStatus @default(OPEN)
+  createdAt   DateTime            @default(now()) @map("created_at")
+  updatedAt   DateTime            @updatedAt @map("updated_at")
+
+  payrolls Payroll[]
+
+  @@unique([periodStart, periodEnd])
+  @@index([status])
+  @@map("payroll_periods")
+}
+
+/// Historized salary record — a slowly-changing-dimension, same pattern as
+/// EmployeeWorkHistory: `effectiveTo = null` means "current". Creating a new
+/// compensation row closes out the previous one instead of overwriting it,
+/// so a Payroll always references the exact compensation that was in force
+/// when it was calculated and old Payroll rows never change retroactively.
+model EmployeeCompensation {
+  id              String     @id @default(uuid())
+  employeeId      String     @map("employee_id")
+  employee        Employee   @relation(fields: [employeeId], references: [id])
+  baseSalary      Decimal    @map("base_salary") @db.Decimal(18, 2)
+  salaryType      SalaryType @default(MONTHLY) @map("salary_type")
+  /// Hourly overtime rate. When null, OvertimeRate defaults to (baseSalary / standard monthly minutes) * 1.5 at calculation time.
+  overtimeRate    Decimal?   @map("overtime_rate") @db.Decimal(18, 2)
+  effectiveFrom   DateTime   @map("effective_from") @db.Date
+  effectiveTo     DateTime?  @map("effective_to") @db.Date
+  notes           String?
+  createdByUserId String     @map("created_by_user_id")
+  createdBy       User       @relation("CompensationCreatedBy", fields: [createdByUserId], references: [id])
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
+
+  payrolls Payroll[]
+
+  @@index([employeeId])
+  @@index([employeeId, effectiveFrom])
+  @@map("employee_compensations")
+}
+
+/// Reusable, configurable bonus/allowance/deduction definitions — an admin
+/// creates these once (e.g. "Transport Allowance", "Performance Bonus") and
+/// they're then picked when building a Payroll's line items, instead of
+/// hard-coding any specific bonus/allowance/deduction in code.
+model PayrollComponent {
+  id            String               @id @default(uuid())
+  name          String               @unique
+  type          PayrollComponentType
+  /// If true, `defaultAmount` is a percentage of base salary; otherwise a flat amount.
+  isPercentage  Boolean              @default(false) @map("is_percentage")
+  defaultAmount Decimal?             @map("default_amount") @db.Decimal(18, 2)
+  isSystem      Boolean              @default(false) @map("is_system")
+  isActive      Boolean              @default(true) @map("is_active")
+  createdAt     DateTime             @default(now()) @map("created_at")
+
+  lines PayrollLine[]
+
+  @@map("payroll_components")
+}
+
+/// One employee's payslip for one period. Never recalculated in place once
+/// APPROVED/PAID — see PayrollCalculationService for the recalculation
+/// workflow (must revert to DRAFT first). amounts are aggregates; see
+/// PayrollLine for the itemized breakdown backing them.
+model Payroll {
+  id             String                @id @default(uuid())
+  payrollNumber  String                @unique @map("payroll_number")
+  periodId       String                @map("period_id")
+  period         PayrollPeriod         @relation(fields: [periodId], references: [id])
+  employeeId     String                @map("employee_id")
+  employee       Employee              @relation(fields: [employeeId], references: [id])
+  compensationId String?               @map("compensation_id")
+  compensation   EmployeeCompensation? @relation(fields: [compensationId], references: [id])
+  status         PayrollStatus         @default(DRAFT)
+
+  // Attendance-derived inputs, snapshotted at calculation time.
+  workedDays        Decimal? @map("worked_days") @db.Decimal(6, 2)
+  workedMinutes     Int?     @map("worked_minutes")
+  overtimeMinutes   Int      @default(0) @map("overtime_minutes")
+  unpaidAbsenceDays Decimal  @default(0) @map("unpaid_absence_days") @db.Decimal(6, 2)
+
+  // Aggregate amounts (each backed by one or more PayrollLine rows).
+  baseAmount      Decimal @default(0) @map("base_amount") @db.Decimal(18, 2)
+  overtimeAmount  Decimal @default(0) @map("overtime_amount") @db.Decimal(18, 2)
+  bonusAmount     Decimal @default(0) @map("bonus_amount") @db.Decimal(18, 2)
+  allowanceAmount Decimal @default(0) @map("allowance_amount") @db.Decimal(18, 2)
+  deductionAmount Decimal @default(0) @map("deduction_amount") @db.Decimal(18, 2)
+  grossSalary     Decimal @default(0) @map("gross_salary") @db.Decimal(18, 2)
+  netSalary       Decimal @default(0) @map("net_salary") @db.Decimal(18, 2)
+
+  calculatedAt DateTime? @map("calculated_at")
+
+  approvedByUserId String?   @map("approved_by_user_id")
+  approvedBy       User?     @relation("PayrollApprovedBy", fields: [approvedByUserId], references: [id])
+  approvedAt       DateTime? @map("approved_at")
+
+  /// Dr Salary Expense / Cr Payroll Payable (+ Cr Deductions Payable when deductionAmount > 0), posted at approval.
+  approvalJournalEntryId String?       @unique @map("approval_journal_entry_id")
+  approvalJournalEntry   JournalEntry? @relation("PayrollApprovalJournal", fields: [approvalJournalEntryId], references: [id])
+
+  paymentAccountId String?   @map("payment_account_id")
+  paymentAccount   Account?  @relation("PayrollPaymentAccount", fields: [paymentAccountId], references: [id])
+  paidAt           DateTime? @map("paid_at")
+
+  /// Dr Payroll Payable / Cr Cash-or-Bank, posted at payment.
+  paymentJournalEntryId String?       @unique @map("payment_journal_entry_id")
+  paymentJournalEntry   JournalEntry? @relation("PayrollPaymentJournal", fields: [paymentJournalEntryId], references: [id])
+
+  cancelledAt        DateTime? @map("cancelled_at")
+  cancellationReason String?   @map("cancellation_reason")
+
+  createdByUserId String   @map("created_by_user_id")
+  createdBy       User     @relation("PayrollCreatedBy", fields: [createdByUserId], references: [id])
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  lines PayrollLine[]
+
+  @@unique([periodId, employeeId])
+  @@index([status])
+  @@index([employeeId])
+  @@map("payrolls")
+}
+
+/// Itemized breakdown row backing a Payroll's aggregate amounts — this is
+/// what the frontend detail page and the Payroll reports actually read for
+/// per-component figures.
+model PayrollLine {
+  id          String            @id @default(uuid())
+  payrollId   String            @map("payroll_id")
+  payroll     Payroll           @relation(fields: [payrollId], references: [id], onDelete: Cascade)
+  type        PayrollLineType
+  componentId String?           @map("component_id")
+  component   PayrollComponent? @relation(fields: [componentId], references: [id])
+  label       String
+  amount      Decimal           @db.Decimal(18, 2)
+  notes       String?
+  createdAt   DateTime          @default(now()) @map("created_at")
+
+  @@index([payrollId])
+  @@map("payroll_lines")
 }
 
 // =========================================================================

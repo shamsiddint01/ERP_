@@ -255,4 +255,95 @@ export class FinanceLedgerService {
       tx,
     );
   }
+
+  /**
+   * Payroll approved: the company's payroll cost is recognized. Dr Salary
+   * Expense for the full gross amount / Cr Payroll Payable for the net amount
+   * owed to the employee / Cr Deductions Payable for anything withheld
+   * (taxes, etc. — only included when deductionAmount > 0, since a zero-
+   * amount journal line is rejected by JournalService).
+   */
+  async recordPayrollApproval(
+    params: { grossSalary: number; netSalary: number; deductionAmount: number; payrollId: string; payrollNumber: string; createdByUserId: string },
+    tx?: TransactionClient,
+  ): Promise<JournalEntryWithLines> {
+    if (!tx) return this.prisma.$transaction((trx) => this.recordPayrollApproval(params, trx));
+    const [salaryExpense, payrollPayable] = await Promise.all([
+      this.accountByCode(ACCOUNT_CODES.SALARIES_EXPENSE, tx),
+      this.accountByCode(ACCOUNT_CODES.PAYROLL_PAYABLE, tx),
+    ]);
+    const lines = [
+      { accountId: salaryExpense.id, debit: params.grossSalary },
+      { accountId: payrollPayable.id, credit: params.netSalary },
+    ];
+    if (params.deductionAmount > 0) {
+      const deductionsPayable = await this.accountByCode(ACCOUNT_CODES.DEDUCTIONS_PAYABLE, tx);
+      lines.push({ accountId: deductionsPayable.id, credit: params.deductionAmount });
+    }
+    return this.journal.postEntry(
+      {
+        description: `Payroll ${params.payrollNumber} approved`,
+        referenceType: 'PAYROLL',
+        referenceId: params.payrollId,
+        createdByUserId: params.createdByUserId,
+        lines,
+      },
+      tx,
+    );
+  }
+
+  /** Reverses a previously-approved but not-yet-paid payroll (e.g. cancelled post-approval) — exact inverse of recordPayrollApproval. */
+  async recordPayrollApprovalReversal(
+    params: { grossSalary: number; netSalary: number; deductionAmount: number; payrollId: string; payrollNumber: string; createdByUserId: string },
+    tx?: TransactionClient,
+  ): Promise<JournalEntryWithLines> {
+    if (!tx) return this.prisma.$transaction((trx) => this.recordPayrollApprovalReversal(params, trx));
+    const [salaryExpense, payrollPayable] = await Promise.all([
+      this.accountByCode(ACCOUNT_CODES.SALARIES_EXPENSE, tx),
+      this.accountByCode(ACCOUNT_CODES.PAYROLL_PAYABLE, tx),
+    ]);
+    const lines = [
+      { accountId: payrollPayable.id, debit: params.netSalary },
+      { accountId: salaryExpense.id, credit: params.grossSalary },
+    ];
+    if (params.deductionAmount > 0) {
+      const deductionsPayable = await this.accountByCode(ACCOUNT_CODES.DEDUCTIONS_PAYABLE, tx);
+      lines.push({ accountId: deductionsPayable.id, debit: params.deductionAmount });
+    }
+    return this.journal.postEntry(
+      {
+        description: `Payroll ${params.payrollNumber} approval reversed (cancelled)`,
+        referenceType: 'PAYROLL',
+        referenceId: params.payrollId,
+        createdByUserId: params.createdByUserId,
+        lines,
+      },
+      tx,
+    );
+  }
+
+  /** Payroll paid out: clears the payable — Dr Payroll Payable / Cr Cash/Bank. */
+  async recordPayrollPayment(
+    params: { netSalary: number; method: PaymentMethod; payrollId: string; payrollNumber: string; createdByUserId: string },
+    tx?: TransactionClient,
+  ): Promise<JournalEntryWithLines> {
+    if (!tx) return this.prisma.$transaction((trx) => this.recordPayrollPayment(params, trx));
+    const [payrollPayable, cashOrBank] = await Promise.all([
+      this.accountByCode(ACCOUNT_CODES.PAYROLL_PAYABLE, tx),
+      this.accountByCode(cashOrBankCode(params.method), tx),
+    ]);
+    return this.journal.postEntry(
+      {
+        description: `Payroll ${params.payrollNumber} paid via ${params.method}`,
+        referenceType: 'PAYROLL',
+        referenceId: params.payrollId,
+        createdByUserId: params.createdByUserId,
+        lines: [
+          { accountId: payrollPayable.id, debit: params.netSalary },
+          { accountId: cashOrBank.id, credit: params.netSalary },
+        ],
+      },
+      tx,
+    );
+  }
 }

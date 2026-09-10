@@ -23,6 +23,8 @@ export const PERMISSION_MODULES = {
   departments: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE, PermissionAction.EXPORT],
   positions: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE, PermissionAction.EXPORT],
   attendance: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE, PermissionAction.EXPORT],
+  compensation: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE],
+  payroll: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE, PermissionAction.APPROVE, PermissionAction.EXPORT],
   reports: [PermissionAction.VIEW, PermissionAction.EXPORT],
   notifications: [PermissionAction.VIEW],
   audit_logs: [PermissionAction.VIEW, PermissionAction.EXPORT],

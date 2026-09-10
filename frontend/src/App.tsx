@@ -4,6 +4,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { useAuthBootstrap } from './hooks/useAuthBootstrap';
 import { AttendancePage } from './pages/attendance/AttendancePage';
 import { AuditLogPage } from './pages/AuditLogPage';
+import { CompensationPage } from './pages/compensation/CompensationPage';
 import { CustomerDetailPage } from './pages/customers/CustomerDetailPage';
 import { CustomersPage } from './pages/customers/CustomersPage';
 import { DashboardPage } from './pages/DashboardPage';
@@ -21,6 +22,10 @@ import { LoginPage } from './pages/LoginPage';
 import { OrderDetailPage } from './pages/orders/OrderDetailPage';
 import { OrdersPage } from './pages/orders/OrdersPage';
 import { PaymentsPage } from './pages/payments/PaymentsPage';
+import { PayrollDetailPage } from './pages/payroll/PayrollDetailPage';
+import { PayrollPeriodDetailPage } from './pages/payroll/PayrollPeriodDetailPage';
+import { PayrollPeriodsPage } from './pages/payroll/PayrollPeriodsPage';
+import { PayrollReportsPage } from './pages/payroll/PayrollReportsPage';
 import { ProductsPage } from './pages/products/ProductsPage';
 import { PurchaseOrderDetailPage } from './pages/purchases/PurchaseOrderDetailPage';
 import { PurchasesPage } from './pages/purchases/PurchasesPage';
@@ -62,6 +67,11 @@ export default function App() {
           <Route path="/employees" element={<EmployeesPage />} />
           <Route path="/employees/:id" element={<EmployeeDetailPage />} />
           <Route path="/attendance" element={<AttendancePage />} />
+          <Route path="/compensation" element={<CompensationPage />} />
+          <Route path="/payroll" element={<PayrollPeriodsPage />} />
+          <Route path="/payroll/reports" element={<PayrollReportsPage />} />
+          <Route path="/payroll/periods/:id" element={<PayrollPeriodDetailPage />} />
+          <Route path="/payroll/:id" element={<PayrollDetailPage />} />
           <Route path="/users" element={<UsersPage />} />
           <Route path="/roles" element={<RolesPage />} />
           <Route path="/audit-log" element={<AuditLogPage />} />

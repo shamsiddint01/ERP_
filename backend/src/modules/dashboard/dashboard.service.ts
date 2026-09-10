@@ -47,6 +47,7 @@ export class DashboardService {
     );
 
     const financeKpis = await this.getFinanceKpis();
+    const hrKpis = await this.getHrKpis();
 
     return {
       customersCount,
@@ -63,6 +64,34 @@ export class DashboardService {
       outstandingPaymentsAmount,
       paidInvoicesCount,
       finance: financeKpis,
+      hr: hrKpis,
+    };
+  }
+
+  /** HR/Payroll snapshot — scoped to the most recently created OPEN payroll period, since that's what "current payroll" means operationally. */
+  private async getHrKpis() {
+    const [activeEmployeeCount, currentPeriod, pendingApprovalCount] = await Promise.all([
+      this.prisma.employee.count({ where: { deletedAt: null, status: 'ACTIVE' } }),
+      this.prisma.payrollPeriod.findFirst({ where: { status: 'OPEN' }, orderBy: { periodStart: 'desc' } }),
+      this.prisma.payroll.count({ where: { status: 'CALCULATED' } }),
+    ]);
+
+    if (!currentPeriod) {
+      return { activeEmployeeCount, currentPeriodName: null, currentPayrollTotal: 0, unpaidPayrollTotal: 0, totalOvertimeMinutes: 0, pendingApprovalCount };
+    }
+
+    const [currentPeriodTotals, unpaidTotals] = await Promise.all([
+      this.prisma.payroll.aggregate({ where: { periodId: currentPeriod.id }, _sum: { grossSalary: true, overtimeMinutes: true } }),
+      this.prisma.payroll.aggregate({ where: { status: 'APPROVED' }, _sum: { netSalary: true } }),
+    ]);
+
+    return {
+      activeEmployeeCount,
+      currentPeriodName: currentPeriod.name,
+      currentPayrollTotal: Number(currentPeriodTotals._sum.grossSalary ?? 0),
+      unpaidPayrollTotal: Number(unpaidTotals._sum.netSalary ?? 0),
+      totalOvertimeMinutes: currentPeriodTotals._sum.overtimeMinutes ?? 0,
+      pendingApprovalCount,
     };
   }
 

@@ -102,6 +102,50 @@ export function DashboardPage() {
         </Col>
       </Row>
 
+      <Row gutter={16} style={{ marginBottom: 16 }}>
+        <Col span={4}>
+          <Card>
+            <Statistic title="Faol xodimlar" value={summaryQuery.data?.hr.activeEmployeeCount ?? 0} loading={summaryQuery.isLoading} />
+          </Card>
+        </Col>
+        <Col span={4}>
+          <Card>
+            <Statistic
+              title={`Joriy ish haqi${summaryQuery.data?.hr.currentPeriodName ? ` (${summaryQuery.data.hr.currentPeriodName})` : ''}`}
+              value={summaryQuery.data?.hr.currentPayrollTotal ?? 0}
+              loading={summaryQuery.isLoading}
+              suffix="UZS"
+            />
+          </Card>
+        </Col>
+        <Col span={4}>
+          <Card>
+            <Statistic
+              title="To'lanmagan ish haqi"
+              value={summaryQuery.data?.hr.unpaidPayrollTotal ?? 0}
+              loading={summaryQuery.isLoading}
+              suffix="UZS"
+              styles={{ content: { color: '#faad14' } }}
+            />
+          </Card>
+        </Col>
+        <Col span={4}>
+          <Card>
+            <Statistic
+              title="Tasdiqlashni kutmoqda"
+              value={summaryQuery.data?.hr.pendingApprovalCount ?? 0}
+              loading={summaryQuery.isLoading}
+              styles={{ content: { color: '#1677ff' } }}
+            />
+          </Card>
+        </Col>
+        <Col span={4}>
+          <Card>
+            <Statistic title="Qo'shimcha ish (daqiqa)" value={summaryQuery.data?.hr.totalOvertimeMinutes ?? 0} loading={summaryQuery.isLoading} />
+          </Card>
+        </Col>
+      </Row>
+
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={4}>
           <Card>

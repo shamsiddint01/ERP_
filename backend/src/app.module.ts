@@ -32,6 +32,8 @@ import { DepartmentsModule } from './modules/departments/departments.module.js';
 import { PositionsModule } from './modules/positions/positions.module.js';
 import { EmployeesModule } from './modules/employees/employees.module.js';
 import { AttendanceModule } from './modules/attendance/attendance.module.js';
+import { CompensationModule } from './modules/compensation/compensation.module.js';
+import { PayrollModule } from './modules/payroll/payroll.module.js';
 
 @Module({
   imports: [
@@ -63,6 +65,8 @@ import { AttendanceModule } from './modules/attendance/attendance.module.js';
     PositionsModule,
     EmployeesModule,
     AttendanceModule,
+    CompensationModule,
+    PayrollModule,
   ],
   controllers: [AppController],
   providers: [

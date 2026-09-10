@@ -221,6 +221,14 @@ export interface DashboardSummary {
     totalExpenses: number;
     netProfit: number;
   };
+  hr: {
+    activeEmployeeCount: number;
+    currentPeriodName: string | null;
+    currentPayrollTotal: number;
+    unpaidPayrollTotal: number;
+    totalOvertimeMinutes: number;
+    pendingApprovalCount: number;
+  };
 }
 
 export interface RevenueChartPoint {
@@ -663,3 +671,107 @@ export interface AttendanceOverview {
   onLeaveToday: number;
   averageWorkingHours: number;
 }
+
+// =========================================================================
+// PAYROLL / ADVANCED HR — Phase 7
+// =========================================================================
+
+export type SalaryType = 'HOURLY' | 'DAILY' | 'MONTHLY';
+export type PayrollPeriodStatus = 'OPEN' | 'CLOSED';
+export type PayrollStatus = 'DRAFT' | 'CALCULATING' | 'CALCULATED' | 'APPROVED' | 'PAID' | 'CANCELLED';
+export type PayrollComponentType = 'BONUS' | 'ALLOWANCE' | 'DEDUCTION';
+export type PayrollLineType = 'BASE' | 'OVERTIME' | 'BONUS' | 'ALLOWANCE' | 'DEDUCTION';
+
+export interface EmployeeCompensation {
+  id: string;
+  employeeId: string;
+  employee: { id: string; employeeCode: string; fullName: string };
+  baseSalary: string;
+  salaryType: SalaryType;
+  overtimeRate: string | null;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+  notes: string | null;
+  createdBy: { id: string; fullName: string; username: string };
+  createdAt: string;
+}
+
+export interface PayrollPeriod {
+  id: string;
+  name: string;
+  periodStart: string;
+  periodEnd: string;
+  status: PayrollPeriodStatus;
+  createdAt: string;
+  _count?: { payrolls: number };
+}
+
+export interface PayrollPeriodSummary {
+  period: PayrollPeriod;
+  employeeCount: number;
+  grossTotal: number;
+  deductionsTotal: number;
+  netTotal: number;
+  draftCount: number;
+  calculatedCount: number;
+  approvedCount: number;
+  paidCount: number;
+  cancelledCount: number;
+}
+
+export interface PayrollComponentItem {
+  id: string;
+  name: string;
+  type: PayrollComponentType;
+  isPercentage: boolean;
+  defaultAmount: string | null;
+  isSystem: boolean;
+  isActive: boolean;
+  _count?: { lines: number };
+}
+
+export interface PayrollLineItem {
+  id: string;
+  payrollId: string;
+  type: PayrollLineType;
+  componentId: string | null;
+  component: { id: string; name: string; type: PayrollComponentType } | null;
+  label: string;
+  amount: string;
+  notes: string | null;
+  createdAt: string;
+}
+
+export interface PayrollListItem {
+  id: string;
+  payrollNumber: string;
+  status: PayrollStatus;
+  grossSalary: string;
+  netSalary: string;
+  deductionAmount: string;
+  period: { id: string; name: string; periodStart: string; periodEnd: string };
+  employee: { id: string; employeeCode: string; fullName: string; department: { id: string; name: string } | null };
+}
+
+export interface PayrollDetail extends PayrollListItem {
+  workedDays: string | null;
+  workedMinutes: number | null;
+  overtimeMinutes: number;
+  unpaidAbsenceDays: string;
+  baseAmount: string;
+  overtimeAmount: string;
+  bonusAmount: string;
+  allowanceAmount: string;
+  compensation: { id: string; baseSalary: string; salaryType: SalaryType; overtimeRate: string | null } | null;
+  calculatedAt: string | null;
+  approvedBy: { id: string; fullName: string; username: string } | null;
+  approvedAt: string | null;
+  paymentAccount: { id: string; code: string; name: string } | null;
+  paidAt: string | null;
+  cancelledAt: string | null;
+  cancellationReason: string | null;
+  createdBy: { id: string; fullName: string; username: string };
+  createdAt: string;
+  lines: PayrollLineItem[];
+}
+
