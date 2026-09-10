@@ -54,8 +54,15 @@ function createService(prisma: ReturnType<typeof createPrismaMock>, financeLedge
     resolveCashOrBankAccount: vi.fn().mockResolvedValue({ id: 'bank1' }),
     ...financeLedgerOverrides,
   };
-  const service = new PayrollService(prisma as never, calculationService as never, financeLedger as never, new AuditEntityRegistryService());
-  return { service, financeLedger, calculationService };
+  const notifications = { notifyByPermission: vi.fn().mockResolvedValue(0) };
+  const service = new PayrollService(
+    prisma as never,
+    calculationService as never,
+    financeLedger as never,
+    notifications as never,
+    new AuditEntityRegistryService(),
+  );
+  return { service, financeLedger, calculationService, notifications };
 }
 
 describe('PayrollService', () => {

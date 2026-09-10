@@ -44,7 +44,7 @@ export class AttendanceController {
   ) {
     const report = await this.attendanceService.getReport({ type, from, to, departmentId, employeeId });
     if (format === 'csv' && Array.isArray(report)) {
-      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', `attachment; filename="attendance-${type}.csv"`);
       return res.send(
         toCsv(

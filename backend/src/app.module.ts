@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller.js';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
@@ -34,10 +35,12 @@ import { EmployeesModule } from './modules/employees/employees.module.js';
 import { AttendanceModule } from './modules/attendance/attendance.module.js';
 import { CompensationModule } from './modules/compensation/compensation.module.js';
 import { PayrollModule } from './modules/payroll/payroll.module.js';
+import { NotificationsModule } from './modules/notifications/notifications.module.js';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
     PrismaModule,
     RedisModule,
@@ -67,6 +70,7 @@ import { PayrollModule } from './modules/payroll/payroll.module.js';
     AttendanceModule,
     CompensationModule,
     PayrollModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [

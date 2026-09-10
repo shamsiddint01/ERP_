@@ -3,6 +3,7 @@ import {
   AppstoreOutlined,
   AuditOutlined,
   BankOutlined,
+  BellOutlined,
   CalendarOutlined,
   ClusterOutlined,
   CreditCardOutlined,
@@ -29,6 +30,7 @@ import { useMemo } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { logout } from '../api/auth';
 import { useAuthStore } from '../store/auth.store';
+import { NotificationBell } from './NotificationBell';
 
 const { Header, Sider, Content } = Layout;
 
@@ -62,6 +64,7 @@ export function AppLayout() {
       { key: '/payroll', icon: <AccountBookOutlined />, label: <Link to="/payroll">Ish haqi (Payroll)</Link>, show: hasPermission('payroll', 'VIEW') },
       { key: '/users', icon: <TeamOutlined />, label: <Link to="/users">Foydalanuvchilar</Link>, show: hasPermission('users', 'VIEW') },
       { key: '/roles', icon: <SafetyCertificateOutlined />, label: <Link to="/roles">Rollar</Link>, show: hasPermission('roles', 'VIEW') },
+      { key: '/notifications', icon: <BellOutlined />, label: <Link to="/notifications">Bildirishnomalar</Link>, show: true },
       { key: '/audit-log', icon: <AuditOutlined />, label: <Link to="/audit-log">Audit jurnali</Link>, show: hasPermission('audit_logs', 'VIEW') },
       { key: '/settings', icon: <SettingOutlined />, label: <Link to="/settings">Sozlamalar</Link>, show: hasPermission('settings', 'VIEW') },
     ];
@@ -87,7 +90,8 @@ export function AppLayout() {
         <Menu theme="dark" mode="inline" selectedKeys={[selectedMenuKey]} items={menuItems} />
       </Sider>
       <Layout>
-        <Header style={{ background: '#fff', padding: '0 24px', display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
+        <Header style={{ background: '#fff', padding: '0 24px', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 12 }}>
+          <NotificationBell />
           <Dropdown
             menu={{
               items: [{ key: 'logout', icon: <LogoutOutlined />, label: 'Chiqish', onClick: handleLogout }],

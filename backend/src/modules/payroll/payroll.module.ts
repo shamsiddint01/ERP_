@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { NotificationsModule } from '../notifications/notifications.module.js';
 import { PayrollComponentsController } from './payroll-components.controller.js';
 import { PayrollComponentsService } from './payroll-components.service.js';
 import { PayrollPeriodsController } from './payroll-periods.controller.js';
@@ -9,6 +10,7 @@ import { PayrollController } from './payroll.controller.js';
 import { PayrollService } from './payroll.service.js';
 
 @Module({
+  imports: [NotificationsModule],
   controllers: [PayrollController, PayrollPeriodsController, PayrollComponentsController],
   providers: [PayrollService, PayrollPeriodsService, PayrollComponentsService, PayrollCalculationService, PayrollReportsService],
   exports: [PayrollService, PayrollPeriodsService, PayrollComponentsService],

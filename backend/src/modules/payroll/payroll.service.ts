@@ -1,8 +1,9 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AuditEntityRegistryService } from '../../shared/audit/audit-entity-registry.service.js';
 import { FinanceLedgerService } from '../../shared/finance/finance-ledger.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import type { PaginatedResult } from '../../shared/types/paginated-result.js';
 import { generateDocumentNumber } from '../../shared/utils/document-number.util.js';
 import type { AddPayrollLineDto } from './dto/add-payroll-line.dto.js';
@@ -30,10 +31,13 @@ const ACTIONABLE_LINE_TYPES = ['BONUS', 'ALLOWANCE', 'DEDUCTION'] as const;
 
 @Injectable()
 export class PayrollService {
+  private readonly logger = new Logger(PayrollService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly calculationService: PayrollCalculationService,
     private readonly financeLedger: FinanceLedgerService,
+    private readonly notifications: NotificationsService,
     registry: AuditEntityRegistryService,
   ) {
     registry.register('Payroll', (id) => this.prisma.payroll.findUnique({ where: { id } }));
@@ -183,7 +187,27 @@ export class PayrollService {
   /** Runs (or re-runs) the calculation engine — see PayrollCalculationService for the actual math. */
   async calculate(id: string) {
     await this.calculationService.calculate(id);
-    return this.findOne(id);
+    const payroll = await this.findOne(id);
+
+    // Best-effort: notify approvers that a payroll is now CALCULATED and
+    // awaiting sign-off. dedupe on (recipient, type, payrollId) keeps a
+    // re-calculation from spamming a fresh alert each time.
+    if (payroll.status === 'CALCULATED') {
+      try {
+        await this.notifications.notifyByPermission('payroll', 'APPROVE', {
+          type: 'PAYROLL_PENDING',
+          title: 'Tasdiqlashni kutayotgan ish haqi',
+          message: `${payroll.payrollNumber} — ${payroll.employee.fullName}, sof ${Number(payroll.netSalary).toLocaleString('en-US', { minimumFractionDigits: 2 })} tasdiqlashni kutmoqda.`,
+          referenceType: 'Payroll',
+          referenceId: payroll.id,
+          actionUrl: '/payroll',
+        });
+      } catch (error) {
+        this.logger.error(`Failed to send PAYROLL_PENDING notification for ${id}: ${(error as Error).message}`);
+      }
+    }
+
+    return payroll;
   }
 
   /** CALCULATED -> APPROVED: recognizes the payroll cost in the ledger (Dr Salary Expense / Cr Payroll Payable [+ Cr Deductions Payable]). */

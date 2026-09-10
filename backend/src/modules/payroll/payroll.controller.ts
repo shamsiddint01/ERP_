@@ -47,7 +47,7 @@ export class PayrollController {
     const report = await this.resolveReport(type, filters);
 
     if (format === 'csv' && Array.isArray(report)) {
-      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
       res.setHeader('Content-Disposition', `attachment; filename="payroll-${type}.csv"`);
       return res.send(toCsv(report));
     }

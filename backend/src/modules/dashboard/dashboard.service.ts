@@ -25,6 +25,9 @@ export class DashboardService {
       pendingOrdersCount,
       outstandingInvoices,
       paidInvoicesCount,
+      overdueInvoicesCount,
+      pendingExpensesCount,
+      pendingPayrollCount,
     ] = await Promise.all([
       this.prisma.customer.count({ where: { deletedAt: null } }),
       this.prisma.product.count({ where: { deletedAt: null } }),
@@ -39,6 +42,9 @@ export class DashboardService {
         select: { grandTotal: true, amountPaid: true },
       }),
       this.prisma.invoice.count({ where: { status: 'PAID' } }),
+      this.prisma.invoice.count({ where: { status: 'OVERDUE' } }),
+      this.prisma.expense.count({ where: { status: 'PENDING' } }),
+      this.prisma.payroll.count({ where: { status: 'CALCULATED' } }),
     ]);
 
     const outstandingPaymentsAmount = outstandingInvoices.reduce(
@@ -63,6 +69,9 @@ export class DashboardService {
       pendingOrdersCount,
       outstandingPaymentsAmount,
       paidInvoicesCount,
+      overdueInvoicesCount,
+      pendingExpensesCount,
+      pendingPayrollCount,
       finance: financeKpis,
       hr: hrKpis,
     };

@@ -1,8 +1,9 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AuditEntityRegistryService } from '../../shared/audit/audit-entity-registry.service.js';
 import { computeHoursWorked, computeLateMinutes, computeOvertimeMinutes, resolveWorkSchedule } from '../../shared/attendance/work-schedule.util.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import type { PaginatedResult } from '../../shared/types/paginated-result.js';
 import { SettingsService } from '../settings/settings.service.js';
 import type { CheckInDto } from './dto/check-in.dto.js';
@@ -20,14 +21,37 @@ function utcMidnight(date: Date): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
 }
 
+type AttendanceRecordWithEmployee = Prisma.AttendanceRecordGetPayload<{ include: typeof ATTENDANCE_INCLUDE }>;
+
 @Injectable()
 export class AttendanceService {
+  private readonly logger = new Logger(AttendanceService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly settingsService: SettingsService,
+    private readonly notifications: NotificationsService,
     registry: AuditEntityRegistryService,
   ) {
     registry.register('AttendanceRecord', (id) => this.prisma.attendanceRecord.findUnique({ where: { id } }));
+  }
+
+  /** Best-effort alert to attendance managers when a record lands as LATE or ABSENT. */
+  private async notifyAttendanceAlert(record: AttendanceRecordWithEmployee): Promise<void> {
+    if (record.status !== 'LATE' && record.status !== 'ABSENT') return;
+    try {
+      const label = record.status === 'LATE' ? `kech qoldi (${record.lateMinutes} daqiqa)` : 'kelmadi';
+      await this.notifications.notifyByPermission('attendance', 'EDIT', {
+        type: 'ATTENDANCE_ALERT',
+        title: 'Davomat ogohlantirishi',
+        message: `${record.employee.fullName} — ${record.workDate.toISOString().slice(0, 10)} sanasida ${label}.`,
+        referenceType: 'AttendanceRecord',
+        referenceId: record.id,
+        actionUrl: '/attendance',
+      });
+    } catch (error) {
+      this.logger.error(`Failed to send ATTENDANCE_ALERT for ${record.id}: ${(error as Error).message}`);
+    }
   }
 
   async findAll(query: QueryAttendanceDto): Promise<PaginatedResult<unknown>> {
@@ -82,7 +106,7 @@ export class AttendanceService {
     const status = dto.status ?? (checkInAt ? (lateMinutes > 0 ? 'LATE' : 'PRESENT') : 'ABSENT');
 
     try {
-      return await this.prisma.attendanceRecord.create({
+      const record = await this.prisma.attendanceRecord.create({
         data: {
           employeeId: dto.employeeId,
           workDate: new Date(dto.workDate),
@@ -97,6 +121,8 @@ export class AttendanceService {
         },
         include: ATTENDANCE_INCLUDE,
       });
+      await this.notifyAttendanceAlert(record);
+      return record;
     } catch (error) {
       throw this.translateUniqueConstraintError(error);
     }
@@ -155,15 +181,17 @@ export class AttendanceService {
     }
 
     if (existing) {
-      return this.prisma.attendanceRecord.update({
+      const updated = await this.prisma.attendanceRecord.update({
         where: { id: existing.id },
         data: { checkInAt: now, status: lateMinutes > 0 ? 'LATE' : 'PRESENT', lateMinutes, notes: dto.notes ?? existing.notes },
         include: ATTENDANCE_INCLUDE,
       });
+      await this.notifyAttendanceAlert(updated);
+      return updated;
     }
 
     try {
-      return await this.prisma.attendanceRecord.create({
+      const record = await this.prisma.attendanceRecord.create({
         data: {
           employeeId: dto.employeeId,
           workDate,
@@ -174,6 +202,8 @@ export class AttendanceService {
         },
         include: ATTENDANCE_INCLUDE,
       });
+      await this.notifyAttendanceAlert(record);
+      return record;
     } catch (error) {
       throw this.translateUniqueConstraintError(error);
     }

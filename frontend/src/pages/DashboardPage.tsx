@@ -1,7 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { Card, Col, Row, Statistic, Table, Typography } from 'antd';
+import { Link } from 'react-router-dom';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { getDashboardSummary, getRevenueChart } from '../api/dashboard';
+import { getUnreadCount } from '../api/notifications';
 import { useAuthStore } from '../store/auth.store';
 import type { StockMovement } from '../types';
 
@@ -18,10 +20,40 @@ export function DashboardPage() {
   const user = useAuthStore((state) => state.user);
   const summaryQuery = useQuery({ queryKey: ['dashboard-summary'], queryFn: getDashboardSummary });
   const revenueChartQuery = useQuery({ queryKey: ['revenue-chart'], queryFn: () => getRevenueChart(14) });
+  const unreadQuery = useQuery({ queryKey: ['notifications', 'unread-count'], queryFn: getUnreadCount });
+
+  const attention = [
+    { title: "O'qilmagan bildirishnomalar", value: unreadQuery.data ?? 0, loading: unreadQuery.isLoading, to: '/notifications', color: '#1677ff' },
+    { title: "Muddati o'tgan hisob-fakturalar", value: summaryQuery.data?.overdueInvoicesCount ?? 0, loading: summaryQuery.isLoading, to: '/invoices', color: '#f5222d' },
+    { title: 'Tasdiqlashni kutayotgan xarajatlar', value: summaryQuery.data?.pendingExpensesCount ?? 0, loading: summaryQuery.isLoading, to: '/expenses', color: '#faad14' },
+    { title: 'Tasdiqlashni kutayotgan ish haqi', value: summaryQuery.data?.pendingPayrollCount ?? 0, loading: summaryQuery.isLoading, to: '/payroll', color: '#faad14' },
+    { title: 'Kam qolgan mahsulotlar', value: summaryQuery.data?.lowStockCount ?? 0, loading: summaryQuery.isLoading, to: '/inventory', color: '#faad14' },
+    { title: 'Tugagan mahsulotlar', value: summaryQuery.data?.outOfStockCount ?? 0, loading: summaryQuery.isLoading, to: '/inventory', color: '#f5222d' },
+  ];
 
   return (
     <div>
       <Typography.Title level={3}>Xush kelibsiz, {user?.fullName}</Typography.Title>
+
+      <Typography.Title level={5} style={{ marginTop: 0 }}>
+        E'tibor talab qiladi
+      </Typography.Title>
+      <Row gutter={16} style={{ marginBottom: 24 }}>
+        {attention.map((item) => (
+          <Col span={4} key={item.title}>
+            <Card hoverable styles={{ body: { padding: 16 } }}>
+              <Link to={item.to}>
+                <Statistic
+                  title={item.title}
+                  value={item.value}
+                  loading={item.loading}
+                  styles={{ content: { color: item.value > 0 ? item.color : undefined } }}
+                />
+              </Link>
+            </Card>
+          </Col>
+        ))}
+      </Row>
 
       <Row gutter={16} style={{ marginBottom: 16 }}>
         <Col span={6}>

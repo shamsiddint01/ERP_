@@ -1,8 +1,9 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AuditEntityRegistryService } from '../../shared/audit/audit-entity-registry.service.js';
 import { FinanceLedgerService } from '../../shared/finance/finance-ledger.service.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
 import type { PaginatedResult } from '../../shared/types/paginated-result.js';
 import { generateDocumentNumber } from '../../shared/utils/document-number.util.js';
 import type { CreateExpenseDto } from './dto/create-expense.dto.js';
@@ -20,9 +21,12 @@ const EXPENSE_INCLUDE = {
 
 @Injectable()
 export class ExpensesService {
+  private readonly logger = new Logger(ExpensesService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly financeLedger: FinanceLedgerService,
+    private readonly notifications: NotificationsService,
     registry: AuditEntityRegistryService,
   ) {
     registry.register('Expense', (id) => this.prisma.expense.findUnique({ where: { id } }));
@@ -116,7 +120,23 @@ export class ExpensesService {
     if (expense.status !== 'DRAFT') throw new ConflictException(`Only DRAFT expenses can be submitted (current: ${expense.status})`);
     const updateResult = await this.prisma.expense.updateMany({ where: { id, status: expense.status }, data: { status: 'PENDING' } });
     if (updateResult.count === 0) throw new ConflictException('Expense status was changed concurrently — please retry');
-    return this.findOne(id);
+    const submitted = await this.findOne(id);
+
+    // Best-effort: a notification failure must never fail the submit itself.
+    try {
+      await this.notifications.notifyByPermission('expenses', 'APPROVE', {
+        type: 'EXPENSE_PENDING',
+        title: 'Tasdiqlashni kutayotgan xarajat',
+        message: `${submitted.expenseNumber} — ${submitted.category.name}, ${Number(submitted.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })} tasdiqlashni kutmoqda.`,
+        referenceType: 'Expense',
+        referenceId: submitted.id,
+        actionUrl: '/expenses',
+      });
+    } catch (error) {
+      this.logger.error(`Failed to send EXPENSE_PENDING notification for ${id}: ${(error as Error).message}`);
+    }
+
+    return submitted;
   }
 
   /** PENDING -> APPROVED: recognizes the liability (Dr Expense account / Cr Accounts Payable). Cash is not touched yet. */

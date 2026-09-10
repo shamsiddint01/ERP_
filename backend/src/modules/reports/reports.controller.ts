@@ -113,7 +113,7 @@ export class ReportsController {
   }
 
   private sendCsv(res: Response, name: string, rows: Record<string, unknown>[]) {
-    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
     res.setHeader('Content-Disposition', `attachment; filename="${name}.csv"`);
     return res.send(toCsv(rows));
   }

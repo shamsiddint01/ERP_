@@ -12,8 +12,8 @@ function createPrismaMock(overrides: Record<string, unknown> = {}) {
       findUnique: vi.fn().mockResolvedValue(null),
       findMany: vi.fn().mockResolvedValue([]),
       count: vi.fn().mockResolvedValue(0),
-      create: vi.fn().mockImplementation(({ data }) => Promise.resolve({ id: 'att1', ...data })),
-      update: vi.fn().mockImplementation(({ data }) => Promise.resolve({ id: 'att1', ...data })),
+      create: vi.fn().mockImplementation(({ data }) => Promise.resolve({ id: 'att1', workDate: new Date('2026-09-09'), employee: { fullName: 'Test Employee' }, ...data })),
+      update: vi.fn().mockImplementation(({ data }) => Promise.resolve({ id: 'att1', workDate: new Date('2026-09-09'), employee: { fullName: 'Test Employee' }, ...data })),
       ...(overrides.attendanceRecord as Record<string, unknown>),
     },
   };
@@ -21,8 +21,9 @@ function createPrismaMock(overrides: Record<string, unknown> = {}) {
 
 function createService(prisma: ReturnType<typeof createPrismaMock>) {
   const settingsService = { get: vi.fn().mockResolvedValue({ workScheduleSettings: WORK_SCHEDULE }) };
+  const notifications = { notifyByPermission: vi.fn().mockResolvedValue(0) };
   const registry = { register: vi.fn() };
-  return new AttendanceService(prisma as never, settingsService as never, registry as never);
+  return new AttendanceService(prisma as never, settingsService as never, notifications as never, registry as never);
 }
 
 describe('AttendanceService', () => {

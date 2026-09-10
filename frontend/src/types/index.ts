@@ -211,6 +211,9 @@ export interface DashboardSummary {
   pendingOrdersCount: number;
   outstandingPaymentsAmount: number;
   paidInvoicesCount: number;
+  overdueInvoicesCount: number;
+  pendingExpensesCount: number;
+  pendingPayrollCount: number;
   finance: {
     cash: number;
     bank: number;
@@ -775,3 +778,54 @@ export interface PayrollDetail extends PayrollListItem {
   lines: PayrollLineItem[];
 }
 
+
+// =========================================================================
+// NOTIFICATIONS (Phase 9)
+// =========================================================================
+
+export type NotificationType =
+  | 'NEW_ORDER'
+  | 'NEW_PAYMENT'
+  | 'LOW_STOCK'
+  | 'INVOICE_DUE'
+  | 'DEBT_REMINDER'
+  | 'NEW_EMPLOYEE'
+  | 'SYSTEM_WARNING'
+  | 'PAYMENT_DUE'
+  | 'INVOICE_OVERDUE'
+  | 'CUSTOMER_BALANCE'
+  | 'SUPPLIER_BALANCE'
+  | 'EXPENSE_PENDING'
+  | 'PAYROLL_PENDING'
+  | 'ATTENDANCE_ALERT'
+  | 'SYSTEM';
+
+export type NotificationSeverity = 'INFO' | 'SUCCESS' | 'WARNING' | 'CRITICAL';
+
+export interface NotificationItem {
+  id: string;
+  recipientUserId: string;
+  type: NotificationType;
+  severity: NotificationSeverity;
+  title: string;
+  message: string;
+  referenceType: string | null;
+  referenceId: string | null;
+  actionUrl: string | null;
+  isRead: boolean;
+  readAt: string | null;
+  createdAt: string;
+}
+
+export interface NotificationPage extends PaginatedResult<NotificationItem> {
+  unreadCount: number;
+}
+
+export interface NotificationQuery {
+  page?: number;
+  pageSize?: number;
+  isRead?: boolean;
+  type?: NotificationType;
+  from?: string;
+  to?: string;
+}

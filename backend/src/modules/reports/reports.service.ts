@@ -27,6 +27,7 @@ export class ReportsService {
       where: {
         accountId: query.accountId,
         journalEntry: {
+          referenceType: query.referenceType,
           entryDate: {
             gte: query.from ? new Date(query.from) : undefined,
             lte: query.to ? endOfDay(query.to) : undefined,

@@ -19,6 +19,7 @@ import { InventoryPage } from './pages/inventory/InventoryPage';
 import { WarehousesPage } from './pages/inventory/WarehousesPage';
 import { InvoicesPage } from './pages/invoices/InvoicesPage';
 import { LoginPage } from './pages/LoginPage';
+import { NotificationsPage } from './pages/NotificationsPage';
 import { OrderDetailPage } from './pages/orders/OrderDetailPage';
 import { OrdersPage } from './pages/orders/OrdersPage';
 import { PaymentsPage } from './pages/payments/PaymentsPage';
@@ -75,6 +76,7 @@ export default function App() {
           <Route path="/users" element={<UsersPage />} />
           <Route path="/roles" element={<RolesPage />} />
           <Route path="/audit-log" element={<AuditLogPage />} />
+          <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
       </Route>
