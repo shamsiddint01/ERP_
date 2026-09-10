@@ -182,10 +182,168 @@ async function main() {
   console.log('Backfilling Phase 4 Transaction/PurchaseOrder history into the double-entry ledger...');
   await backfillHistoricalJournalEntries(adminRole.id, accountIdByCode);
 
+  console.log('Seeding Education Center demo data (Phase A)...');
+  await seedEducationCoreDemo();
+
   console.log('Invalidating cached role-permissions (RolePermissionsCacheService)...');
   await flushRolePermissionsCache();
 
   console.log('Seed complete.');
+}
+
+/**
+ * Minimal, idempotent demo data for the education-center core domain — enough
+ * to exercise every Phase A relation. All records are keyed by their unique
+ * `code` and upserted, so re-running the seed never duplicates and never
+ * touches unrelated rows. Clearly fake data.
+ */
+async function seedEducationCoreDemo(): Promise<void> {
+  const branch = await prisma.branch.upsert({
+    where: { code: 'BR-MAIN' },
+    create: { code: 'BR-MAIN', name: 'Main Branch', address: 'Tashkent, Amir Temur ko\'chasi 1', phone: '+998710000001', workingHours: 'Mon-Sat 08:00-21:00' },
+    update: {},
+  });
+
+  const rooms = [
+    { code: '101', name: 'Room 101', capacity: 14 },
+    { code: '204', name: 'Room 204', capacity: 12 },
+  ];
+  for (const r of rooms) {
+    await prisma.classroom.upsert({
+      where: { branchId_roomNumber: { branchId: branch.id, roomNumber: r.code } },
+      create: { branchId: branch.id, roomNumber: r.code, name: r.name, capacity: r.capacity },
+      update: {},
+    });
+  }
+  const room101 = await prisma.classroom.findUniqueOrThrow({ where: { branchId_roomNumber: { branchId: branch.id, roomNumber: '101' } } });
+
+  const languages = await prisma.courseCategory.upsert({
+    where: { code: 'CAT-LANG' },
+    create: { code: 'CAT-LANG', name: 'Languages', description: 'Foreign language programs' },
+    update: {},
+  });
+  const stem = await prisma.courseCategory.upsert({
+    where: { code: 'CAT-STEM' },
+    create: { code: 'CAT-STEM', name: 'Programming & Maths', description: 'STEM courses' },
+    update: {},
+  });
+
+  const courseDefs = [
+    { code: 'ENG-GEN', name: 'General English', categoryId: languages.id, level: 'ELEMENTARY' as const, defaultTuition: '600000', durationWeeks: 12 },
+    { code: 'IELTS', name: 'IELTS Preparation', categoryId: languages.id, level: 'UPPER_INTERMEDIATE' as const, defaultTuition: '900000', durationWeeks: 10 },
+    { code: 'PY-BASE', name: 'Python Basics', categoryId: stem.id, level: 'BEGINNER' as const, defaultTuition: '750000', durationWeeks: 16 },
+  ];
+  const coursesByCode: Record<string, { id: string }> = {};
+  for (const c of courseDefs) {
+    coursesByCode[c.code] = await prisma.course.upsert({
+      where: { code: c.code },
+      create: { code: c.code, name: c.name, categoryId: c.categoryId, level: c.level, defaultTuition: c.defaultTuition, durationWeeks: c.durationWeeks, status: 'ACTIVE' },
+      update: { status: 'ACTIVE' },
+    });
+  }
+
+  const groupDefs = [
+    { code: 'ENG-A1-01', name: 'English A1 — Evening', courseCode: 'ENG-GEN', level: 'ELEMENTARY' as const, tuition: '600000', start: '2026-09-01' },
+    { code: 'IELTS-01', name: 'IELTS Intensive', courseCode: 'IELTS', level: 'UPPER_INTERMEDIATE' as const, tuition: '900000', start: '2026-09-15' },
+  ];
+  const groupsByCode: Record<string, { id: string }> = {};
+  for (const g of groupDefs) {
+    groupsByCode[g.code] = await prisma.studentGroup.upsert({
+      where: { code: g.code },
+      create: {
+        code: g.code,
+        name: g.name,
+        courseId: coursesByCode[g.courseCode].id,
+        branchId: branch.id,
+        classroomId: room101.id,
+        capacity: 12,
+        tuitionAmount: g.tuition,
+        level: g.level,
+        startDate: new Date(g.start),
+        status: 'ACTIVE',
+      },
+      update: {},
+    });
+  }
+
+  const studentDefs = [
+    { code: 'STU-000001', firstName: 'Aziz', lastName: 'Karimov', phone: '+998901112233' },
+    { code: 'STU-000002', firstName: 'Malika', lastName: 'Yusupova', phone: '+998901112234' },
+  ];
+  const studentsByCode: Record<string, { id: string }> = {};
+  for (const s of studentDefs) {
+    studentsByCode[s.code] = await prisma.student.upsert({
+      where: { studentCode: s.code },
+      create: {
+        studentCode: s.code,
+        firstName: s.firstName,
+        lastName: s.lastName,
+        fullName: `${s.firstName} ${s.lastName}`,
+        phone: s.phone,
+        branchId: branch.id,
+        source: 'SEED',
+        status: 'ACTIVE',
+      },
+      update: {},
+    });
+  }
+
+  const guardianDefs = [
+    { phone: '+998907776655', fullName: 'Karim Karimov', rel: 'FATHER' as const, studentCode: 'STU-000001' },
+    { phone: '+998907776656', fullName: 'Nodira Yusupova', rel: 'MOTHER' as const, studentCode: 'STU-000002' },
+  ];
+  for (const gd of guardianDefs) {
+    // Guardian.phone isn't unique (siblings share a parent), so key the demo
+    // guardian by phone via findFirst + create rather than upsert.
+    let guardian = await prisma.guardian.findFirst({ where: { phone: gd.phone, fullName: gd.fullName } });
+    guardian ??= await prisma.guardian.create({
+      data: { fullName: gd.fullName, phone: gd.phone, relationshipType: gd.rel, status: 'ACTIVE' },
+    });
+    await prisma.studentGuardian.upsert({
+      where: { studentId_guardianId: { studentId: studentsByCode[gd.studentCode].id, guardianId: guardian.id } },
+      create: { studentId: studentsByCode[gd.studentCode].id, guardianId: guardian.id, relationship: gd.rel, isPrimary: true },
+      update: {},
+    });
+  }
+
+  // Enrollments — key on (studentId, groupId, ACTIVE) via findFirst; a student
+  // may historically re-enrol, so no unique constraint, just a dedupe here.
+  const enrollmentDefs = [
+    { studentCode: 'STU-000001', groupCode: 'ENG-A1-01', tuition: '600000' },
+    { studentCode: 'STU-000002', groupCode: 'IELTS-01', tuition: '900000' },
+  ];
+  for (const e of enrollmentDefs) {
+    const studentId = studentsByCode[e.studentCode].id;
+    const groupId = groupsByCode[e.groupCode].id;
+    const existing = await prisma.enrollment.findFirst({ where: { studentId, groupId, status: 'ACTIVE' } });
+    if (!existing) {
+      await prisma.enrollment.create({
+        data: { studentId, groupId, startDate: new Date('2026-09-01'), status: 'ACTIVE', agreedTuition: e.tuition },
+      });
+    }
+  }
+
+  const leadDefs = [
+    { fullName: 'Jasur Toshpulatov', phone: '+998935550011', preferredCourse: 'PY-BASE', source: 'INSTAGRAM', status: 'NEW' as const },
+    { fullName: 'Dilnoza Rashidova', phone: '+998935550012', preferredCourse: 'IELTS', source: 'REFERRAL', status: 'CONTACTED' as const },
+  ];
+  for (const l of leadDefs) {
+    const existing = await prisma.lead.findFirst({ where: { phone: l.phone, fullName: l.fullName } });
+    if (!existing) {
+      await prisma.lead.create({
+        data: {
+          fullName: l.fullName,
+          phone: l.phone,
+          preferredCourseId: coursesByCode[l.preferredCourse].id,
+          preferredBranchId: branch.id,
+          source: l.source,
+          status: l.status,
+        },
+      });
+    }
+  }
+
+  console.log('  -> 1 branch, 2 classrooms, 2 course categories, 3 courses, 2 groups, 2 students, 2 guardians, 2 enrollments, 2 leads ensured');
 }
 
 /**

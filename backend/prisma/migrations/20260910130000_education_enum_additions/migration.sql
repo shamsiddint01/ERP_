@@ -1,0 +1,35 @@
+-- CreateEnum
+CREATE TYPE "BranchStatus" AS ENUM ('ACTIVE', 'INACTIVE');
+
+-- CreateEnum
+CREATE TYPE "ClassroomStatus" AS ENUM ('ACTIVE', 'INACTIVE', 'MAINTENANCE');
+
+-- CreateEnum
+CREATE TYPE "CourseCategoryStatus" AS ENUM ('ACTIVE', 'INACTIVE');
+
+-- CreateEnum
+CREATE TYPE "CourseStatus" AS ENUM ('DRAFT', 'ACTIVE', 'INACTIVE', 'ARCHIVED');
+
+-- CreateEnum
+CREATE TYPE "CourseLevel" AS ENUM ('BEGINNER', 'ELEMENTARY', 'PRE_INTERMEDIATE', 'INTERMEDIATE', 'UPPER_INTERMEDIATE', 'ADVANCED');
+
+-- CreateEnum
+CREATE TYPE "StudentGroupStatus" AS ENUM ('PLANNED', 'ACTIVE', 'PAUSED', 'COMPLETED', 'CANCELLED');
+
+-- CreateEnum
+CREATE TYPE "StudentStatus" AS ENUM ('ACTIVE', 'PAUSED', 'GRADUATED', 'INACTIVE', 'LEFT');
+
+-- CreateEnum
+CREATE TYPE "GuardianStatus" AS ENUM ('ACTIVE', 'INACTIVE');
+
+-- CreateEnum
+CREATE TYPE "GuardianRelationship" AS ENUM ('MOTHER', 'FATHER', 'GRANDPARENT', 'SIBLING', 'RELATIVE', 'LEGAL_GUARDIAN', 'OTHER');
+
+-- CreateEnum
+CREATE TYPE "LeadStatus" AS ENUM ('NEW', 'CONTACTED', 'TRIAL_SCHEDULED', 'TRIAL_COMPLETED', 'ENROLLED', 'LOST');
+
+-- CreateEnum
+CREATE TYPE "LeadActivityType" AS ENUM ('CALL', 'MESSAGE', 'MEETING', 'TRIAL', 'NOTE', 'FOLLOW_UP');
+
+-- CreateEnum
+CREATE TYPE "EnrollmentStatus" AS ENUM ('ACTIVE', 'COMPLETED', 'PAUSED', 'CANCELLED', 'TRANSFERRED');

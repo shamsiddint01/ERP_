@@ -310,6 +310,97 @@ enum OutboxEventStatus {
   FAILED
 }
 
+// ----- Education center domain (Phase A) ----------------------------------
+
+enum BranchStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum ClassroomStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+}
+
+enum CourseCategoryStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum CourseStatus {
+  DRAFT
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+}
+
+enum CourseLevel {
+  BEGINNER
+  ELEMENTARY
+  PRE_INTERMEDIATE
+  INTERMEDIATE
+  UPPER_INTERMEDIATE
+  ADVANCED
+}
+
+enum StudentGroupStatus {
+  PLANNED
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum StudentStatus {
+  ACTIVE
+  PAUSED
+  GRADUATED
+  INACTIVE
+  LEFT
+}
+
+enum GuardianStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum GuardianRelationship {
+  MOTHER
+  FATHER
+  GRANDPARENT
+  SIBLING
+  RELATIVE
+  LEGAL_GUARDIAN
+  OTHER
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  TRIAL_SCHEDULED
+  TRIAL_COMPLETED
+  ENROLLED
+  LOST
+}
+
+enum LeadActivityType {
+  CALL
+  MESSAGE
+  MEETING
+  TRIAL
+  NOTE
+  FOLLOW_UP
+}
+
+enum EnrollmentStatus {
+  ACTIVE
+  COMPLETED
+  PAUSED
+  CANCELLED
+  TRANSFERRED
+}
+
 // =========================================================================
 // 1. USERS & ROLES (RBAC)
 // =========================================================================
@@ -348,6 +439,10 @@ model User {
   createdCompensations    EmployeeCompensation[] @relation("CompensationCreatedBy")
   createdPayrolls         Payroll[]              @relation("PayrollCreatedBy")
   approvedPayrolls        Payroll[]              @relation("PayrollApprovedBy")
+
+  // Education center (Phase A) — optional portal links
+  student  Student?
+  guardian Guardian? @relation("GuardianUser")
 
   @@map("users")
 }
@@ -1041,6 +1136,12 @@ model Employee {
   compensations       EmployeeCompensation[]
   payrolls            Payroll[]
 
+  // Education center (Phase A)
+  managedBranches Branch[]       @relation("BranchManager")
+  taughtGroups    StudentGroup[] @relation("GroupTeacher")
+  assignedLeads   Lead[]         @relation("LeadAssignee")
+  leadActivities  LeadActivity[] @relation("LeadActivityEmployee")
+
   @@index([departmentId])
   @@index([positionId])
   @@index([status])
@@ -1359,4 +1460,267 @@ model OutboxEvent {
 
   @@index([status, createdAt])
   @@map("outbox_events")
+}
+
+// =========================================================================
+// EDUCATION CENTER — CORE DOMAIN (Phase A)
+// Additive only. Legacy retail models (Product/Warehouse/Order/…) are
+// untouched. Teachers are represented by Employee via
+// StudentGroup.teacherEmployeeId — a dedicated TeacherProfile arrives in a
+// later phase. Money is always Decimal(18,2).
+// =========================================================================
+
+model Branch {
+  id                String       @id @default(uuid())
+  name              String
+  code              String       @unique
+  address           String?
+  phone             String?
+  email             String?
+  managerEmployeeId String?      @map("manager_employee_id")
+  managerEmployee   Employee?    @relation("BranchManager", fields: [managerEmployeeId], references: [id])
+  workingHours      String?      @map("working_hours")
+  notes             String?
+  status            BranchStatus @default(ACTIVE)
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
+
+  classrooms    Classroom[]
+  studentGroups StudentGroup[]
+  students      Student[]
+  leads         Lead[]
+
+  @@index([status])
+  @@map("branches")
+}
+
+model Classroom {
+  id         String          @id @default(uuid())
+  branchId   String          @map("branch_id")
+  branch     Branch          @relation(fields: [branchId], references: [id])
+  name       String
+  roomNumber String          @map("room_number")
+  capacity   Int
+  equipment  String?
+  notes      String?
+  status     ClassroomStatus @default(ACTIVE)
+  createdAt  DateTime        @default(now()) @map("created_at")
+  updatedAt  DateTime        @updatedAt @map("updated_at")
+
+  studentGroups StudentGroup[]
+
+  @@unique([branchId, roomNumber])
+  @@index([branchId])
+  @@index([status])
+  @@map("classrooms")
+}
+
+model CourseCategory {
+  id          String               @id @default(uuid())
+  name        String
+  code        String               @unique
+  description String?
+  status      CourseCategoryStatus @default(ACTIVE)
+  createdAt   DateTime             @default(now()) @map("created_at")
+  updatedAt   DateTime             @updatedAt @map("updated_at")
+
+  courses Course[]
+
+  @@index([status])
+  @@map("course_categories")
+}
+
+model Course {
+  id                    String          @id @default(uuid())
+  categoryId            String?         @map("category_id")
+  category              CourseCategory? @relation(fields: [categoryId], references: [id])
+  name                  String
+  code                  String          @unique
+  description           String?
+  level                 CourseLevel?
+  durationWeeks         Int?            @map("duration_weeks")
+  lessonDurationMinutes Int             @default(90) @map("lesson_duration_minutes")
+  defaultTuition        Decimal         @default(0) @map("default_tuition") @db.Decimal(18, 2)
+  status                CourseStatus    @default(DRAFT)
+  createdAt             DateTime        @default(now()) @map("created_at")
+  updatedAt             DateTime        @updatedAt @map("updated_at")
+
+  studentGroups    StudentGroup[]
+  preferredByLeads Lead[]
+
+  @@index([categoryId])
+  @@index([status])
+  @@map("courses")
+}
+
+model StudentGroup {
+  id                String             @id @default(uuid())
+  code              String             @unique
+  name              String
+  courseId          String             @map("course_id")
+  course            Course             @relation(fields: [courseId], references: [id])
+  branchId          String             @map("branch_id")
+  branch            Branch             @relation(fields: [branchId], references: [id])
+  classroomId       String?            @map("classroom_id")
+  classroom         Classroom?         @relation(fields: [classroomId], references: [id])
+  teacherEmployeeId String?            @map("teacher_employee_id")
+  teacherEmployee   Employee?          @relation("GroupTeacher", fields: [teacherEmployeeId], references: [id])
+  capacity          Int                @default(12)
+  tuitionAmount     Decimal?           @map("tuition_amount") @db.Decimal(18, 2)
+  level             CourseLevel?
+  startDate         DateTime           @map("start_date") @db.Date
+  endDate           DateTime?          @map("end_date") @db.Date
+  status            StudentGroupStatus @default(PLANNED)
+  notes             String?
+  createdAt         DateTime           @default(now()) @map("created_at")
+  updatedAt         DateTime           @updatedAt @map("updated_at")
+
+  enrollments Enrollment[]
+
+  @@index([courseId])
+  @@index([branchId])
+  @@index([classroomId])
+  @@index([teacherEmployeeId])
+  @@index([status])
+  @@index([startDate])
+  @@map("student_groups")
+}
+
+model Student {
+  id                  String        @id @default(uuid())
+  studentCode         String        @unique @map("student_code")
+  firstName           String        @map("first_name")
+  lastName            String        @map("last_name")
+  fullName            String        @map("full_name")
+  dateOfBirth         DateTime?     @map("date_of_birth") @db.Date
+  gender              String?
+  phone               String?
+  email               String?
+  address             String?
+  photoUrl            String?       @map("photo_url")
+  status              StudentStatus @default(ACTIVE)
+  registrationDate    DateTime      @default(now()) @map("registration_date")
+  source              String?
+  emergencyContact    String?       @map("emergency_contact")
+  notes               String?
+  branchId            String?       @map("branch_id")
+  branch              Branch?       @relation(fields: [branchId], references: [id])
+  userId              String?       @unique @map("user_id")
+  user                User?         @relation(fields: [userId], references: [id])
+  convertedFromLeadId String?       @unique @map("converted_from_lead_id")
+  convertedFromLead   Lead?         @relation("LeadConversion", fields: [convertedFromLeadId], references: [id])
+  createdAt           DateTime      @default(now()) @map("created_at")
+  updatedAt           DateTime      @updatedAt @map("updated_at")
+
+  guardians   StudentGuardian[]
+  enrollments Enrollment[]
+
+  @@index([status])
+  @@index([branchId])
+  @@index([registrationDate])
+  @@index([phone])
+  @@map("students")
+}
+
+model Guardian {
+  id               String               @id @default(uuid())
+  fullName         String               @map("full_name")
+  phone            String
+  email            String?
+  relationshipType GuardianRelationship @default(OTHER) @map("relationship_type")
+  address          String?
+  notes            String?
+  status           GuardianStatus       @default(ACTIVE)
+  userId           String?              @unique @map("user_id")
+  user             User?                @relation("GuardianUser", fields: [userId], references: [id])
+  createdAt        DateTime             @default(now()) @map("created_at")
+  updatedAt        DateTime             @updatedAt @map("updated_at")
+
+  students StudentGuardian[]
+
+  @@index([phone])
+  @@index([status])
+  @@map("guardians")
+}
+
+model StudentGuardian {
+  studentId    String               @map("student_id")
+  student      Student              @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  guardianId   String               @map("guardian_id")
+  guardian     Guardian             @relation(fields: [guardianId], references: [id], onDelete: Cascade)
+  relationship GuardianRelationship @default(OTHER)
+  isPrimary    Boolean              @default(false) @map("is_primary")
+  createdAt    DateTime             @default(now()) @map("created_at")
+
+  @@id([studentId, guardianId])
+  @@index([guardianId])
+  @@map("student_guardians")
+}
+
+model Lead {
+  id                 String     @id @default(uuid())
+  fullName           String     @map("full_name")
+  phone              String
+  email              String?
+  preferredCourseId  String?    @map("preferred_course_id")
+  preferredCourse    Course?    @relation(fields: [preferredCourseId], references: [id])
+  preferredBranchId  String?    @map("preferred_branch_id")
+  preferredBranch    Branch?    @relation(fields: [preferredBranchId], references: [id])
+  source             String?
+  assignedEmployeeId String?    @map("assigned_employee_id")
+  assignedEmployee   Employee?  @relation("LeadAssignee", fields: [assignedEmployeeId], references: [id])
+  status             LeadStatus @default(NEW)
+  nextFollowUpAt     DateTime?  @map("next_follow_up_at")
+  notes              String?
+  createdAt          DateTime   @default(now()) @map("created_at")
+  updatedAt          DateTime   @updatedAt @map("updated_at")
+
+  activities       LeadActivity[]
+  convertedStudent Student?       @relation("LeadConversion")
+
+  @@index([status])
+  @@index([preferredCourseId])
+  @@index([preferredBranchId])
+  @@index([assignedEmployeeId])
+  @@index([nextFollowUpAt])
+  @@index([createdAt])
+  @@map("leads")
+}
+
+model LeadActivity {
+  id          String           @id @default(uuid())
+  leadId      String           @map("lead_id")
+  lead        Lead             @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  employeeId  String?          @map("employee_id")
+  employee    Employee?        @relation("LeadActivityEmployee", fields: [employeeId], references: [id])
+  type        LeadActivityType
+  description String?
+  occurredAt  DateTime         @default(now()) @map("occurred_at")
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  @@index([leadId])
+  @@index([occurredAt])
+  @@map("lead_activities")
+}
+
+model Enrollment {
+  id             String           @id @default(uuid())
+  studentId      String           @map("student_id")
+  student        Student          @relation(fields: [studentId], references: [id])
+  groupId        String           @map("group_id")
+  group          StudentGroup     @relation(fields: [groupId], references: [id])
+  startDate      DateTime         @map("start_date") @db.Date
+  endDate        DateTime?        @map("end_date") @db.Date
+  status         EnrollmentStatus @default(ACTIVE)
+  agreedTuition  Decimal?         @map("agreed_tuition") @db.Decimal(18, 2)
+  discountAmount Decimal?         @map("discount_amount") @db.Decimal(18, 2)
+  notes          String?
+  createdAt      DateTime         @default(now()) @map("created_at")
+  updatedAt      DateTime         @updatedAt @map("updated_at")
+
+  @@index([studentId])
+  @@index([groupId])
+  @@index([status])
+  @@index([startDate])
+  @@map("enrollments")
 }
