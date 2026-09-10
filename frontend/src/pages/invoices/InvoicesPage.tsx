@@ -117,7 +117,7 @@ export function InvoicesPage() {
         ]}
       />
 
-      <Drawer title={invoice?.invoiceNumber} open={!!viewingId} onClose={() => setViewingId(null)} width={520}>
+      <Drawer title={invoice?.invoiceNumber} open={!!viewingId} onClose={() => setViewingId(null)} size={520}>
         {invoice && (
           <div>
             <Descriptions column={1} bordered size="small">

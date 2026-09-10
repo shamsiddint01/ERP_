@@ -15,6 +15,11 @@ import { AppModule } from './app.module.js';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Run OnModuleDestroy hooks (PrismaService.$disconnect, RedisService.disconnect)
+  // when the process gets SIGTERM/SIGINT — otherwise a container stop drops
+  // connections without closing them.
+  app.enableShutdownHooks();
+
   app.use(helmet());
   app.use(cookieParser());
   app.enableCors({
