@@ -1,6 +1,7 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient, PermissionAction, type AccountCategory, type AccountType, type TransactionReferenceType } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
+import { Redis } from 'ioredis';
 import { PERMISSION_MODULES } from '../src/shared/constants/permission-modules.constant.js';
 import { ACCOUNT_CODES } from '../src/shared/finance/account-codes.constant.js';
 import { generateDocumentNumber } from '../src/shared/utils/document-number.util.js';
@@ -181,7 +182,45 @@ async function main() {
   console.log('Backfilling Phase 4 Transaction/PurchaseOrder history into the double-entry ledger...');
   await backfillHistoricalJournalEntries(adminRole.id, accountIdByCode);
 
+  console.log('Invalidating cached role-permissions (RolePermissionsCacheService)...');
+  await flushRolePermissionsCache();
+
   console.log('Seed complete.');
+}
+
+/**
+ * Re-running this seed against a live deployment (e.g. to adjust a starter
+ * role's default grants) rewrites RolePermission rows directly in Postgres,
+ * bypassing RolesService.updatePermissions() — the only place that normally
+ * invalidates RolePermissionsCacheService's Redis cache (1h TTL). Without
+ * this, an admin could be seeded a new permission and still get a stale 403
+ * for up to an hour. Best-effort: a Redis outage here must never fail the
+ * (far more important) database seeding above, since the TTL self-corrects.
+ */
+async function flushRolePermissionsCache(): Promise<void> {
+  const redis = new Redis({
+    host: process.env.REDIS_HOST ?? 'localhost',
+    port: Number(process.env.REDIS_PORT) || 6379,
+    lazyConnect: true,
+    retryStrategy: () => null,
+  });
+  try {
+    await redis.connect();
+    let cursor = '0';
+    let deleted = 0;
+    do {
+      const [nextCursor, keys] = await redis.scan(cursor, 'MATCH', 'role-permissions:*', 'COUNT', 100);
+      cursor = nextCursor;
+      if (keys.length > 0) {
+        deleted += await redis.del(...keys);
+      }
+    } while (cursor !== '0');
+    console.log(`  -> ${deleted} cached role-permission entries invalidated`);
+  } catch (error) {
+    console.warn(`  -> Could not reach Redis to invalidate the role-permissions cache (it will self-expire within 1 hour): ${(error as Error).message}`);
+  } finally {
+    redis.disconnect();
+  }
 }
 
 /**

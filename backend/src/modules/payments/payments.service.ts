@@ -182,7 +182,9 @@ export class PaymentsService {
           { amount, method: payment.method, paymentId: payment.id, paymentNumber: payment.paymentNumber, createdByUserId: userId },
           tx,
         );
-        return tx.payment.update({ where: { id }, data: { status: 'REFUNDED' }, include: PAYMENT_INCLUDE });
+        const updateResult = await tx.payment.updateMany({ where: { id, status: payment.status }, data: { status: 'REFUNDED' } });
+        if (updateResult.count === 0) throw new ConflictException('Payment status was changed concurrently — please retry');
+        return tx.payment.findUniqueOrThrow({ where: { id }, include: PAYMENT_INCLUDE });
       }
 
       if (payment.referenceType === 'ORDER') {
@@ -202,7 +204,9 @@ export class PaymentsService {
         tx,
       );
 
-      return tx.payment.update({ where: { id }, data: { status: 'REFUNDED' }, include: PAYMENT_INCLUDE });
+      const updateResult = await tx.payment.updateMany({ where: { id, status: payment.status }, data: { status: 'REFUNDED' } });
+      if (updateResult.count === 0) throw new ConflictException('Payment status was changed concurrently — please retry');
+      return tx.payment.findUniqueOrThrow({ where: { id }, include: PAYMENT_INCLUDE });
     });
   }
 }

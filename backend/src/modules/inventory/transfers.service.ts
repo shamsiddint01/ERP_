@@ -107,11 +107,14 @@ export class TransfersService {
         );
       }
 
-      return tx.stockTransfer.update({
-        where: { id },
+      const updateResult = await tx.stockTransfer.updateMany({
+        where: { id, status: transfer.status },
         data: { status: 'COMPLETED', completedAt: new Date() },
-        include: TRANSFER_INCLUDE,
       });
+      if (updateResult.count === 0) {
+        throw new ConflictException('Transfer status was changed concurrently — please retry');
+      }
+      return tx.stockTransfer.findUniqueOrThrow({ where: { id }, include: TRANSFER_INCLUDE });
     });
   }
 
@@ -120,6 +123,8 @@ export class TransfersService {
     if (transfer.status !== 'DRAFT') {
       throw new ConflictException(`Only DRAFT transfers can be cancelled (current status: ${transfer.status})`);
     }
-    return this.prisma.stockTransfer.update({ where: { id }, data: { status: 'CANCELLED' }, include: TRANSFER_INCLUDE });
+    const updateResult = await this.prisma.stockTransfer.updateMany({ where: { id, status: transfer.status }, data: { status: 'CANCELLED' } });
+    if (updateResult.count === 0) throw new ConflictException('Transfer status was changed concurrently — please retry');
+    return this.findOne(id);
   }
 }

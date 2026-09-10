@@ -18,19 +18,32 @@ function createFakePo(overrides: Partial<{ status: string; items: Array<{ id: st
 }
 
 function createPrismaMock(po: ReturnType<typeof createFakePo>) {
+  let lastUpdateData: Record<string, unknown> = {};
   const txStub = {
     purchaseOrderItem: {
       update: vi.fn().mockResolvedValue({}),
       findMany: vi.fn().mockResolvedValue(po.items.map((i) => ({ ...i, quantityReceived: i.quantityReceived }))),
     },
     supplier: { update: vi.fn().mockResolvedValue({}) },
-    purchaseOrder: { update: vi.fn().mockImplementation(({ data }) => Promise.resolve({ ...po, ...data })) },
+    purchaseOrder: {
+      update: vi.fn().mockImplementation(({ data }) => Promise.resolve({ ...po, ...data })),
+      updateMany: vi.fn().mockImplementation(({ data }) => {
+        lastUpdateData = data;
+        return Promise.resolve({ count: 1 });
+      }),
+      findUniqueOrThrow: vi.fn().mockImplementation(() => Promise.resolve({ ...po, ...lastUpdateData })),
+    },
   };
 
   return {
     purchaseOrder: {
       findUnique: vi.fn().mockResolvedValue(po),
       update: vi.fn().mockImplementation(({ data }) => Promise.resolve({ ...po, ...data })),
+      updateMany: vi.fn().mockImplementation(({ data }) => {
+        lastUpdateData = data;
+        return Promise.resolve({ count: 1 });
+      }),
+      findUniqueOrThrow: vi.fn().mockImplementation(() => Promise.resolve({ ...po, ...lastUpdateData })),
     },
     $transaction: vi.fn((callback: (tx: unknown) => unknown) => callback(txStub)),
     __tx: txStub,
@@ -92,7 +105,7 @@ describe('PurchasesService.receive', () => {
 
     await service.receive('po1', { items: [{ purchaseOrderItemId: 'item1', quantityReceived: 10 }] }, 'user1');
 
-    expect(prisma.__tx.purchaseOrder.update).toHaveBeenCalledWith(
+    expect(prisma.__tx.purchaseOrder.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: 'RECEIVED' }) }),
     );
   });
@@ -105,9 +118,20 @@ describe('PurchasesService.receive', () => {
 
     await service.receive('po1', { items: [{ purchaseOrderItemId: 'item1', quantityReceived: 4 }] }, 'user1');
 
-    expect(prisma.__tx.purchaseOrder.update).toHaveBeenCalledWith(
+    expect(prisma.__tx.purchaseOrder.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: 'PARTIALLY_RECEIVED' }) }),
     );
+  });
+
+  it('throws ConflictException instead of double-receiving when the PO status changed concurrently', async () => {
+    const po = createFakePo();
+    const prisma = createPrismaMock(po);
+    prisma.__tx.purchaseOrder.updateMany.mockResolvedValueOnce({ count: 0 });
+    const service = createService(prisma);
+
+    await expect(
+      service.receive('po1', { items: [{ purchaseOrderItemId: 'item1', quantityReceived: 4 }] }, 'user1'),
+    ).rejects.toThrow(ConflictException);
   });
 });
 
@@ -127,6 +151,26 @@ describe('PurchasesService.cancel', () => {
 
     await service.cancel('po1');
 
-    expect(prisma.purchaseOrder.update).toHaveBeenCalledWith(expect.objectContaining({ data: { status: 'CANCELLED' } }));
+    expect(prisma.purchaseOrder.updateMany).toHaveBeenCalledWith(expect.objectContaining({ data: { status: 'CANCELLED' } }));
+  });
+
+  it('throws ConflictException instead of a stale cancel when the PO status changed concurrently', async () => {
+    const po = createFakePo({ status: 'DRAFT' });
+    const prisma = createPrismaMock(po);
+    prisma.purchaseOrder.updateMany.mockResolvedValueOnce({ count: 0 });
+    const service = createService(prisma);
+
+    await expect(service.cancel('po1')).rejects.toThrow(ConflictException);
+  });
+});
+
+describe('PurchasesService payment reconciliation', () => {
+  it('applyPayment throws ConflictException instead of a lost update when amountPaid changed concurrently', async () => {
+    const po = createFakePo();
+    const prisma = createPrismaMock(po);
+    prisma.__tx.purchaseOrder.updateMany.mockResolvedValueOnce({ count: 0 });
+    const service = createService(prisma);
+
+    await expect(service.applyPayment('po1', 100, prisma.__tx as never)).rejects.toThrow(ConflictException);
   });
 });

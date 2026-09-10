@@ -17,11 +17,16 @@ function createFakeOrder(overrides: Partial<{ status: string; amountPaid: string
 }
 
 function createPrismaMock(order: ReturnType<typeof createFakeOrder>) {
+  let lastUpdateData: Record<string, unknown> = {};
   const txStub = {
     order: {
       update: vi.fn().mockImplementation(({ data }) => Promise.resolve({ ...order, ...data })),
-      findUniqueOrThrow: vi.fn().mockResolvedValue(order),
-      findUnique: vi.fn().mockResolvedValue({ ...order, items: [] }),
+      updateMany: vi.fn().mockImplementation(({ data }) => {
+        lastUpdateData = data;
+        return Promise.resolve({ count: 1 });
+      }),
+      findUniqueOrThrow: vi.fn().mockImplementation(() => Promise.resolve({ ...order, ...lastUpdateData })),
+      findUnique: vi.fn().mockImplementation(() => Promise.resolve({ ...order, ...lastUpdateData, items: [] })),
     },
     customer: { update: vi.fn().mockResolvedValue({}) },
     auditLog: { create: vi.fn().mockResolvedValue({}) },
@@ -86,6 +91,13 @@ describe('OrdersService', () => {
       await expect(service.cancel('order1', { reason: 'test' })).rejects.toThrow(ConflictException);
     });
 
+    it('throws ConflictException instead of double-completing when the status changed concurrently', async () => {
+      const prisma = createPrismaMock(createFakeOrder({ status: 'PROCESSING' }));
+      prisma.__tx.order.updateMany.mockResolvedValueOnce({ count: 0 });
+      const service = createService(prisma);
+      await expect(service.complete('order1', 'user1')).rejects.toThrow(ConflictException);
+    });
+
     it('releases the stock reservation when cancelling a CONFIRMED order', async () => {
       const prisma = createPrismaMock(createFakeOrder({ status: 'CONFIRMED' }));
       const releaseReservedStock = vi.fn().mockResolvedValue(undefined);
@@ -126,6 +138,14 @@ describe('OrdersService', () => {
       const result = await service.applyPayment('order1', 600, prisma.__tx as never);
 
       expect(result).toMatchObject({ amountPaid: 1000, paymentStatus: 'PAID' });
+    });
+
+    it('throws ConflictException instead of a lost update when amountPaid changed concurrently', async () => {
+      const prisma = createPrismaMock(createFakeOrder({ grandTotal: '1000', amountPaid: '400' }));
+      prisma.__tx.order.updateMany.mockResolvedValueOnce({ count: 0 });
+      const service = createService(prisma);
+
+      await expect(service.applyPayment('order1', 600, prisma.__tx as never)).rejects.toThrow(ConflictException);
     });
   });
 });

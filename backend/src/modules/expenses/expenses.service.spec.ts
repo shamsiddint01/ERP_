@@ -15,11 +15,26 @@ function fakeExpense(overrides: Partial<{ status: string; amount: string; catego
 }
 
 function createPrismaMock(expense: ReturnType<typeof fakeExpense>) {
+  let lastUpdateData: Record<string, unknown> = {};
   const txStub = {
-    expense: { update: vi.fn().mockImplementation(({ data }) => Promise.resolve({ ...expense, ...data })) },
+    expense: {
+      update: vi.fn().mockImplementation(({ data }) => Promise.resolve({ ...expense, ...data })),
+      updateMany: vi.fn().mockImplementation(({ data }) => {
+        lastUpdateData = data;
+        return Promise.resolve({ count: 1 });
+      }),
+      findUniqueOrThrow: vi.fn().mockImplementation(() => Promise.resolve({ ...expense, ...lastUpdateData })),
+    },
   };
   return {
-    expense: { findUnique: vi.fn().mockResolvedValue(expense) },
+    expense: {
+      findUnique: vi.fn().mockResolvedValue(expense),
+      updateMany: vi.fn().mockImplementation(({ data }) => {
+        lastUpdateData = data;
+        return Promise.resolve({ count: 1 });
+      }),
+      findUniqueOrThrow: vi.fn().mockImplementation(() => Promise.resolve({ ...expense, ...lastUpdateData })),
+    },
     $transaction: vi.fn((cb: (tx: unknown) => unknown) => cb(txStub)),
     __tx: txStub,
   };
@@ -64,6 +79,14 @@ describe('ExpensesService', () => {
         prisma.__tx,
       );
       expect(result).toMatchObject({ status: 'APPROVED' });
+    });
+
+    it('throws ConflictException instead of double-approving when the status changed concurrently', async () => {
+      const prisma = createPrismaMock(fakeExpense({ status: 'PENDING' }));
+      prisma.__tx.expense.updateMany.mockResolvedValueOnce({ count: 0 });
+      const { service } = createService(prisma);
+
+      await expect(service.approve('exp1', 'user1')).rejects.toThrow(ConflictException);
     });
   });
 

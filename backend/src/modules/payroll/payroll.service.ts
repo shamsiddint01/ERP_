@@ -205,11 +205,14 @@ export class PayrollService {
         },
         tx,
       );
-      return tx.payroll.update({
-        where: { id },
+      const updateResult = await tx.payroll.updateMany({
+        where: { id, status: payroll.status },
         data: { status: 'APPROVED', approvedByUserId: userId, approvedAt: new Date(), approvalJournalEntryId: entry.id },
-        include: PAYROLL_DETAIL_INCLUDE,
       });
+      if (updateResult.count === 0) {
+        throw new ConflictException('Payroll status was changed concurrently — please retry');
+      }
+      return tx.payroll.findUniqueOrThrow({ where: { id }, include: PAYROLL_DETAIL_INCLUDE });
     });
   }
 
@@ -226,11 +229,14 @@ export class PayrollService {
         { netSalary: Number(payroll.netSalary), method: dto.method, payrollId: payroll.id, payrollNumber: payroll.payrollNumber, createdByUserId: userId },
         tx,
       );
-      return tx.payroll.update({
-        where: { id },
+      const updateResult = await tx.payroll.updateMany({
+        where: { id, status: payroll.status },
         data: { status: 'PAID', paidAt: new Date(), paymentAccountId: paymentAccount.id, paymentJournalEntryId: entry.id },
-        include: PAYROLL_DETAIL_INCLUDE,
       });
+      if (updateResult.count === 0) {
+        throw new ConflictException('Payroll status was changed concurrently — please retry');
+      }
+      return tx.payroll.findUniqueOrThrow({ where: { id }, include: PAYROLL_DETAIL_INCLUDE });
     });
   }
 
@@ -255,11 +261,14 @@ export class PayrollService {
           tx,
         );
       }
-      return tx.payroll.update({
-        where: { id },
+      const updateResult = await tx.payroll.updateMany({
+        where: { id, status: payroll.status },
         data: { status: 'CANCELLED', cancelledAt: new Date(), cancellationReason: dto.reason },
-        include: PAYROLL_DETAIL_INCLUDE,
       });
+      if (updateResult.count === 0) {
+        throw new ConflictException('Payroll status was changed concurrently — please retry');
+      }
+      return tx.payroll.findUniqueOrThrow({ where: { id }, include: PAYROLL_DETAIL_INCLUDE });
     });
   }
 

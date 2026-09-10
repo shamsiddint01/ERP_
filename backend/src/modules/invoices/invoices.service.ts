@@ -182,7 +182,9 @@ export class InvoicesService {
   async send(id: string) {
     const invoice = await this.findOne(id);
     if (invoice.status !== 'DRAFT') throw new ConflictException(`Only DRAFT invoices can be sent (current: ${invoice.status})`);
-    return this.prisma.invoice.update({ where: { id }, data: { status: 'SENT' }, include: INVOICE_INCLUDE });
+    const updateResult = await this.prisma.invoice.updateMany({ where: { id, status: invoice.status }, data: { status: 'SENT' } });
+    if (updateResult.count === 0) throw new ConflictException('Invoice status was changed concurrently — please retry');
+    return this.findOne(id);
   }
 
   async void(id: string) {
@@ -191,7 +193,9 @@ export class InvoicesService {
       throw new ConflictException('Cannot void an invoice that already has payments recorded against it');
     }
     if (invoice.status === 'VOID') throw new ConflictException('Invoice is already void');
-    return this.prisma.invoice.update({ where: { id }, data: { status: 'VOID' }, include: INVOICE_INCLUDE });
+    const updateResult = await this.prisma.invoice.updateMany({ where: { id, status: invoice.status }, data: { status: 'VOID' } });
+    if (updateResult.count === 0) throw new ConflictException('Invoice status was changed concurrently — please retry');
+    return this.findOne(id);
   }
 
   async getPdf(id: string): Promise<Buffer> {
@@ -212,20 +216,28 @@ export class InvoicesService {
     }
 
     const newAmountPaid = Number(invoice.amountPaid) + amount;
-    return tx.invoice.update({
-      where: { id },
+    const updateResult = await tx.invoice.updateMany({
+      where: { id, amountPaid: invoice.amountPaid },
       data: { amountPaid: newAmountPaid, status: resolveInvoiceStatus(newAmountPaid, Number(invoice.grandTotal), invoice.status) },
     });
+    if (updateResult.count === 0) {
+      throw new ConflictException('Invoice payment total was changed concurrently — please retry');
+    }
+    return tx.invoice.findUniqueOrThrow({ where: { id } });
   }
 
   /** Shared by PaymentsService.refund(): reverses a previously-applied payment amount. */
   async reversePayment(id: string, amount: number, tx: TransactionClient) {
     const invoice = await tx.invoice.findUniqueOrThrow({ where: { id } });
     const newAmountPaid = Math.max(0, Number(invoice.amountPaid) - amount);
-    return tx.invoice.update({
-      where: { id },
+    const updateResult = await tx.invoice.updateMany({
+      where: { id, amountPaid: invoice.amountPaid },
       data: { amountPaid: newAmountPaid, status: resolveInvoiceStatus(newAmountPaid, Number(invoice.grandTotal), invoice.status) },
     });
+    if (updateResult.count === 0) {
+      throw new ConflictException('Invoice payment total was changed concurrently — please retry');
+    }
+    return tx.invoice.findUniqueOrThrow({ where: { id } });
   }
 
   private async applyOverdueCheck<T extends { id: string; status: string; dueDate: Date }>(invoice: T): Promise<T> {

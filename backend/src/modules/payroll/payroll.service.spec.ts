@@ -17,8 +17,16 @@ function fakePayroll(overrides: Partial<{ status: string }> = {}) {
 }
 
 function createPrismaMock(overrides: Record<string, unknown> = {}) {
+  let lastUpdateData: Record<string, unknown> = {};
   const txStub = {
-    payroll: { update: vi.fn().mockImplementation(({ data }) => Promise.resolve({ ...fakePayroll(), ...data })) },
+    payroll: {
+      update: vi.fn().mockImplementation(({ data }) => Promise.resolve({ ...fakePayroll(), ...data })),
+      updateMany: vi.fn().mockImplementation(({ data }) => {
+        lastUpdateData = data;
+        return Promise.resolve({ count: 1 });
+      }),
+      findUniqueOrThrow: vi.fn().mockImplementation(() => Promise.resolve({ ...fakePayroll(), ...lastUpdateData })),
+    },
   };
   return {
     payroll: {
@@ -100,6 +108,14 @@ describe('PayrollService', () => {
         prisma.__tx,
       );
       expect(result).toMatchObject({ status: 'APPROVED', approvalJournalEntryId: 'je1' });
+    });
+
+    it('throws ConflictException instead of double-approving when the status changed concurrently', async () => {
+      const prisma = createPrismaMock();
+      prisma.__tx.payroll.updateMany.mockResolvedValueOnce({ count: 0 });
+      const { service } = createService(prisma);
+
+      await expect(service.approve('payroll1', 'user1')).rejects.toThrow(ConflictException);
     });
   });
 

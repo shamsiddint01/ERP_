@@ -4,6 +4,7 @@ import { AuditEntityRegistryService } from '../../shared/audit/audit-entity-regi
 import { PaymentsService } from './payments.service.js';
 
 function createPrismaMock() {
+  let lastUpdateData: Record<string, unknown> = {};
   const txStub = {
     order: { findUnique: vi.fn(), findUniqueOrThrow: vi.fn() },
     invoice: { findUnique: vi.fn(), findUniqueOrThrow: vi.fn() },
@@ -12,6 +13,11 @@ function createPrismaMock() {
       create: vi.fn().mockImplementation(({ data }) => Promise.resolve({ id: 'pay1', paymentNumber: 'PAY-2026-000001', ...data })),
       findUnique: vi.fn(),
       update: vi.fn().mockImplementation(({ data }) => Promise.resolve({ id: 'pay1', ...data })),
+      updateMany: vi.fn().mockImplementation(({ data }) => {
+        lastUpdateData = data;
+        return Promise.resolve({ count: 1 });
+      }),
+      findUniqueOrThrow: vi.fn().mockImplementation(() => Promise.resolve({ id: 'pay1', ...lastUpdateData })),
     },
     customer: { update: vi.fn().mockResolvedValue({}) },
     supplier: { update: vi.fn().mockResolvedValue({}) },
@@ -106,5 +112,23 @@ describe('PaymentsService.refund', () => {
     expect(invoicesReverse).toHaveBeenCalledWith('inv1', 400, prisma.__tx);
     expect(ordersReverse).toHaveBeenCalledWith('order1', 400, prisma.__tx);
     expect(prisma.__tx.customer.update).toHaveBeenCalledWith({ where: { id: 'cust1' }, data: { balance: { increment: 400 } } });
+  });
+
+  it('throws ConflictException instead of double-refunding when the payment status changed concurrently', async () => {
+    const prisma = createPrismaMock();
+    prisma.__tx.payment.findUnique.mockResolvedValue({
+      id: 'pay1',
+      paymentNumber: 'PAY-2026-000001',
+      status: 'COMPLETED',
+      amount: '400',
+      referenceType: 'INVOICE',
+      referenceId: 'inv1',
+      payerCustomerId: 'cust1',
+    });
+    prisma.__tx.invoice.findUnique.mockResolvedValue({ id: 'inv1', orderId: null });
+    prisma.__tx.payment.updateMany.mockResolvedValueOnce({ count: 0 });
+    const service = createService(prisma);
+
+    await expect(service.refund('pay1', 'user1')).rejects.toThrow(ConflictException);
   });
 });

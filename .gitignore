@@ -1,6 +1,13 @@
 # Dependencies
 node_modules/
 
+# This project uses npm (package-lock.json is the committed lockfile).
+# Ignore other package managers' lockfiles so an accidental `pnpm install`/
+# `yarn install` never gets committed alongside it and causes drift.
+pnpm-lock.yaml
+pnpm-workspace.yaml
+yarn.lock
+
 # Build output
 dist/
 dist-ssr/

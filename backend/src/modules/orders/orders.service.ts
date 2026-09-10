@@ -206,11 +206,14 @@ export class OrdersService {
         data: { balance: { increment: Number(order.grandTotal) - Number(order.amountPaid) } },
       });
 
-      const completedOrder = await tx.order.update({
-        where: { id },
+      const updateResult = await tx.order.updateMany({
+        where: { id, status: order.status },
         data: { status: 'COMPLETED', completedAt: new Date() },
-        include: ORDER_INCLUDE,
       });
+      if (updateResult.count === 0) {
+        throw new ConflictException('Order status was changed concurrently — please retry');
+      }
+      const completedOrder = await tx.order.findUniqueOrThrow({ where: { id }, include: ORDER_INCLUDE });
 
       const invoice = await this.invoicesService.createFromOrder(completedOrder, tx);
 
@@ -247,11 +250,14 @@ export class OrdersService {
           );
         }
       }
-      return tx.order.update({
-        where: { id },
+      const updateResult = await tx.order.updateMany({
+        where: { id, status: order.status },
         data: { status: 'CANCELLED', cancelledAt: new Date(), cancellationReason: dto.reason },
-        include: ORDER_INCLUDE,
       });
+      if (updateResult.count === 0) {
+        throw new ConflictException('Order status was changed concurrently — please retry');
+      }
+      return tx.order.findUniqueOrThrow({ where: { id }, include: ORDER_INCLUDE });
     });
   }
 
@@ -264,20 +270,28 @@ export class OrdersService {
       throw new BadRequestException(`Payment amount ${amount} exceeds the remaining balance ${remaining}`);
     }
     const newAmountPaid = Number(order.amountPaid) + amount;
-    return tx.order.update({
-      where: { id: orderId },
+    const updateResult = await tx.order.updateMany({
+      where: { id: orderId, amountPaid: order.amountPaid },
       data: { amountPaid: newAmountPaid, paymentStatus: computePaymentStatus(newAmountPaid, Number(order.grandTotal)) },
     });
+    if (updateResult.count === 0) {
+      throw new ConflictException('Order payment total was changed concurrently — please retry');
+    }
+    return tx.order.findUniqueOrThrow({ where: { id: orderId } });
   }
 
   /** Shared by PaymentsService.refund(): reverses a previously-applied payment amount. */
   async reversePayment(orderId: string, amount: number, tx: Prisma.TransactionClient) {
     const order = await tx.order.findUniqueOrThrow({ where: { id: orderId } });
     const newAmountPaid = Math.max(0, Number(order.amountPaid) - amount);
-    return tx.order.update({
-      where: { id: orderId },
+    const updateResult = await tx.order.updateMany({
+      where: { id: orderId, amountPaid: order.amountPaid },
       data: { amountPaid: newAmountPaid, paymentStatus: computePaymentStatus(newAmountPaid, Number(order.grandTotal)) },
     });
+    if (updateResult.count === 0) {
+      throw new ConflictException('Order payment total was changed concurrently — please retry');
+    }
+    return tx.order.findUniqueOrThrow({ where: { id: orderId } });
   }
 
   private async assertCustomerActive(customerId: string): Promise<void> {

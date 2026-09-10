@@ -137,17 +137,20 @@ export class PurchasesService {
   async submit(id: string) {
     const po = await this.findOne(id);
     if (po.status !== 'DRAFT') throw new ConflictException(`Only DRAFT orders can be submitted (current: ${po.status})`);
-    return this.prisma.purchaseOrder.update({ where: { id }, data: { status: 'PENDING' }, include: PO_INCLUDE });
+    const updateResult = await this.prisma.purchaseOrder.updateMany({ where: { id, status: po.status }, data: { status: 'PENDING' } });
+    if (updateResult.count === 0) throw new ConflictException('Purchase order status was changed concurrently — please retry');
+    return this.findOne(id);
   }
 
   async approve(id: string, userId: string) {
     const po = await this.findOne(id);
     if (po.status !== 'PENDING') throw new ConflictException(`Only PENDING orders can be approved (current: ${po.status})`);
-    return this.prisma.purchaseOrder.update({
-      where: { id },
+    const updateResult = await this.prisma.purchaseOrder.updateMany({
+      where: { id, status: po.status },
       data: { status: 'APPROVED', approvedByUserId: userId, approvedAt: new Date() },
-      include: PO_INCLUDE,
     });
+    if (updateResult.count === 0) throw new ConflictException('Purchase order status was changed concurrently — please retry');
+    return this.findOne(id);
   }
 
   /** Receives goods: stock-in per line via InventoryService, apportions the supplier debt, and settles the PO's status. */
@@ -207,13 +210,16 @@ export class PurchasesService {
       const refreshedItems = await tx.purchaseOrderItem.findMany({ where: { purchaseOrderId: id } });
       const fullyReceived = refreshedItems.every((item) => Number(item.quantityReceived) >= Number(item.quantity));
 
-      return tx.purchaseOrder.update({
-        where: { id },
+      const updateResult = await tx.purchaseOrder.updateMany({
+        where: { id, status: po.status },
         data: fullyReceived
           ? { status: 'RECEIVED', receivedAt: new Date() }
           : { status: 'PARTIALLY_RECEIVED' },
-        include: PO_INCLUDE,
       });
+      if (updateResult.count === 0) {
+        throw new ConflictException('Purchase order status was changed concurrently — please retry');
+      }
+      return tx.purchaseOrder.findUniqueOrThrow({ where: { id }, include: PO_INCLUDE });
     });
   }
 
@@ -222,7 +228,9 @@ export class PurchasesService {
     if (!['DRAFT', 'PENDING', 'APPROVED'].includes(po.status)) {
       throw new ConflictException(`Cannot cancel a purchase order once receiving has started (current: ${po.status})`);
     }
-    return this.prisma.purchaseOrder.update({ where: { id }, data: { status: 'CANCELLED' }, include: PO_INCLUDE });
+    const updateResult = await this.prisma.purchaseOrder.updateMany({ where: { id, status: po.status }, data: { status: 'CANCELLED' } });
+    if (updateResult.count === 0) throw new ConflictException('Purchase order status was changed concurrently — please retry');
+    return this.findOne(id);
   }
 
   /** Shared by PaymentsService: applies a completed supplier payment's amount to a purchase order and reconciles its payment status. */
@@ -234,19 +242,27 @@ export class PurchasesService {
       throw new BadRequestException(`Payment amount ${amount} exceeds the remaining balance ${remaining}`);
     }
     const newAmountPaid = Number(po.amountPaid) + amount;
-    return tx.purchaseOrder.update({
-      where: { id: purchaseOrderId },
+    const updateResult = await tx.purchaseOrder.updateMany({
+      where: { id: purchaseOrderId, amountPaid: po.amountPaid },
       data: { amountPaid: newAmountPaid, paymentStatus: computePaymentStatus(newAmountPaid, Number(po.grandTotal)) },
     });
+    if (updateResult.count === 0) {
+      throw new ConflictException('Purchase order payment total was changed concurrently — please retry');
+    }
+    return tx.purchaseOrder.findUniqueOrThrow({ where: { id: purchaseOrderId } });
   }
 
   /** Shared by PaymentsService.refund(): reverses a previously-applied supplier payment amount. */
   async reversePayment(purchaseOrderId: string, amount: number, tx: Prisma.TransactionClient) {
     const po = await tx.purchaseOrder.findUniqueOrThrow({ where: { id: purchaseOrderId } });
     const newAmountPaid = Math.max(0, Number(po.amountPaid) - amount);
-    return tx.purchaseOrder.update({
-      where: { id: purchaseOrderId },
+    const updateResult = await tx.purchaseOrder.updateMany({
+      where: { id: purchaseOrderId, amountPaid: po.amountPaid },
       data: { amountPaid: newAmountPaid, paymentStatus: computePaymentStatus(newAmountPaid, Number(po.grandTotal)) },
     });
+    if (updateResult.count === 0) {
+      throw new ConflictException('Purchase order payment total was changed concurrently — please retry');
+    }
+    return tx.purchaseOrder.findUniqueOrThrow({ where: { id: purchaseOrderId } });
   }
 }

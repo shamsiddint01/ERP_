@@ -114,7 +114,9 @@ export class ExpensesService {
   async submit(id: string) {
     const expense = await this.findOne(id);
     if (expense.status !== 'DRAFT') throw new ConflictException(`Only DRAFT expenses can be submitted (current: ${expense.status})`);
-    return this.prisma.expense.update({ where: { id }, data: { status: 'PENDING' }, include: EXPENSE_INCLUDE });
+    const updateResult = await this.prisma.expense.updateMany({ where: { id, status: expense.status }, data: { status: 'PENDING' } });
+    if (updateResult.count === 0) throw new ConflictException('Expense status was changed concurrently — please retry');
+    return this.findOne(id);
   }
 
   /** PENDING -> APPROVED: recognizes the liability (Dr Expense account / Cr Accounts Payable). Cash is not touched yet. */
@@ -136,11 +138,14 @@ export class ExpensesService {
         },
         tx,
       );
-      return tx.expense.update({
-        where: { id },
+      const updateResult = await tx.expense.updateMany({
+        where: { id, status: expense.status },
         data: { status: 'APPROVED', approvedByUserId: userId, approvedAt: new Date() },
-        include: EXPENSE_INCLUDE,
       });
+      if (updateResult.count === 0) {
+        throw new ConflictException('Expense status was changed concurrently — please retry');
+      }
+      return tx.expense.findUniqueOrThrow({ where: { id }, include: EXPENSE_INCLUDE });
     });
   }
 
@@ -148,11 +153,12 @@ export class ExpensesService {
   async reject(id: string, userId: string) {
     const expense = await this.findOne(id);
     if (expense.status !== 'PENDING') throw new ConflictException(`Only PENDING expenses can be rejected (current: ${expense.status})`);
-    return this.prisma.expense.update({
-      where: { id },
+    const updateResult = await this.prisma.expense.updateMany({
+      where: { id, status: expense.status },
       data: { status: 'REJECTED', approvedByUserId: userId, approvedAt: new Date() },
-      include: EXPENSE_INCLUDE,
     });
+    if (updateResult.count === 0) throw new ConflictException('Expense status was changed concurrently — please retry');
+    return this.findOne(id);
   }
 
   /** APPROVED -> PAID: clears the payable — Dr Accounts Payable / Cr Cash/Bank, chosen by the expense's paymentMethod. */
@@ -172,11 +178,14 @@ export class ExpensesService {
         },
         tx,
       );
-      return tx.expense.update({
-        where: { id },
+      const updateResult = await tx.expense.updateMany({
+        where: { id, status: expense.status },
         data: { status: 'PAID', paidAt: new Date(), paymentAccountId: paymentAccount.id },
-        include: EXPENSE_INCLUDE,
       });
+      if (updateResult.count === 0) {
+        throw new ConflictException('Expense status was changed concurrently — please retry');
+      }
+      return tx.expense.findUniqueOrThrow({ where: { id }, include: EXPENSE_INCLUDE });
     });
   }
 

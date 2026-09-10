@@ -15,10 +15,15 @@ function createFakeInvoice(overrides: Partial<{ status: string; amountPaid: stri
 }
 
 function createTx(invoice: ReturnType<typeof createFakeInvoice>) {
+  let lastUpdateData: Record<string, unknown> = {};
   return {
     invoice: {
-      findUniqueOrThrow: vi.fn().mockResolvedValue(invoice),
+      findUniqueOrThrow: vi.fn().mockImplementation(() => Promise.resolve({ ...invoice, ...lastUpdateData })),
       update: vi.fn().mockImplementation(({ data }) => Promise.resolve({ ...invoice, ...data })),
+      updateMany: vi.fn().mockImplementation(({ data }) => {
+        lastUpdateData = data;
+        return Promise.resolve({ count: 1 });
+      }),
     },
   };
 }
@@ -64,6 +69,15 @@ describe('InvoicesService.applyPayment', () => {
 
     const result = await service.applyPayment('inv1', 600, tx as never);
     expect(result).toMatchObject({ amountPaid: 1000, status: 'PAID' });
+  });
+
+  it('throws ConflictException instead of a lost update when amountPaid changed concurrently', async () => {
+    const invoice = createFakeInvoice({ grandTotal: '1000', amountPaid: '400' });
+    const tx = createTx(invoice);
+    (tx.invoice.updateMany as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ count: 0 });
+    const service = createService();
+
+    await expect(service.applyPayment('inv1', 600, tx as never)).rejects.toThrow(ConflictException);
   });
 });
 

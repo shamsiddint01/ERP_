@@ -71,12 +71,16 @@ export class PayrollPeriodsService {
       throw new ConflictException('Cannot close a period that still has unpaid/uncancelled payroll rows');
     }
 
-    return this.prisma.payrollPeriod.update({ where: { id }, data: { status: 'CLOSED' } });
+    const updateResult = await this.prisma.payrollPeriod.updateMany({ where: { id, status: period.status }, data: { status: 'CLOSED' } });
+    if (updateResult.count === 0) throw new ConflictException('Period status was changed concurrently — please retry');
+    return this.findOne(id);
   }
 
   async reopen(id: string) {
     const period = await this.findOne(id);
     if (period.status === 'OPEN') throw new ConflictException('Period is already open');
-    return this.prisma.payrollPeriod.update({ where: { id }, data: { status: 'OPEN' } });
+    const updateResult = await this.prisma.payrollPeriod.updateMany({ where: { id, status: period.status }, data: { status: 'OPEN' } });
+    if (updateResult.count === 0) throw new ConflictException('Period status was changed concurrently — please retry');
+    return this.findOne(id);
   }
 }

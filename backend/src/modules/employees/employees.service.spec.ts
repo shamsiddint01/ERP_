@@ -18,10 +18,18 @@ function fakeEmployee(overrides: Partial<{ status: string; deletedAt: Date | nul
 }
 
 function createPrismaMock(employee: ReturnType<typeof fakeEmployee>) {
+  let lastUpdateData: Record<string, unknown> = {};
   const txStub = {
     department: { updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
     user: { update: vi.fn().mockResolvedValue({}) },
-    employee: { update: vi.fn().mockImplementation(({ data }) => Promise.resolve({ ...employee, ...data })) },
+    employee: {
+      update: vi.fn().mockImplementation(({ data }) => Promise.resolve({ ...employee, ...data })),
+      updateMany: vi.fn().mockImplementation(({ data }) => {
+        lastUpdateData = data;
+        return Promise.resolve({ count: 1 });
+      }),
+      findUniqueOrThrow: vi.fn().mockImplementation(() => Promise.resolve({ ...employee, ...lastUpdateData })),
+    },
   };
   return {
     employee: {
@@ -29,6 +37,11 @@ function createPrismaMock(employee: ReturnType<typeof fakeEmployee>) {
       count: vi.fn().mockResolvedValue(0),
       create: vi.fn().mockImplementation(({ data }) => Promise.resolve({ id: 'emp1', ...data })),
       update: vi.fn().mockImplementation(({ data }) => Promise.resolve({ ...employee, ...data })),
+      updateMany: vi.fn().mockImplementation(({ data }) => {
+        lastUpdateData = data;
+        return Promise.resolve({ count: 1 });
+      }),
+      findUniqueOrThrow: vi.fn().mockImplementation(() => Promise.resolve({ ...employee, ...lastUpdateData })),
     },
     department: { findUnique: vi.fn().mockResolvedValue({ id: 'dept1' }) },
     position: { findUnique: vi.fn().mockResolvedValue({ id: 'pos1', departmentId: 'dept1' }) },
@@ -98,6 +111,14 @@ describe('EmployeesService', () => {
 
     it('refuses to terminate an already-terminated employee', async () => {
       const prisma = createPrismaMock(fakeEmployee({ status: 'TERMINATED' }));
+      const service = createService(prisma);
+
+      await expect(service.remove('emp1')).rejects.toThrow(ConflictException);
+    });
+
+    it('throws ConflictException instead of terminating when the employee status changed concurrently', async () => {
+      const prisma = createPrismaMock(fakeEmployee());
+      prisma.__tx.employee.updateMany.mockResolvedValueOnce({ count: 0 });
       const service = createService(prisma);
 
       await expect(service.remove('emp1')).rejects.toThrow(ConflictException);

@@ -217,11 +217,14 @@ export class EmployeesService {
         await tx.user.update({ where: { id: employee.user.id }, data: { status: 'INACTIVE', deletedAt: new Date() } });
       }
 
-      return tx.employee.update({
-        where: { id },
+      const updateResult = await tx.employee.updateMany({
+        where: { id, status: employee.status },
         data: { status: 'TERMINATED', terminationDate: new Date(), deletedAt: new Date() },
-        include: EMPLOYEE_DETAIL_INCLUDE,
       });
+      if (updateResult.count === 0) {
+        throw new ConflictException('Employee status was changed concurrently — please retry');
+      }
+      return tx.employee.findUniqueOrThrow({ where: { id }, include: EMPLOYEE_DETAIL_INCLUDE });
     });
   }
 
@@ -231,11 +234,12 @@ export class EmployeesService {
     if (!employee) throw new NotFoundException('Employee not found');
     if (employee.status !== 'TERMINATED') throw new ConflictException('Only a TERMINATED employee can be reactivated');
 
-    return this.prisma.employee.update({
-      where: { id },
+    const updateResult = await this.prisma.employee.updateMany({
+      where: { id, status: employee.status },
       data: { status: 'ACTIVE', terminationDate: null, deletedAt: null },
-      include: EMPLOYEE_DETAIL_INCLUDE,
     });
+    if (updateResult.count === 0) throw new ConflictException('Employee status was changed concurrently — please retry');
+    return this.prisma.employee.findUniqueOrThrow({ where: { id }, include: EMPLOYEE_DETAIL_INCLUDE });
   }
 
   private async assertReferencesValid(dto: Partial<CreateEmployeeDto>): Promise<void> {
