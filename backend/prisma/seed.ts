@@ -324,26 +324,49 @@ async function seedEducationCoreDemo(): Promise<void> {
   }
 
   const leadDefs = [
-    { fullName: 'Jasur Toshpulatov', phone: '+998935550011', preferredCourse: 'PY-BASE', source: 'INSTAGRAM', status: 'NEW' as const },
-    { fullName: 'Dilnoza Rashidova', phone: '+998935550012', preferredCourse: 'IELTS', source: 'REFERRAL', status: 'CONTACTED' as const },
+    {
+      fullName: 'Jasur Toshpulatov',
+      phone: '+998935550011',
+      preferredCourse: 'PY-BASE',
+      source: 'INSTAGRAM',
+      status: 'NEW' as const,
+      activities: [{ type: 'NOTE' as const, description: 'Inbound Instagram inquiry about Python Basics.' }],
+    },
+    {
+      fullName: 'Dilnoza Rashidova',
+      phone: '+998935550012',
+      preferredCourse: 'IELTS',
+      source: 'REFERRAL',
+      status: 'CONTACTED' as const,
+      activities: [
+        { type: 'CALL' as const, description: 'Called to introduce the IELTS Intensive group.' },
+        { type: 'FOLLOW_UP' as const, description: 'Scheduled a follow-up call next week to confirm the trial lesson.' },
+      ],
+    },
   ];
   for (const l of leadDefs) {
-    const existing = await prisma.lead.findFirst({ where: { phone: l.phone, fullName: l.fullName } });
-    if (!existing) {
-      await prisma.lead.create({
-        data: {
-          fullName: l.fullName,
-          phone: l.phone,
-          preferredCourseId: coursesByCode[l.preferredCourse].id,
-          preferredBranchId: branch.id,
-          source: l.source,
-          status: l.status,
-        },
-      });
+    let lead = await prisma.lead.findFirst({ where: { phone: l.phone, fullName: l.fullName } });
+    lead ??= await prisma.lead.create({
+      data: {
+        fullName: l.fullName,
+        phone: l.phone,
+        preferredCourseId: coursesByCode[l.preferredCourse].id,
+        preferredBranchId: branch.id,
+        source: l.source,
+        status: l.status,
+      },
+    });
+    const existingActivityCount = await prisma.leadActivity.count({ where: { leadId: lead.id } });
+    if (existingActivityCount === 0) {
+      for (const activity of l.activities) {
+        await prisma.leadActivity.create({ data: { leadId: lead.id, type: activity.type, description: activity.description } });
+      }
     }
   }
 
-  console.log('  -> 1 branch, 2 classrooms, 2 course categories, 3 courses, 2 groups, 2 students, 2 guardians, 2 enrollments, 2 leads ensured');
+  console.log(
+    '  -> 1 branch, 2 classrooms, 2 course categories, 3 courses, 2 groups, 2 students, 2 guardians, 2 enrollments, 2 leads, 3 lead activities ensured',
+  );
 }
 
 /**
