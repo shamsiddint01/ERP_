@@ -1,7 +1,8 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { App, DatePicker, Form, Input, Modal, Select } from 'antd';
 import dayjs from 'dayjs';
 import { useEffect } from 'react';
+import { listBranches } from '../api/branches';
 import { createStudent, updateStudent, type StudentPayload } from '../api/students';
 import type { StudentDetail, StudentStatus } from '../types';
 
@@ -25,6 +26,7 @@ interface FormValues {
   source?: string;
   emergencyContact?: string;
   notes?: string;
+  branchId?: string;
 }
 
 const STATUS_OPTIONS: Array<{ value: StudentStatus; label: string }> = [
@@ -40,6 +42,12 @@ export function StudentFormModal({ open, onClose, student, onSaved }: StudentFor
   const queryClient = useQueryClient();
   const [form] = Form.useForm<FormValues>();
   const isEdit = !!student;
+
+  const branchesQuery = useQuery({
+    queryKey: ['branches', { pageSize: 100, forSelect: true }],
+    queryFn: () => listBranches({ pageSize: 100, status: 'ACTIVE' }),
+    enabled: open,
+  });
 
   useEffect(() => {
     if (!open) return;
@@ -57,6 +65,7 @@ export function StudentFormModal({ open, onClose, student, onSaved }: StudentFor
         source: student.source ?? undefined,
         emergencyContact: student.emergencyContact ?? undefined,
         notes: student.notes ?? undefined,
+        branchId: student.branchId ?? undefined,
       });
     } else {
       form.resetFields();
@@ -127,6 +136,13 @@ export function StudentFormModal({ open, onClose, student, onSaved }: StudentFor
         </Form.Item>
         <Form.Item name="address" label="Manzil">
           <Input />
+        </Form.Item>
+        <Form.Item name="branchId" label="Filial">
+          <Select
+            allowClear
+            loading={branchesQuery.isLoading}
+            options={branchesQuery.data?.items.map((b) => ({ value: b.id, label: b.name }))}
+          />
         </Form.Item>
         {isEdit && (
           <Form.Item name="status" label="Status">

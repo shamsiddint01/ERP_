@@ -4,7 +4,14 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { useAuthBootstrap } from './hooks/useAuthBootstrap';
 import { AttendancePage } from './pages/attendance/AttendancePage';
 import { AuditLogPage } from './pages/AuditLogPage';
+import { BranchDetailPage } from './pages/branches/BranchDetailPage';
+import { BranchesPage } from './pages/branches/BranchesPage';
+import { ClassroomDetailPage } from './pages/classrooms/ClassroomDetailPage';
+import { ClassroomsPage } from './pages/classrooms/ClassroomsPage';
 import { CompensationPage } from './pages/compensation/CompensationPage';
+import { CourseCategoriesPage } from './pages/course-categories/CourseCategoriesPage';
+import { CourseDetailPage } from './pages/courses/CourseDetailPage';
+import { CoursesPage } from './pages/courses/CoursesPage';
 import { CustomerDetailPage } from './pages/customers/CustomerDetailPage';
 import { CustomersPage } from './pages/customers/CustomersPage';
 import { DashboardPage } from './pages/DashboardPage';
@@ -58,6 +65,13 @@ export default function App() {
           <Route path="/guardians/:id" element={<GuardianDetailPage />} />
           <Route path="/leads" element={<LeadsPage />} />
           <Route path="/leads/:id" element={<LeadDetailPage />} />
+          <Route path="/course-categories" element={<CourseCategoriesPage />} />
+          <Route path="/courses" element={<CoursesPage />} />
+          <Route path="/courses/:id" element={<CourseDetailPage />} />
+          <Route path="/branches" element={<BranchesPage />} />
+          <Route path="/branches/:id" element={<BranchDetailPage />} />
+          <Route path="/classrooms" element={<ClassroomsPage />} />
+          <Route path="/classrooms/:id" element={<ClassroomDetailPage />} />
           <Route path="/customers" element={<CustomersPage />} />
           <Route path="/customers/:id" element={<CustomerDetailPage />} />
           <Route path="/orders" element={<OrdersPage />} />

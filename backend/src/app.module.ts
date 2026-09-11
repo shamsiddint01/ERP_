@@ -41,6 +41,10 @@ import { HealthModule } from './modules/health/health.module.js';
 import { StudentsModule } from './modules/students/students.module.js';
 import { GuardiansModule } from './modules/guardians/guardians.module.js';
 import { LeadsModule } from './modules/leads/leads.module.js';
+import { CourseCategoriesModule } from './modules/course-categories/course-categories.module.js';
+import { CoursesModule } from './modules/courses/courses.module.js';
+import { BranchesModule } from './modules/branches/branches.module.js';
+import { ClassroomsModule } from './modules/classrooms/classrooms.module.js';
 
 @Module({
   imports: [
@@ -84,6 +88,10 @@ import { LeadsModule } from './modules/leads/leads.module.js';
     StudentsModule,
     GuardiansModule,
     LeadsModule,
+    CourseCategoriesModule,
+    CoursesModule,
+    BranchesModule,
+    ClassroomsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

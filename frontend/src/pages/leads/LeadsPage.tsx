@@ -3,6 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { Button, Input, Select, Space, Table, Tag, Typography } from 'antd';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { listBranches } from '../../api/branches';
+import { listCourses } from '../../api/courses';
 import { listLeads } from '../../api/leads';
 import { LeadFormModal } from '../../components/LeadFormModal';
 import { useAuthStore } from '../../store/auth.store';
@@ -30,12 +32,16 @@ export function LeadsPage() {
   const hasPermission = useAuthStore((state) => state.hasPermission);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<LeadStatus | undefined>();
+  const [preferredCourseId, setPreferredCourseId] = useState<string | undefined>();
+  const [preferredBranchId, setPreferredBranchId] = useState<string | undefined>();
   const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
 
+  const coursesQuery = useQuery({ queryKey: ['courses', { pageSize: 100 }], queryFn: () => listCourses({ pageSize: 100 }) });
+  const branchesQuery = useQuery({ queryKey: ['branches', { pageSize: 100 }], queryFn: () => listBranches({ pageSize: 100 }) });
   const leadsQuery = useQuery({
-    queryKey: ['leads', { search, status, page }],
-    queryFn: () => listLeads({ search: search || undefined, status, page, pageSize: 20 }),
+    queryKey: ['leads', { search, status, preferredCourseId, preferredBranchId, page }],
+    queryFn: () => listLeads({ search: search || undefined, status, preferredCourseId, preferredBranchId, page, pageSize: 20 }),
     placeholderData: (prev) => prev,
   });
 
@@ -70,6 +76,26 @@ export function LeadsPage() {
           options={Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label }))}
           onChange={(value) => {
             setStatus(value);
+            setPage(1);
+          }}
+        />
+        <Select
+          placeholder="Kurs"
+          allowClear
+          style={{ width: 200 }}
+          options={coursesQuery.data?.items.map((c) => ({ value: c.id, label: c.name }))}
+          onChange={(value) => {
+            setPreferredCourseId(value);
+            setPage(1);
+          }}
+        />
+        <Select
+          placeholder="Filial"
+          allowClear
+          style={{ width: 200 }}
+          options={branchesQuery.data?.items.map((b) => ({ value: b.id, label: b.name }))}
+          onChange={(value) => {
+            setPreferredBranchId(value);
             setPage(1);
           }}
         />

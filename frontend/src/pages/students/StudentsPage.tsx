@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Button, Input, Select, Space, Table, Tag, Typography } from 'antd';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { listBranches } from '../../api/branches';
 import { listStudents } from '../../api/students';
 import { StudentFormModal } from '../../components/StudentFormModal';
 import { useAuthStore } from '../../store/auth.store';
@@ -22,12 +23,14 @@ export function StudentsPage() {
   const hasPermission = useAuthStore((state) => state.hasPermission);
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<StudentStatus | undefined>();
+  const [branchId, setBranchId] = useState<string | undefined>();
   const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
 
+  const branchesQuery = useQuery({ queryKey: ['branches', { pageSize: 100 }], queryFn: () => listBranches({ pageSize: 100 }) });
   const studentsQuery = useQuery({
-    queryKey: ['students', { search, status, page }],
-    queryFn: () => listStudents({ search: search || undefined, status, page, pageSize: 20 }),
+    queryKey: ['students', { search, status, branchId, page }],
+    queryFn: () => listStudents({ search: search || undefined, status, branchId, page, pageSize: 20 }),
     placeholderData: (prev) => prev,
   });
 
@@ -62,6 +65,16 @@ export function StudentsPage() {
           options={Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label }))}
           onChange={(value) => {
             setStatus(value);
+            setPage(1);
+          }}
+        />
+        <Select
+          placeholder="Filial"
+          allowClear
+          style={{ width: 200 }}
+          options={branchesQuery.data?.items.map((b) => ({ value: b.id, label: b.name }))}
+          onChange={(value) => {
+            setBranchId(value);
             setPage(1);
           }}
         />

@@ -957,3 +957,79 @@ export interface LeadDetail extends LeadListItem {
   activities: LeadActivityItem[];
   convertedStudent: { id: string; studentCode: string; fullName: string; status: StudentStatus } | null;
 }
+
+// =========================================================================
+// EDUCATION CENTER — COURSE CATEGORIES / COURSES / BRANCHES / CLASSROOMS — Phase C
+// =========================================================================
+
+export type CourseCategoryStatus = 'ACTIVE' | 'INACTIVE';
+export type CourseStatus = 'DRAFT' | 'ACTIVE' | 'INACTIVE' | 'ARCHIVED';
+export type CourseLevel = 'BEGINNER' | 'ELEMENTARY' | 'PRE_INTERMEDIATE' | 'INTERMEDIATE' | 'UPPER_INTERMEDIATE' | 'ADVANCED';
+export type BranchStatus = 'ACTIVE' | 'INACTIVE';
+export type ClassroomStatus = 'ACTIVE' | 'INACTIVE' | 'MAINTENANCE';
+
+export interface CourseCategoryListItem {
+  id: string;
+  name: string;
+  code: string;
+  description: string | null;
+  status: CourseCategoryStatus;
+  createdAt: string;
+  _count: { courses: number };
+}
+
+export interface CourseListItem {
+  id: string;
+  categoryId: string | null;
+  category: { id: string; name: string; code: string } | null;
+  name: string;
+  code: string;
+  description: string | null;
+  level: CourseLevel | null;
+  durationWeeks: number | null;
+  lessonDurationMinutes: number;
+  defaultTuition: string;
+  status: CourseStatus;
+  createdAt: string;
+  _count: { studentGroups: number };
+}
+
+export type CourseDetail = CourseListItem;
+
+export interface BranchListItem {
+  id: string;
+  name: string;
+  code: string;
+  address: string | null;
+  phone: string | null;
+  email: string | null;
+  managerEmployeeId: string | null;
+  managerEmployee: { id: string; fullName: string } | null;
+  workingHours: string | null;
+  notes: string | null;
+  status: BranchStatus;
+  createdAt: string;
+  _count: { classrooms: number; students: number; studentGroups: number };
+}
+
+export interface BranchDetail extends Omit<BranchListItem, '_count'> {
+  classrooms: Array<{ id: string; name: string; roomNumber: string; capacity: number; status: ClassroomStatus }>;
+  _count: { students: number };
+  activeGroupCount: number;
+}
+
+export interface ClassroomListItem {
+  id: string;
+  branchId: string;
+  branch: { id: string; name: string; code: string };
+  name: string;
+  roomNumber: string;
+  capacity: number;
+  equipment: string | null;
+  notes: string | null;
+  status: ClassroomStatus;
+  createdAt: string;
+  _count: { studentGroups: number };
+}
+
+export type ClassroomDetail = ClassroomListItem;

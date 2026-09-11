@@ -2,6 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { App, DatePicker, Form, Input, Modal, Select } from 'antd';
 import dayjs from 'dayjs';
 import { useEffect } from 'react';
+import { listBranches } from '../api/branches';
+import { listCourses } from '../api/courses';
 import { listEmployees } from '../api/employees';
 import { createLead, updateLead, type LeadPayload } from '../api/leads';
 import type { LeadDetail } from '../types';
@@ -18,6 +20,8 @@ interface FormValues {
   phone: string;
   email?: string;
   source?: string;
+  preferredCourseId?: string;
+  preferredBranchId?: string;
   assignedEmployeeId?: string;
   nextFollowUpAt?: dayjs.Dayjs;
   notes?: string;
@@ -34,6 +38,16 @@ export function LeadFormModal({ open, onClose, lead, onSaved }: LeadFormModalPro
     queryFn: () => listEmployees({ pageSize: 100 }),
     enabled: open,
   });
+  const coursesQuery = useQuery({
+    queryKey: ['courses', { pageSize: 100, status: 'ACTIVE', forLeadSelect: true }],
+    queryFn: () => listCourses({ pageSize: 100, status: 'ACTIVE' }),
+    enabled: open,
+  });
+  const branchesQuery = useQuery({
+    queryKey: ['branches', { pageSize: 100, forLeadSelect: true }],
+    queryFn: () => listBranches({ pageSize: 100, status: 'ACTIVE' }),
+    enabled: open,
+  });
 
   useEffect(() => {
     if (!open) return;
@@ -43,6 +57,8 @@ export function LeadFormModal({ open, onClose, lead, onSaved }: LeadFormModalPro
         phone: lead.phone,
         email: lead.email ?? undefined,
         source: lead.source ?? undefined,
+        preferredCourseId: lead.preferredCourseId ?? undefined,
+        preferredBranchId: lead.preferredBranchId ?? undefined,
         assignedEmployeeId: lead.assignedEmployeeId ?? undefined,
         nextFollowUpAt: lead.nextFollowUpAt ? dayjs(lead.nextFollowUpAt) : undefined,
         notes: lead.notes ?? undefined,
@@ -96,6 +112,22 @@ export function LeadFormModal({ open, onClose, lead, onSaved }: LeadFormModalPro
         </Form.Item>
         <Form.Item name="source" label="Manba">
           <Input placeholder="Masalan: Instagram, tavsiya, sayt, ko'cha reklamasi" />
+        </Form.Item>
+        <Form.Item name="preferredCourseId" label="Qiziqqan kurs">
+          <Select
+            allowClear
+            showSearch
+            loading={coursesQuery.isLoading}
+            filterOption={(input, option) => ((option?.label as string) ?? '').toLowerCase().includes(input.toLowerCase())}
+            options={coursesQuery.data?.items.map((c) => ({ value: c.id, label: c.name }))}
+          />
+        </Form.Item>
+        <Form.Item name="preferredBranchId" label="Qiziqqan filial">
+          <Select
+            allowClear
+            loading={branchesQuery.isLoading}
+            options={branchesQuery.data?.items.map((b) => ({ value: b.id, label: b.name }))}
+          />
         </Form.Item>
         <Form.Item name="assignedEmployeeId" label="Mas'ul xodim">
           <Select

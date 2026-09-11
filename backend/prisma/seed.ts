@@ -217,6 +217,32 @@ async function seedEducationCoreDemo(): Promise<void> {
   }
   const room101 = await prisma.classroom.findUniqueOrThrow({ where: { branchId_roomNumber: { branchId: branch.id, roomNumber: '101' } } });
 
+  // Phase C — a second branch, with its own classrooms, so multi-branch
+  // selection has real data to exercise beyond the single Phase A branch.
+  const chilonzor = await prisma.branch.upsert({
+    where: { code: 'BR-CHIL' },
+    create: {
+      code: 'BR-CHIL',
+      name: 'Chilonzor Branch',
+      address: "Tashkent, Chilonzor tumani, Bunyodkor shoh ko'chasi 12",
+      phone: '+998710000002',
+      workingHours: 'Mon-Sat 09:00-20:00',
+    },
+    update: {},
+  });
+  const moreRooms = [
+    { branchId: branch.id, code: '102', name: 'Room 102', capacity: 10 },
+    { branchId: chilonzor.id, code: '201', name: 'Room 201', capacity: 16 },
+    { branchId: chilonzor.id, code: '202', name: 'Room 202', capacity: 8 },
+  ];
+  for (const r of moreRooms) {
+    await prisma.classroom.upsert({
+      where: { branchId_roomNumber: { branchId: r.branchId, roomNumber: r.code } },
+      create: { branchId: r.branchId, roomNumber: r.code, name: r.name, capacity: r.capacity },
+      update: {},
+    });
+  }
+
   const languages = await prisma.courseCategory.upsert({
     where: { code: 'CAT-LANG' },
     create: { code: 'CAT-LANG', name: 'Languages', description: 'Foreign language programs' },
@@ -227,11 +253,20 @@ async function seedEducationCoreDemo(): Promise<void> {
     create: { code: 'CAT-STEM', name: 'Programming & Maths', description: 'STEM courses' },
     update: {},
   });
+  const academic = await prisma.courseCategory.upsert({
+    where: { code: 'CAT-ACAD' },
+    create: { code: 'CAT-ACAD', name: 'Academic', description: 'School-support academic subjects' },
+    update: {},
+  });
 
   const courseDefs = [
     { code: 'ENG-GEN', name: 'General English', categoryId: languages.id, level: 'ELEMENTARY' as const, defaultTuition: '600000', durationWeeks: 12 },
     { code: 'IELTS', name: 'IELTS Preparation', categoryId: languages.id, level: 'UPPER_INTERMEDIATE' as const, defaultTuition: '900000', durationWeeks: 10 },
     { code: 'PY-BASE', name: 'Python Basics', categoryId: stem.id, level: 'BEGINNER' as const, defaultTuition: '750000', durationWeeks: 16 },
+    // Phase C additions — genuinely new offerings, not duplicates of the above.
+    { code: 'PY-BACK', name: 'Python Backend', categoryId: stem.id, level: 'INTERMEDIATE' as const, defaultTuition: '1100000', durationWeeks: 20 },
+    { code: 'MATH-01', name: 'Mathematics', categoryId: academic.id, level: 'INTERMEDIATE' as const, defaultTuition: '500000', durationWeeks: 24 },
+    { code: 'JPN-01', name: 'Japanese', categoryId: languages.id, level: 'BEGINNER' as const, defaultTuition: '650000', durationWeeks: 20 },
   ];
   const coursesByCode: Record<string, { id: string }> = {};
   for (const c of courseDefs) {
@@ -422,7 +457,7 @@ async function seedEducationCoreDemo(): Promise<void> {
   }
 
   console.log(
-    '  -> 1 branch, 2 classrooms, 2 course categories, 3 courses, 2 groups, 5 students, 6 guardians, 2 enrollments, 7 leads, 10 lead activities ensured',
+    '  -> 2 branches, 5 classrooms, 3 course categories, 6 courses, 2 groups, 5 students, 6 guardians, 2 enrollments, 7 leads, 10 lead activities ensured',
   );
 }
 

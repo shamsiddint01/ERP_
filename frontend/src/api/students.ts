@@ -24,6 +24,7 @@ export interface StudentPayload {
   source?: string;
   emergencyContact?: string;
   notes?: string;
+  branchId?: string;
 }
 
 export type UpdateStudentPayload = Partial<StudentPayload>;

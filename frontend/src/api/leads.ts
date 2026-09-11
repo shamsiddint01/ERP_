@@ -7,6 +7,8 @@ export interface LeadQuery {
   search?: string;
   status?: LeadStatus;
   assignedEmployeeId?: string;
+  preferredCourseId?: string;
+  preferredBranchId?: string;
   source?: string;
 }
 
@@ -15,6 +17,8 @@ export interface LeadPayload {
   phone: string;
   email?: string;
   source?: string;
+  preferredCourseId?: string;
+  preferredBranchId?: string;
   assignedEmployeeId?: string;
   nextFollowUpAt?: string;
   notes?: string;
