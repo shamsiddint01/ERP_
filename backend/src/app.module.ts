@@ -38,6 +38,9 @@ import { CompensationModule } from './modules/compensation/compensation.module.j
 import { PayrollModule } from './modules/payroll/payroll.module.js';
 import { NotificationsModule } from './modules/notifications/notifications.module.js';
 import { HealthModule } from './modules/health/health.module.js';
+import { StudentsModule } from './modules/students/students.module.js';
+import { GuardiansModule } from './modules/guardians/guardians.module.js';
+import { LeadsModule } from './modules/leads/leads.module.js';
 
 @Module({
   imports: [
@@ -78,6 +81,9 @@ import { HealthModule } from './modules/health/health.module.js';
     PayrollModule,
     NotificationsModule,
     HealthModule,
+    StudentsModule,
+    GuardiansModule,
+    LeadsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

@@ -15,9 +15,13 @@ import { EmployeesPage } from './pages/employees/EmployeesPage';
 import { ExpensesPage } from './pages/expenses/ExpensesPage';
 import { AccountsPage } from './pages/finance/AccountsPage';
 import { ReportsPage } from './pages/finance/ReportsPage';
+import { GuardianDetailPage } from './pages/guardians/GuardianDetailPage';
+import { GuardiansPage } from './pages/guardians/GuardiansPage';
 import { InventoryPage } from './pages/inventory/InventoryPage';
 import { WarehousesPage } from './pages/inventory/WarehousesPage';
 import { InvoicesPage } from './pages/invoices/InvoicesPage';
+import { LeadDetailPage } from './pages/leads/LeadDetailPage';
+import { LeadsPage } from './pages/leads/LeadsPage';
 import { LoginPage } from './pages/LoginPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { OrderDetailPage } from './pages/orders/OrderDetailPage';
@@ -33,6 +37,8 @@ import { PurchasesPage } from './pages/purchases/PurchasesPage';
 import { PositionsPage } from './pages/positions/PositionsPage';
 import { RolesPage } from './pages/RolesPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { StudentDetailPage } from './pages/students/StudentDetailPage';
+import { StudentsPage } from './pages/students/StudentsPage';
 import { SupplierDetailPage } from './pages/suppliers/SupplierDetailPage';
 import { SuppliersPage } from './pages/suppliers/SuppliersPage';
 import { UsersPage } from './pages/UsersPage';
@@ -46,6 +52,12 @@ export default function App() {
       <Route element={<ProtectedRoute />}>
         <Route element={<AppLayout />}>
           <Route path="/" element={<DashboardPage />} />
+          <Route path="/students" element={<StudentsPage />} />
+          <Route path="/students/:id" element={<StudentDetailPage />} />
+          <Route path="/guardians" element={<GuardiansPage />} />
+          <Route path="/guardians/:id" element={<GuardianDetailPage />} />
+          <Route path="/leads" element={<LeadsPage />} />
+          <Route path="/leads/:id" element={<LeadDetailPage />} />
           <Route path="/customers" element={<CustomersPage />} />
           <Route path="/customers/:id" element={<CustomerDetailPage />} />
           <Route path="/orders" element={<OrdersPage />} />

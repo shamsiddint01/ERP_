@@ -269,6 +269,9 @@ async function seedEducationCoreDemo(): Promise<void> {
   const studentDefs = [
     { code: 'STU-000001', firstName: 'Aziz', lastName: 'Karimov', phone: '+998901112233' },
     { code: 'STU-000002', firstName: 'Malika', lastName: 'Yusupova', phone: '+998901112234' },
+    { code: 'STU-000003', firstName: 'Sardor', lastName: 'Aliyev', phone: '+998901112235' },
+    { code: 'STU-000004', firstName: 'Nilufar', lastName: 'Xolmatova', phone: '+998901112236' },
+    { code: 'STU-000005', firstName: 'Otabek', lastName: 'Ergashev', phone: '+998901112237' },
   ];
   const studentsByCode: Record<string, { id: string }> = {};
   for (const s of studentDefs) {
@@ -289,8 +292,13 @@ async function seedEducationCoreDemo(): Promise<void> {
   }
 
   const guardianDefs = [
-    { phone: '+998907776655', fullName: 'Karim Karimov', rel: 'FATHER' as const, studentCode: 'STU-000001' },
-    { phone: '+998907776656', fullName: 'Nodira Yusupova', rel: 'MOTHER' as const, studentCode: 'STU-000002' },
+    { phone: '+998907776655', fullName: 'Karim Karimov', rel: 'FATHER' as const, studentCode: 'STU-000001', isPrimary: true },
+    { phone: '+998907776656', fullName: 'Nodira Yusupova', rel: 'MOTHER' as const, studentCode: 'STU-000002', isPrimary: true },
+    { phone: '+998907776657', fullName: 'Baxtiyor Aliyev', rel: 'FATHER' as const, studentCode: 'STU-000003', isPrimary: true },
+    { phone: '+998907776658', fullName: 'Gulnora Xolmatova', rel: 'MOTHER' as const, studentCode: 'STU-000004', isPrimary: true },
+    // Otabek has two guardians — exercises multi-guardian linking and the single-primary rule.
+    { phone: '+998907776659', fullName: 'Rustam Ergashev', rel: 'FATHER' as const, studentCode: 'STU-000005', isPrimary: true },
+    { phone: '+998907776660', fullName: 'Zarina Ergasheva', rel: 'MOTHER' as const, studentCode: 'STU-000005', isPrimary: false },
   ];
   for (const gd of guardianDefs) {
     // Guardian.phone isn't unique (siblings share a parent), so key the demo
@@ -301,7 +309,7 @@ async function seedEducationCoreDemo(): Promise<void> {
     });
     await prisma.studentGuardian.upsert({
       where: { studentId_guardianId: { studentId: studentsByCode[gd.studentCode].id, guardianId: guardian.id } },
-      create: { studentId: studentsByCode[gd.studentCode].id, guardianId: guardian.id, relationship: gd.rel, isPrimary: true },
+      create: { studentId: studentsByCode[gd.studentCode].id, guardianId: guardian.id, relationship: gd.rel, isPrimary: gd.isPrimary },
       update: {},
     });
   }
@@ -343,6 +351,55 @@ async function seedEducationCoreDemo(): Promise<void> {
         { type: 'FOLLOW_UP' as const, description: 'Scheduled a follow-up call next week to confirm the trial lesson.' },
       ],
     },
+    {
+      fullName: 'Feruza Nematova',
+      phone: '+998935550013',
+      preferredCourse: 'ENG-GEN',
+      source: 'ORGANIC',
+      status: 'TRIAL_SCHEDULED' as const,
+      activities: [
+        { type: 'CALL' as const, description: 'Called and explained the General English program.' },
+        { type: 'TRIAL' as const, description: 'Trial lesson booked for Saturday 11:00.' },
+      ],
+    },
+    {
+      fullName: 'Sherzod Yoldashev',
+      phone: '+998935550014',
+      preferredCourse: 'PY-BASE',
+      source: 'WALK_IN',
+      status: 'TRIAL_COMPLETED' as const,
+      activities: [
+        { type: 'TRIAL' as const, description: 'Attended the Python Basics trial lesson.' },
+        { type: 'FOLLOW_UP' as const, description: 'Waiting on family decision before enrolling.' },
+      ],
+    },
+    {
+      fullName: 'Kamola Rahimova',
+      phone: '+998935550015',
+      preferredCourse: 'IELTS',
+      source: 'FACEBOOK',
+      status: 'LOST' as const,
+      activities: [
+        { type: 'CALL' as const, description: 'Called twice, no response.' },
+        { type: 'NOTE' as const, description: 'Marked as lost — chose a different center closer to home.' },
+      ],
+    },
+    {
+      fullName: 'Umida Sobirova',
+      phone: '+998935550016',
+      preferredCourse: 'PY-BASE',
+      source: 'REFERRAL',
+      status: 'CONTACTED' as const,
+      activities: [{ type: 'CALL' as const, description: 'Referred by an existing student; called to introduce Python Basics.' }],
+    },
+    {
+      fullName: 'Bekzod Mirzayev',
+      phone: '+998935550017',
+      preferredCourse: 'ENG-GEN',
+      source: 'WEBSITE',
+      status: 'NEW' as const,
+      activities: [] as Array<{ type: 'CALL' | 'MESSAGE' | 'MEETING' | 'TRIAL' | 'NOTE' | 'FOLLOW_UP'; description: string }>,
+    },
   ];
   for (const l of leadDefs) {
     let lead = await prisma.lead.findFirst({ where: { phone: l.phone, fullName: l.fullName } });
@@ -365,7 +422,7 @@ async function seedEducationCoreDemo(): Promise<void> {
   }
 
   console.log(
-    '  -> 1 branch, 2 classrooms, 2 course categories, 3 courses, 2 groups, 2 students, 2 guardians, 2 enrollments, 2 leads, 3 lead activities ensured',
+    '  -> 1 branch, 2 classrooms, 2 course categories, 3 courses, 2 groups, 5 students, 6 guardians, 2 enrollments, 7 leads, 10 lead activities ensured',
   );
 }
 

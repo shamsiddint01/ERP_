@@ -6,6 +6,7 @@ import {
   BellOutlined,
   CalendarOutlined,
   ClusterOutlined,
+  ContactsOutlined,
   CreditCardOutlined,
   DashboardOutlined,
   DatabaseOutlined,
@@ -14,6 +15,7 @@ import {
   IdcardOutlined,
   LogoutOutlined,
   PieChartOutlined,
+  ReadOutlined,
   SafetyCertificateOutlined,
   SettingOutlined,
   ShopOutlined,
@@ -22,6 +24,7 @@ import {
   SolutionOutlined,
   TeamOutlined,
   TruckOutlined,
+  UserAddOutlined,
   UserOutlined,
   WalletOutlined,
 } from '@ant-design/icons';
@@ -44,6 +47,9 @@ export function AppLayout() {
   const menuItems = useMemo(() => {
     const candidates = [
       { key: '/', icon: <DashboardOutlined />, label: <Link to="/">Dashboard</Link>, show: true },
+      { key: '/students', icon: <ReadOutlined />, label: <Link to="/students">O'quvchilar</Link>, show: hasPermission('students', 'VIEW') },
+      { key: '/guardians', icon: <ContactsOutlined />, label: <Link to="/guardians">Ota-onalar/Vasiylar</Link>, show: hasPermission('guardians', 'VIEW') },
+      { key: '/leads', icon: <UserAddOutlined />, label: <Link to="/leads">Lidlar</Link>, show: hasPermission('leads', 'VIEW') },
       { key: '/customers', icon: <UserOutlined />, label: <Link to="/customers">Mijozlar</Link>, show: hasPermission('customers', 'VIEW') },
       { key: '/orders', icon: <ShoppingOutlined />, label: <Link to="/orders">Sotuvlar</Link>, show: hasPermission('orders', 'VIEW') },
       { key: '/invoices', icon: <FileTextOutlined />, label: <Link to="/invoices">Hisob-fakturalar</Link>, show: hasPermission('invoices', 'VIEW') },

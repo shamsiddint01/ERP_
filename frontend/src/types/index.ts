@@ -829,3 +829,131 @@ export interface NotificationQuery {
   from?: string;
   to?: string;
 }
+
+// =========================================================================
+// EDUCATION CENTER — STUDENTS / GUARDIANS / ADMISSIONS LEADS — Phase B
+// =========================================================================
+
+export type StudentStatus = 'ACTIVE' | 'PAUSED' | 'GRADUATED' | 'INACTIVE' | 'LEFT';
+export type GuardianStatus = 'ACTIVE' | 'INACTIVE';
+export type GuardianRelationship = 'MOTHER' | 'FATHER' | 'GRANDPARENT' | 'SIBLING' | 'RELATIVE' | 'LEGAL_GUARDIAN' | 'OTHER';
+export type LeadStatus = 'NEW' | 'CONTACTED' | 'TRIAL_SCHEDULED' | 'TRIAL_COMPLETED' | 'ENROLLED' | 'LOST';
+export type LeadActivityType = 'CALL' | 'MESSAGE' | 'MEETING' | 'TRIAL' | 'NOTE' | 'FOLLOW_UP';
+
+export interface StudentListItem {
+  id: string;
+  studentCode: string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  dateOfBirth: string | null;
+  gender: string | null;
+  phone: string | null;
+  email: string | null;
+  status: StudentStatus;
+  registrationDate: string;
+  source: string | null;
+  branchId: string | null;
+  branch: { id: string; name: string; code: string } | null;
+  createdAt: string;
+  _count: { guardians: number; enrollments: number };
+}
+
+export interface StudentGuardianLink {
+  studentId: string;
+  guardianId: string;
+  relationship: GuardianRelationship;
+  isPrimary: boolean;
+  createdAt: string;
+  guardian: { id: string; fullName: string; phone: string; email: string | null; status: GuardianStatus };
+}
+
+export interface StudentEnrollmentItem {
+  id: string;
+  studentId: string;
+  groupId: string;
+  startDate: string;
+  endDate: string | null;
+  status: string;
+  agreedTuition: string | null;
+  discountAmount: string | null;
+  notes: string | null;
+  createdAt: string;
+  group: { id: string; name: string; code: string; status: string; course: { id: string; name: string; code: string } };
+}
+
+export interface StudentDetail extends StudentListItem {
+  address: string | null;
+  photoUrl: string | null;
+  emergencyContact: string | null;
+  notes: string | null;
+  userId: string | null;
+  user: { id: string; username: string; status: string } | null;
+  convertedFromLeadId: string | null;
+  convertedFromLead: { id: string; fullName: string; source: string | null; createdAt: string } | null;
+  updatedAt: string;
+  guardians: StudentGuardianLink[];
+  enrollments: StudentEnrollmentItem[];
+}
+
+export interface GuardianListItem {
+  id: string;
+  fullName: string;
+  phone: string;
+  email: string | null;
+  relationshipType: GuardianRelationship;
+  status: GuardianStatus;
+  createdAt: string;
+  _count: { students: number };
+}
+
+export interface GuardianDetail extends Omit<GuardianListItem, '_count'> {
+  address: string | null;
+  notes: string | null;
+  userId: string | null;
+  updatedAt: string;
+  students: Array<{
+    studentId: string;
+    guardianId: string;
+    relationship: GuardianRelationship;
+    isPrimary: boolean;
+    createdAt: string;
+    student: { id: string; studentCode: string; fullName: string; status: StudentStatus; branch: { id: string; name: string } | null };
+  }>;
+}
+
+export interface LeadListItem {
+  id: string;
+  fullName: string;
+  phone: string;
+  email: string | null;
+  status: LeadStatus;
+  source: string | null;
+  nextFollowUpAt: string | null;
+  preferredCourseId: string | null;
+  preferredCourse: { id: string; name: string; code: string } | null;
+  preferredBranchId: string | null;
+  preferredBranch: { id: string; name: string; code: string } | null;
+  assignedEmployeeId: string | null;
+  assignedEmployee: { id: string; fullName: string } | null;
+  createdAt: string;
+  _count: { activities: number };
+}
+
+export interface LeadActivityItem {
+  id: string;
+  leadId: string;
+  type: LeadActivityType;
+  description: string | null;
+  occurredAt: string;
+  createdAt: string;
+  employeeId: string | null;
+  employee: { id: string; fullName: string } | null;
+}
+
+export interface LeadDetail extends LeadListItem {
+  notes: string | null;
+  updatedAt: string;
+  activities: LeadActivityItem[];
+  convertedStudent: { id: string; studentCode: string; fullName: string; status: StudentStatus } | null;
+}
