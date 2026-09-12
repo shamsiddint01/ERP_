@@ -33,6 +33,8 @@ import { WarehousesPage } from './pages/inventory/WarehousesPage';
 import { InvoicesPage } from './pages/invoices/InvoicesPage';
 import { LeadDetailPage } from './pages/leads/LeadDetailPage';
 import { LeadsPage } from './pages/leads/LeadsPage';
+import { LessonDetailPage } from './pages/lessons/LessonDetailPage';
+import { LessonsPage } from './pages/lessons/LessonsPage';
 import { LoginPage } from './pages/LoginPage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { OrderDetailPage } from './pages/orders/OrderDetailPage';
@@ -47,6 +49,8 @@ import { PurchaseOrderDetailPage } from './pages/purchases/PurchaseOrderDetailPa
 import { PurchasesPage } from './pages/purchases/PurchasesPage';
 import { PositionsPage } from './pages/positions/PositionsPage';
 import { RolesPage } from './pages/RolesPage';
+import { ScheduleCalendarPage } from './pages/schedules/ScheduleCalendarPage';
+import { SchedulesPage } from './pages/schedules/SchedulesPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { StudentDetailPage } from './pages/students/StudentDetailPage';
 import { StudentsPage } from './pages/students/StudentsPage';
@@ -82,6 +86,10 @@ export default function App() {
           <Route path="/groups/:id" element={<GroupDetailPage />} />
           <Route path="/enrollments" element={<EnrollmentsPage />} />
           <Route path="/enrollments/:id" element={<EnrollmentDetailPage />} />
+          <Route path="/schedules" element={<SchedulesPage />} />
+          <Route path="/schedules/calendar" element={<ScheduleCalendarPage />} />
+          <Route path="/lessons" element={<LessonsPage />} />
+          <Route path="/lessons/:id" element={<LessonDetailPage />} />
           <Route path="/teachers" element={<TeachersPage />} />
           <Route path="/teachers/:id" element={<TeacherDetailPage />} />
           <Route path="/customers" element={<CustomersPage />} />

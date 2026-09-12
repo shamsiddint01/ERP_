@@ -44,6 +44,9 @@ export const PERMISSION_MODULES = {
   // Phase D — no dedicated permission existed for teaching staff specifically
   // (as opposed to `employees`, the general HR record), so one is added here.
   teachers: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE, PermissionAction.EXPORT],
+  // Phase E — spec calls for exactly these four actions (no EXPORT).
+  schedules: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE],
+  lessons: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE],
 } as const satisfies Record<string, PermissionAction[]>;
 
 export type PermissionModule = keyof typeof PERMISSION_MODULES;

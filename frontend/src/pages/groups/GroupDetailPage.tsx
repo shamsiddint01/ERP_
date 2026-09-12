@@ -1,14 +1,17 @@
-import { ArrowLeftOutlined, EditOutlined, StopOutlined, UserAddOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, EditOutlined, PlusOutlined, StopOutlined, ThunderboltOutlined, UserAddOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { App, Button, Card, Col, Descriptions, Empty, Popconfirm, Row, Space, Spin, Statistic, Table, Tabs, Tag, Typography } from 'antd';
 import dayjs from 'dayjs';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { deactivateGroup, getGroup } from '../../api/groups';
+import { cancelSchedule, listSchedules } from '../../api/schedules';
 import { EnrollmentFormModal } from '../../components/EnrollmentFormModal';
+import { GenerateLessonsModal } from '../../components/GenerateLessonsModal';
 import { GroupFormModal } from '../../components/GroupFormModal';
+import { ScheduleFormModal } from '../../components/ScheduleFormModal';
 import { useAuthStore } from '../../store/auth.store';
-import type { EnrollmentStatus, StudentGroupStatus } from '../../types';
+import type { EnrollmentStatus, ScheduleDayOfWeek, ScheduleDetail, ScheduleStatus, StudentGroupStatus } from '../../types';
 
 const STATUS_COLORS: Record<StudentGroupStatus, string> = { PLANNED: 'default', ACTIVE: 'green', PAUSED: 'gold', COMPLETED: 'blue', CANCELLED: 'red' };
 const STATUS_LABELS: Record<StudentGroupStatus, string> = {
@@ -19,6 +22,17 @@ const STATUS_LABELS: Record<StudentGroupStatus, string> = {
   CANCELLED: 'Bekor qilingan',
 };
 const ENROLLMENT_STATUS_COLORS: Record<EnrollmentStatus, string> = { ACTIVE: 'green', PAUSED: 'gold', COMPLETED: 'blue', CANCELLED: 'red', TRANSFERRED: 'purple' };
+const DAY_LABELS: Record<ScheduleDayOfWeek, string> = {
+  MONDAY: 'Dushanba',
+  TUESDAY: 'Seshanba',
+  WEDNESDAY: 'Chorshanba',
+  THURSDAY: 'Payshanba',
+  FRIDAY: 'Juma',
+  SATURDAY: 'Shanba',
+  SUNDAY: 'Yakshanba',
+};
+const SCHEDULE_STATUS_COLORS: Record<ScheduleStatus, string> = { ACTIVE: 'green', PAUSED: 'gold', CANCELLED: 'red' };
+const SCHEDULE_STATUS_LABELS: Record<ScheduleStatus, string> = { ACTIVE: 'Faol', PAUSED: 'Muzlatilgan', CANCELLED: 'Bekor qilingan' };
 
 export function GroupDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -28,8 +42,12 @@ export function GroupDetailPage() {
   const hasPermission = useAuthStore((state) => state.hasPermission);
   const [editOpen, setEditOpen] = useState(false);
   const [enrollOpen, setEnrollOpen] = useState(false);
+  const [scheduleFormOpen, setScheduleFormOpen] = useState(false);
+  const [editingSchedule, setEditingSchedule] = useState<ScheduleDetail | undefined>();
+  const [generateFor, setGenerateFor] = useState<ScheduleDetail | undefined>();
 
   const groupQuery = useQuery({ queryKey: ['group', id], queryFn: () => getGroup(id!), enabled: !!id });
+  const schedulesQuery = useQuery({ queryKey: ['schedules', { groupId: id }], queryFn: () => listSchedules({ groupId: id!, pageSize: 100 }), enabled: !!id });
 
   const deactivateMutation = useMutation({
     mutationFn: () => deactivateGroup(id!),
@@ -44,6 +62,17 @@ export function GroupDetailPage() {
     },
   });
 
+  async function handleCancelSchedule(schedule: ScheduleDetail) {
+    try {
+      await cancelSchedule(schedule.id);
+      message.success('Dars jadvali bekor qilindi');
+      queryClient.invalidateQueries({ queryKey: ['schedules'] });
+    } catch (error: unknown) {
+      const detail = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      message.error(detail ?? "Bekor qilib bo'lmadi");
+    }
+  }
+
   if (groupQuery.isLoading) {
     return (
       <div style={{ textAlign: 'center', padding: 48 }}>
@@ -57,6 +86,9 @@ export function GroupDetailPage() {
 
   const canEdit = hasPermission('groups', 'EDIT');
   const canEnroll = hasPermission('enrollments', 'CREATE');
+  const canCreateSchedule = hasPermission('schedules', 'CREATE');
+  const canEditSchedule = hasPermission('schedules', 'EDIT');
+  const canDeleteSchedule = hasPermission('schedules', 'DELETE');
 
   return (
     <div>
@@ -186,6 +218,79 @@ export function GroupDetailPage() {
               ),
             },
             {
+              key: 'schedule',
+              label: `Dars jadvali (${schedulesQuery.data?.items.length ?? 0})`,
+              children: (
+                <div>
+                  <Space style={{ marginBottom: 12, width: '100%', justifyContent: 'space-between' }}>
+                    <Typography.Text type="secondary">
+                      Ushbu guruhning haftalik takrorlanuvchi dars jadvali. Har bir jadval — bir hafta kuni + vaqt oralig'i.
+                    </Typography.Text>
+                    {canCreateSchedule && (
+                      <Button
+                        size="small"
+                        icon={<PlusOutlined />}
+                        onClick={() => {
+                          setEditingSchedule(undefined);
+                          setScheduleFormOpen(true);
+                        }}
+                      >
+                        Yangi jadval
+                      </Button>
+                    )}
+                  </Space>
+                  {schedulesQuery.data?.items.length ? (
+                    <Table
+                      rowKey="id"
+                      size="small"
+                      pagination={false}
+                      loading={schedulesQuery.isLoading}
+                      dataSource={schedulesQuery.data.items}
+                      columns={[
+                        { title: 'Hafta kuni', dataIndex: 'dayOfWeek', render: (v: ScheduleDayOfWeek) => DAY_LABELS[v] },
+                        { title: 'Vaqti', render: (_, record) => `${record.startTime}–${record.endTime}` },
+                        { title: "O'qituvchi", render: (_, record) => record.teacherEmployee?.fullName ?? '—' },
+                        { title: 'Xona', render: (_, record) => record.classroom?.name ?? '—' },
+                        { title: 'Status', dataIndex: 'status', render: (v: ScheduleStatus) => <Tag color={SCHEDULE_STATUS_COLORS[v]}>{SCHEDULE_STATUS_LABELS[v]}</Tag> },
+                        {
+                          title: 'Amallar',
+                          render: (_, record) => (
+                            <Space>
+                              {canEditSchedule && record.status === 'ACTIVE' && (
+                                <Button size="small" icon={<ThunderboltOutlined />} onClick={() => setGenerateFor(record)}>
+                                  Darslarni yaratish
+                                </Button>
+                              )}
+                              {canEditSchedule && (
+                                <Button
+                                  size="small"
+                                  onClick={() => {
+                                    setEditingSchedule(record);
+                                    setScheduleFormOpen(true);
+                                  }}
+                                >
+                                  Tahrirlash
+                                </Button>
+                              )}
+                              {canDeleteSchedule && record.status !== 'CANCELLED' && (
+                                <Popconfirm title="Dars jadvalini bekor qilishni tasdiqlaysizmi?" onConfirm={() => handleCancelSchedule(record)}>
+                                  <Button size="small" danger>
+                                    Bekor qilish
+                                  </Button>
+                                </Popconfirm>
+                              )}
+                            </Space>
+                          ),
+                        },
+                      ]}
+                    />
+                  ) : (
+                    <Empty description="Hali dars jadvali belgilanmagan" />
+                  )}
+                </div>
+              ),
+            },
+            {
               key: 'course',
               label: 'Kurs',
               children: (
@@ -223,6 +328,13 @@ export function GroupDetailPage() {
 
       <GroupFormModal open={editOpen} onClose={() => setEditOpen(false)} group={group} />
       <EnrollmentFormModal open={enrollOpen} onClose={() => setEnrollOpen(false)} defaultGroupId={group.id} />
+      <ScheduleFormModal
+        open={scheduleFormOpen}
+        onClose={() => setScheduleFormOpen(false)}
+        schedule={editingSchedule}
+        defaultGroupId={editingSchedule ? undefined : group.id}
+      />
+      {generateFor && <GenerateLessonsModal open={!!generateFor} onClose={() => setGenerateFor(undefined)} schedule={generateFor} />}
     </div>
   );
 }

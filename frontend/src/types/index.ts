@@ -1165,3 +1165,68 @@ export type EnrollmentDetail = EnrollmentListItem;
 export interface TransferredEnrollment extends EnrollmentDetail {
   transferredTo: EnrollmentDetail;
 }
+
+// =========================================================================
+// EDUCATION CENTER — SCHEDULES / LESSON SESSIONS — Phase E
+// =========================================================================
+
+export type ScheduleDayOfWeek = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY';
+export type ScheduleRecurrenceType = 'WEEKLY';
+export type ScheduleStatus = 'ACTIVE' | 'PAUSED' | 'CANCELLED';
+export type LessonStatus = 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
+
+export interface ScheduleListItem {
+  id: string;
+  groupId: string;
+  group: { id: string; name: string; code: string; status: StudentGroupStatus };
+  teacherEmployeeId: string | null;
+  teacherEmployee: { id: string; fullName: string } | null;
+  classroomId: string | null;
+  classroom: { id: string; name: string; roomNumber: string } | null;
+  branchId: string;
+  branch: { id: string; name: string; code: string };
+  dayOfWeek: ScheduleDayOfWeek;
+  startTime: string;
+  endTime: string;
+  startDate: string;
+  endDate: string | null;
+  recurrenceType: ScheduleRecurrenceType;
+  status: ScheduleStatus;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type ScheduleDetail = ScheduleListItem;
+
+export interface GenerateLessonsResult extends ScheduleDetail {
+  generatedCount: number;
+  skippedCount: number;
+  lessons: LessonListItem[];
+}
+
+export interface LessonListItem {
+  id: string;
+  groupId: string;
+  group: { id: string; name: string; code: string };
+  scheduleId: string | null;
+  schedule: { id: string; dayOfWeek: ScheduleDayOfWeek; startTime: string; endTime: string } | null;
+  teacherEmployeeId: string | null;
+  teacherEmployee: { id: string; fullName: string } | null;
+  classroomId: string | null;
+  classroom: { id: string; name: string; roomNumber: string } | null;
+  branchId: string;
+  branch: { id: string; name: string; code: string };
+  scheduledStart: string;
+  scheduledEnd: string;
+  actualStart: string | null;
+  actualEnd: string | null;
+  topic: string | null;
+  homework: string | null;
+  notes: string | null;
+  status: LessonStatus;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type LessonDetail = LessonListItem;

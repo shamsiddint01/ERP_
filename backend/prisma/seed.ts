@@ -1,5 +1,5 @@
 import { PrismaPg } from '@prisma/adapter-pg';
-import { PrismaClient, PermissionAction, type AccountCategory, type AccountType, type TransactionReferenceType } from '@prisma/client';
+import { PrismaClient, PermissionAction, type AccountCategory, type AccountType, type Prisma, type ScheduleDayOfWeek, type TransactionReferenceType } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { Redis } from 'ioredis';
 import { PERMISSION_MODULES } from '../src/shared/constants/permission-modules.constant.js';
@@ -562,8 +562,164 @@ async function seedEducationCoreDemo(): Promise<void> {
     }
   }
 
+  // Phase E — Schedules + Lessons. One weekly Schedule row per (group, day),
+  // covering both branches, all three teachers and a teacher-less group, plus
+  // a handful of generated Lesson rows per schedule so the workflow actions
+  // (start/complete/cancel/no-show) all have real historical examples to
+  // demonstrate, not just SCHEDULED rows. Kept independent of
+  // LessonGenerationService by design — every other block in this seed
+  // inserts trusted rows directly via Prisma rather than going through
+  // service-layer business rules, and this follows the same convention.
+  const DAY_INDEX: Record<ScheduleDayOfWeek, number> = {
+    SUNDAY: 0,
+    MONDAY: 1,
+    TUESDAY: 2,
+    WEDNESDAY: 3,
+    THURSDAY: 4,
+    FRIDAY: 5,
+    SATURDAY: 6,
+  };
+  function lessonDatesFor(startDate: Date, dayOfWeek: ScheduleDayOfWeek, count: number): Date[] {
+    const target = DAY_INDEX[dayOfWeek];
+    const cursor = new Date(startDate);
+    while (cursor.getUTCDay() !== target) cursor.setUTCDate(cursor.getUTCDate() + 1);
+    const dates: Date[] = [];
+    for (let i = 0; i < count; i++) {
+      dates.push(new Date(cursor));
+      cursor.setUTCDate(cursor.getUTCDate() + 7);
+    }
+    return dates;
+  }
+  function atTime(date: Date, time: string): Date {
+    const [h, m] = time.split(':').map(Number);
+    return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate(), h, m, 0, 0));
+  }
+
+  const scheduleDefs: Array<{
+    groupCode: string;
+    classroomId: string;
+    branchId: string;
+    teacherEmployeeId?: string;
+    days: ScheduleDayOfWeek[];
+    start: string;
+    end: string;
+  }> = [
+    { groupCode: 'ENG-A1-01', classroomId: room101.id, branchId: branch.id, days: ['MONDAY', 'WEDNESDAY', 'FRIDAY'], start: '18:00', end: '19:30' },
+    {
+      groupCode: 'IELTS-02',
+      classroomId: room201.id,
+      branchId: chilonzor.id,
+      teacherEmployeeId: teacherEmployeesByCode['EMP-TCH-001'].id,
+      days: ['TUESDAY', 'THURSDAY'],
+      start: '17:00',
+      end: '18:30',
+    },
+    {
+      groupCode: 'PY-BACK-01',
+      classroomId: room102.id,
+      branchId: branch.id,
+      teacherEmployeeId: teacherEmployeesByCode['EMP-TCH-002'].id,
+      days: ['MONDAY', 'WEDNESDAY'],
+      start: '19:00',
+      end: '21:00',
+    },
+    {
+      groupCode: 'MATH-01-EVE',
+      classroomId: room202.id,
+      branchId: chilonzor.id,
+      teacherEmployeeId: teacherEmployeesByCode['EMP-TCH-003'].id,
+      days: ['TUESDAY', 'THURSDAY', 'SATURDAY'],
+      start: '16:00',
+      end: '17:30',
+    },
+  ];
+
+  let scheduleCount = 0;
+  let lessonCount = 0;
+  const firstLessonByGroupDay: Record<string, { id: string }> = {};
+  for (const sd of scheduleDefs) {
+    const group = groupsByCode[sd.groupCode];
+    const groupRecord = await prisma.studentGroup.findUniqueOrThrow({ where: { id: group.id } });
+
+    for (const day of sd.days) {
+      let schedule = await prisma.schedule.findFirst({ where: { groupId: group.id, dayOfWeek: day, startTime: sd.start } });
+      schedule ??= await prisma.schedule.create({
+        data: {
+          groupId: group.id,
+          teacherEmployeeId: sd.teacherEmployeeId,
+          classroomId: sd.classroomId,
+          branchId: sd.branchId,
+          dayOfWeek: day,
+          startTime: sd.start,
+          endTime: sd.end,
+          startDate: groupRecord.startDate,
+          status: 'ACTIVE',
+        },
+      });
+      scheduleCount++;
+
+      const dates = lessonDatesFor(groupRecord.startDate, day, 4);
+      for (const [i, date] of dates.entries()) {
+        const scheduledStart = atTime(date, sd.start);
+        const scheduledEnd = atTime(date, sd.end);
+        const lesson = await prisma.lesson.upsert({
+          where: { scheduleId_scheduledStart: { scheduleId: schedule.id, scheduledStart } },
+          create: {
+            groupId: group.id,
+            scheduleId: schedule.id,
+            teacherEmployeeId: sd.teacherEmployeeId,
+            classroomId: sd.classroomId,
+            branchId: sd.branchId,
+            scheduledStart,
+            scheduledEnd,
+          },
+          update: {},
+        });
+        lessonCount++;
+        if (i === 0) firstLessonByGroupDay[`${sd.groupCode}:${day}`] = { id: lesson.id };
+      }
+    }
+  }
+
+  // A few explicit status overrides so every LessonStatus value (not just the
+  // SCHEDULED default) has a real example to browse — mirrors how the
+  // enrollment demo data above deliberately includes a TRANSFERRED and a
+  // COMPLETED row alongside the ACTIVE ones. Guarded on "still SCHEDULED" so
+  // a live admin's own change to one of these rows is never clobbered by a
+  // later re-run of this seed.
+  async function overrideIfStillScheduled(lessonRef: { id: string } | undefined, data: Prisma.LessonUpdateInput): Promise<void> {
+    if (!lessonRef) return;
+    const current = await prisma.lesson.findUniqueOrThrow({ where: { id: lessonRef.id } });
+    if (current.status !== 'SCHEDULED') return;
+    await prisma.lesson.update({ where: { id: lessonRef.id }, data });
+  }
+
+  const engMonday = firstLessonByGroupDay['ENG-A1-01:MONDAY'];
+  await overrideIfStillScheduled(engMonday, { status: 'CANCELLED', notes: 'Public holiday — rescheduled.' });
+
+  const pyMonday = firstLessonByGroupDay['PY-BACK-01:MONDAY'];
+  if (pyMonday) {
+    const l = await prisma.lesson.findUniqueOrThrow({ where: { id: pyMonday.id } });
+    await overrideIfStillScheduled(pyMonday, { status: 'IN_PROGRESS', actualStart: l.scheduledStart });
+  }
+
+  const mathTuesday = firstLessonByGroupDay['MATH-01-EVE:TUESDAY'];
+  if (mathTuesday) {
+    const l = await prisma.lesson.findUniqueOrThrow({ where: { id: mathTuesday.id } });
+    await overrideIfStillScheduled(mathTuesday, {
+      status: 'COMPLETED',
+      actualStart: l.scheduledStart,
+      actualEnd: l.scheduledEnd,
+      topic: 'Linear equations — introduction',
+      homework: 'Exercises 1-10, page 42',
+    });
+  }
+
+  const mathThursday = firstLessonByGroupDay['MATH-01-EVE:THURSDAY'];
+  await overrideIfStillScheduled(mathThursday, { status: 'NO_SHOW' });
+
   console.log(
-    '  -> 2 branches, 5 classrooms, 3 course categories, 6 courses, 3 teacher profiles, 5 groups, 8 students, 6 guardians, 9 enrollments, 7 leads, 10 lead activities ensured',
+    `  -> 2 branches, 5 classrooms, 3 course categories, 6 courses, 3 teacher profiles, 5 groups, 8 students, 6 guardians, 9 enrollments, 7 leads, 10 lead activities, ${scheduleCount} schedules, ${lessonCount} lessons ensured`,
   );
 }
 

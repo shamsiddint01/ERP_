@@ -48,6 +48,8 @@ import { ClassroomsModule } from './modules/classrooms/classrooms.module.js';
 import { GroupsModule } from './modules/groups/groups.module.js';
 import { TeachersModule } from './modules/teachers/teachers.module.js';
 import { EnrollmentsModule } from './modules/enrollments/enrollments.module.js';
+import { SchedulesModule } from './modules/schedules/schedules.module.js';
+import { LessonsModule } from './modules/lessons/lessons.module.js';
 
 @Module({
   imports: [
@@ -98,6 +100,8 @@ import { EnrollmentsModule } from './modules/enrollments/enrollments.module.js';
     GroupsModule,
     TeachersModule,
     EnrollmentsModule,
+    SchedulesModule,
+    LessonsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

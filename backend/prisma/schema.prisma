@@ -406,6 +406,34 @@ enum TeacherProfileStatus {
   INACTIVE
 }
 
+enum ScheduleDayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+enum ScheduleRecurrenceType {
+  WEEKLY
+}
+
+enum ScheduleStatus {
+  ACTIVE
+  PAUSED
+  CANCELLED
+}
+
+enum LessonStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
 // =========================================================================
 // 1. USERS & ROLES (RBAC)
 // =========================================================================
@@ -1141,12 +1169,14 @@ model Employee {
   compensations       EmployeeCompensation[]
   payrolls            Payroll[]
 
-  // Education center (Phase A/D)
-  managedBranches Branch[]        @relation("BranchManager")
-  taughtGroups    StudentGroup[]  @relation("GroupTeacher")
-  assignedLeads   Lead[]          @relation("LeadAssignee")
-  leadActivities  LeadActivity[]  @relation("LeadActivityEmployee")
-  teacherProfile  TeacherProfile?
+  // Education center (Phase A/D/E)
+  managedBranches   Branch[]        @relation("BranchManager")
+  taughtGroups      StudentGroup[]  @relation("GroupTeacher")
+  assignedLeads     Lead[]          @relation("LeadAssignee")
+  leadActivities    LeadActivity[]  @relation("LeadActivityEmployee")
+  teacherProfile    TeacherProfile?
+  taughtSchedules   Schedule[]      @relation("ScheduleTeacher")
+  taughtLessons     Lesson[]        @relation("LessonTeacher")
 
   @@index([departmentId])
   @@index([positionId])
@@ -1495,6 +1525,8 @@ model Branch {
   studentGroups StudentGroup[]
   students      Student[]
   leads         Lead[]
+  schedules     Schedule[]
+  lessons       Lesson[]
 
   @@index([status])
   @@map("branches")
@@ -1514,6 +1546,8 @@ model Classroom {
   updatedAt  DateTime        @updatedAt @map("updated_at")
 
   studentGroups StudentGroup[]
+  schedules     Schedule[]
+  lessons       Lesson[]
 
   @@unique([branchId, roomNumber])
   @@index([branchId])
@@ -1582,6 +1616,8 @@ model StudentGroup {
   updatedAt         DateTime           @updatedAt @map("updated_at")
 
   enrollments Enrollment[]
+  schedules   Schedule[]
+  lessons     Lesson[]
 
   @@index([courseId])
   @@index([branchId])
@@ -1755,4 +1791,82 @@ model TeacherProfile {
 
   @@index([status])
   @@map("teacher_profiles")
+}
+
+/// Recurring/planned timetable (Phase E). Deliberately separate from Lesson —
+/// a Schedule describes a weekly pattern ("Mon/Wed/Fri 18:00-19:30, Room
+/// 204"), a Lesson is one concrete, dated session generated from it.
+/// startTime/endTime are plain "HH:mm" strings rather than a Time/DateTime
+/// column on purpose: a recurring wall-clock time-of-day has no calendar date
+/// or timezone component to get wrong, and zero-padded HH:mm still sorts and
+/// compares correctly as plain text.
+model Schedule {
+  id                String                 @id @default(uuid())
+  groupId           String                 @map("group_id")
+  group             StudentGroup           @relation(fields: [groupId], references: [id])
+  teacherEmployeeId String?                @map("teacher_employee_id")
+  teacherEmployee   Employee?              @relation("ScheduleTeacher", fields: [teacherEmployeeId], references: [id])
+  classroomId       String?                @map("classroom_id")
+  classroom         Classroom?             @relation(fields: [classroomId], references: [id])
+  branchId          String                 @map("branch_id")
+  branch            Branch                 @relation(fields: [branchId], references: [id])
+  dayOfWeek         ScheduleDayOfWeek      @map("day_of_week")
+  startTime         String                 @map("start_time")
+  endTime           String                 @map("end_time")
+  startDate         DateTime               @map("start_date") @db.Date
+  endDate           DateTime?              @map("end_date") @db.Date
+  recurrenceType    ScheduleRecurrenceType @default(WEEKLY) @map("recurrence_type")
+  status            ScheduleStatus         @default(ACTIVE)
+  notes             String?
+  createdAt         DateTime               @default(now()) @map("created_at")
+  updatedAt         DateTime               @updatedAt @map("updated_at")
+
+  lessons Lesson[]
+
+  @@index([groupId])
+  @@index([teacherEmployeeId])
+  @@index([classroomId])
+  @@index([branchId])
+  @@index([dayOfWeek])
+  @@index([status])
+  @@map("schedules")
+}
+
+/// A single, concrete class session (Phase E). May be generated from a
+/// Schedule (scheduleId set) or created ad hoc (null). The
+/// (scheduleId, scheduledStart) unique constraint is what makes lesson
+/// generation idempotent — re-running it for an overlapping range can never
+/// create duplicates, generated or not.
+model Lesson {
+  id                String       @id @default(uuid())
+  groupId           String       @map("group_id")
+  group             StudentGroup @relation(fields: [groupId], references: [id])
+  scheduleId        String?      @map("schedule_id")
+  schedule          Schedule?    @relation(fields: [scheduleId], references: [id])
+  teacherEmployeeId String?      @map("teacher_employee_id")
+  teacherEmployee   Employee?    @relation("LessonTeacher", fields: [teacherEmployeeId], references: [id])
+  classroomId       String?      @map("classroom_id")
+  classroom         Classroom?   @relation(fields: [classroomId], references: [id])
+  branchId          String       @map("branch_id")
+  branch            Branch       @relation(fields: [branchId], references: [id])
+  scheduledStart    DateTime     @map("scheduled_start")
+  scheduledEnd      DateTime     @map("scheduled_end")
+  actualStart       DateTime?    @map("actual_start")
+  actualEnd         DateTime?    @map("actual_end")
+  topic             String?
+  homework          String?
+  notes             String?
+  status            LessonStatus @default(SCHEDULED)
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
+
+  @@unique([scheduleId, scheduledStart])
+  @@index([groupId])
+  @@index([scheduleId])
+  @@index([teacherEmployeeId])
+  @@index([classroomId])
+  @@index([branchId])
+  @@index([status])
+  @@index([scheduledStart])
+  @@map("lessons")
 }
