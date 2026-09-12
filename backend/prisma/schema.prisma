@@ -401,6 +401,11 @@ enum EnrollmentStatus {
   TRANSFERRED
 }
 
+enum TeacherProfileStatus {
+  ACTIVE
+  INACTIVE
+}
+
 // =========================================================================
 // 1. USERS & ROLES (RBAC)
 // =========================================================================
@@ -1136,11 +1141,12 @@ model Employee {
   compensations       EmployeeCompensation[]
   payrolls            Payroll[]
 
-  // Education center (Phase A)
-  managedBranches Branch[]       @relation("BranchManager")
-  taughtGroups    StudentGroup[] @relation("GroupTeacher")
-  assignedLeads   Lead[]         @relation("LeadAssignee")
-  leadActivities  LeadActivity[] @relation("LeadActivityEmployee")
+  // Education center (Phase A/D)
+  managedBranches Branch[]        @relation("BranchManager")
+  taughtGroups    StudentGroup[]  @relation("GroupTeacher")
+  assignedLeads   Lead[]          @relation("LeadAssignee")
+  leadActivities  LeadActivity[]  @relation("LeadActivityEmployee")
+  teacherProfile  TeacherProfile?
 
   @@index([departmentId])
   @@index([positionId])
@@ -1723,4 +1729,30 @@ model Enrollment {
   @@index([status])
   @@index([startDate])
   @@map("enrollments")
+}
+
+/// Teaching-specific information layered onto an existing Employee (Phase D).
+/// Employee remains the single HR identity; this is an optional 1:1 extension
+/// so an employee is only ever eligible to teach a StudentGroup once they
+/// have an active profile here — no separate Teacher/person record, and no
+/// duplication of Payroll's own compensation model (hourly/per-lesson/
+/// per-group rates here are reference figures a future payroll phase can
+/// read, not a second calculation engine).
+model TeacherProfile {
+  id              String               @id @default(uuid())
+  employeeId      String               @unique @map("employee_id")
+  employee        Employee             @relation(fields: [employeeId], references: [id])
+  bio             String?
+  specialization  String?
+  qualification   String?
+  experienceYears Int?                 @map("experience_years")
+  status          TeacherProfileStatus @default(ACTIVE)
+  hourlyRate      Decimal?             @map("hourly_rate") @db.Decimal(18, 2)
+  perLessonRate   Decimal?             @map("per_lesson_rate") @db.Decimal(18, 2)
+  perGroupRate    Decimal?             @map("per_group_rate") @db.Decimal(18, 2)
+  createdAt       DateTime             @default(now()) @map("created_at")
+  updatedAt       DateTime             @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@map("teacher_profiles")
 }

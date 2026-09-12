@@ -1,13 +1,16 @@
-import { ArrowLeftOutlined, EditOutlined, LinkOutlined, StarFilled, StarOutlined, StopOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, EditOutlined, LinkOutlined, PauseCircleOutlined, PlayCircleOutlined, StarFilled, StarOutlined, StopOutlined, SwapOutlined, UserAddOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { App, Button, Card, Col, Descriptions, Empty, Popconfirm, Row, Space, Spin, Table, Tabs, Tag, Typography } from 'antd';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { activateEnrollment, pauseEnrollment } from '../../api/enrollments';
 import { deactivateStudent, getStudent, removeStudentGuardian, updateStudentGuardianLink } from '../../api/students';
+import { EnrollmentFormModal } from '../../components/EnrollmentFormModal';
 import { LinkGuardianModal } from '../../components/LinkGuardianModal';
 import { StudentFormModal } from '../../components/StudentFormModal';
+import { TransferEnrollmentModal } from '../../components/TransferEnrollmentModal';
 import { useAuthStore } from '../../store/auth.store';
-import type { StudentStatus } from '../../types';
+import type { EnrollmentStatus, StudentEnrollmentItem, StudentStatus } from '../../types';
 
 const STATUS_COLORS: Record<StudentStatus, string> = { ACTIVE: 'green', PAUSED: 'gold', GRADUATED: 'blue', INACTIVE: 'default', LEFT: 'red' };
 const STATUS_LABELS: Record<StudentStatus, string> = {
@@ -17,6 +20,7 @@ const STATUS_LABELS: Record<StudentStatus, string> = {
   INACTIVE: 'Nofaol',
   LEFT: "Chiqib ketgan",
 };
+const ENROLLMENT_STATUS_COLORS: Record<EnrollmentStatus, string> = { ACTIVE: 'green', PAUSED: 'gold', COMPLETED: 'blue', CANCELLED: 'red', TRANSFERRED: 'purple' };
 
 export function StudentDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -26,13 +30,42 @@ export function StudentDetailPage() {
   const hasPermission = useAuthStore((state) => state.hasPermission);
   const [editOpen, setEditOpen] = useState(false);
   const [linkOpen, setLinkOpen] = useState(false);
+  const [enrollOpen, setEnrollOpen] = useState(false);
+  const [transferTarget, setTransferTarget] = useState<StudentEnrollmentItem | undefined>();
 
   const studentQuery = useQuery({ queryKey: ['student', id], queryFn: () => getStudent(id!), enabled: !!id });
 
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: ['student', id] });
     queryClient.invalidateQueries({ queryKey: ['students'] });
+    queryClient.invalidateQueries({ queryKey: ['enrollments'] });
+    queryClient.invalidateQueries({ queryKey: ['group'] });
+    queryClient.invalidateQueries({ queryKey: ['groups'] });
   }
+
+  const pauseMutation = useMutation({
+    mutationFn: (enrollmentId: string) => pauseEnrollment(enrollmentId),
+    onSuccess: () => {
+      message.success('Yozilish muzlatildi');
+      invalidate();
+    },
+    onError: (error: unknown) => {
+      const detail = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      message.error(detail ?? "Amalni bajarib bo'lmadi");
+    },
+  });
+
+  const resumeMutation = useMutation({
+    mutationFn: (enrollmentId: string) => activateEnrollment(enrollmentId),
+    onSuccess: () => {
+      message.success('Yozilish tiklandi');
+      invalidate();
+    },
+    onError: (error: unknown) => {
+      const detail = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      message.error(detail ?? "Amalni bajarib bo'lmadi");
+    },
+  });
 
   const deactivateMutation = useMutation({
     mutationFn: () => deactivateStudent(id!),
@@ -123,6 +156,21 @@ export function StudentDetailPage() {
           <Descriptions.Item label="Ro'yxatga olingan sana">{new Date(student.registrationDate).toLocaleDateString('uz-UZ')}</Descriptions.Item>
           <Descriptions.Item label="Qayerdan bilgan">{student.source ?? '—'}</Descriptions.Item>
           <Descriptions.Item label="Tizim foydalanuvchisi">{student.user ? `${student.user.username} (${student.user.status})` : "Bog'lanmagan"}</Descriptions.Item>
+          <Descriptions.Item label="Joriy guruh(lar)" span={3}>
+            {student.enrollments.filter((e) => e.status === 'ACTIVE').length ? (
+              <Space wrap>
+                {student.enrollments
+                  .filter((e) => e.status === 'ACTIVE')
+                  .map((e) => (
+                    <Tag key={e.id} color="green" style={{ cursor: 'pointer' }} onClick={() => navigate(`/groups/${e.group.id}`)}>
+                      {e.group.name} ({e.group.course.name})
+                    </Tag>
+                  ))}
+              </Space>
+            ) : (
+              '—'
+            )}
+          </Descriptions.Item>
           {student.convertedFromLead && (
             <Descriptions.Item label="Konvertatsiya qilingan lid" span={3}>
               {student.convertedFromLead.fullName} ({new Date(student.convertedFromLead.createdAt).toLocaleDateString('uz-UZ')} sanasida lid sifatida yaratilgan)
@@ -211,22 +259,62 @@ export function StudentDetailPage() {
             {
               key: 'enrollments',
               label: `Yozilishlar (${student.enrollments.length})`,
-              children: student.enrollments.length ? (
-                <Table
-                  rowKey="id"
-                  size="small"
-                  pagination={false}
-                  dataSource={student.enrollments}
-                  columns={[
-                    { title: 'Kurs', render: (_, record) => record.group.course.name },
-                    { title: 'Guruh', render: (_, record) => record.group.name },
-                    { title: 'Boshlanish sanasi', dataIndex: 'startDate', render: (v: string) => new Date(v).toLocaleDateString('uz-UZ') },
-                    { title: 'Status', dataIndex: 'status' },
-                    { title: "To'lov summasi", dataIndex: 'agreedTuition', render: (v: string | null) => (v ? Number(v).toLocaleString('uz-UZ') : '—') },
-                  ]}
-                />
-              ) : (
-                <Empty description="Yozilishlar yo'q" />
+              children: (
+                <>
+                  {hasPermission('enrollments', 'CREATE') && (
+                    <Button icon={<UserAddOutlined />} style={{ marginBottom: 12 }} onClick={() => setEnrollOpen(true)}>
+                      Guruhga yozish
+                    </Button>
+                  )}
+                  {student.enrollments.length ? (
+                    <Table
+                      rowKey="id"
+                      size="small"
+                      pagination={false}
+                      dataSource={student.enrollments}
+                      onRow={(record) => ({ onClick: () => navigate(`/enrollments/${record.id}`), style: { cursor: 'pointer' } })}
+                      columns={[
+                        { title: 'Kurs', render: (_, record) => record.group.course.name },
+                        { title: 'Guruh', render: (_, record) => record.group.name },
+                        { title: "O'qituvchi", render: (_, record) => record.group.teacherEmployee?.fullName ?? '—' },
+                        { title: 'Filial', render: (_, record) => record.group.branch.name },
+                        { title: 'Boshlanish sanasi', dataIndex: 'startDate', render: (v: string) => new Date(v).toLocaleDateString('uz-UZ') },
+                        { title: "To'lov summasi", dataIndex: 'agreedTuition', render: (v: string | null) => (v ? Number(v).toLocaleString('uz-UZ') : '—') },
+                        { title: 'Chegirma', dataIndex: 'discountAmount', render: (v: string | null) => (v ? Number(v).toLocaleString('uz-UZ') : '—') },
+                        {
+                          title: 'Status',
+                          dataIndex: 'status',
+                          render: (v: EnrollmentStatus) => <Tag color={ENROLLMENT_STATUS_COLORS[v]}>{v}</Tag>,
+                        },
+                        {
+                          title: 'Amallar',
+                          render: (_, record) =>
+                            hasPermission('enrollments', 'EDIT') && (
+                              <Space onClick={(e) => e.stopPropagation()}>
+                                {record.status === 'ACTIVE' && (
+                                  <Button size="small" icon={<PauseCircleOutlined />} onClick={() => pauseMutation.mutate(record.id)}>
+                                    Muzlatish
+                                  </Button>
+                                )}
+                                {record.status === 'PAUSED' && (
+                                  <Button size="small" icon={<PlayCircleOutlined />} onClick={() => resumeMutation.mutate(record.id)}>
+                                    Tiklash
+                                  </Button>
+                                )}
+                                {['ACTIVE', 'PAUSED'].includes(record.status) && (
+                                  <Button size="small" icon={<SwapOutlined />} onClick={() => setTransferTarget(record)}>
+                                    Ko'chirish
+                                  </Button>
+                                )}
+                              </Space>
+                            ),
+                        },
+                      ]}
+                    />
+                  ) : (
+                    <Empty description="Yozilishlar yo'q" />
+                  )}
+                </>
               ),
             },
           ]}
@@ -234,6 +322,17 @@ export function StudentDetailPage() {
       </Card>
 
       <StudentFormModal open={editOpen} onClose={() => setEditOpen(false)} student={student} />
+      <EnrollmentFormModal open={enrollOpen} onClose={() => setEnrollOpen(false)} defaultStudentId={student.id} />
+      {transferTarget && (
+        <TransferEnrollmentModal
+          open={!!transferTarget}
+          onClose={() => setTransferTarget(undefined)}
+          enrollment={{
+            ...transferTarget,
+            student: { fullName: student.fullName },
+          }}
+        />
+      )}
       <LinkGuardianModal
         open={linkOpen}
         onClose={() => setLinkOpen(false)}

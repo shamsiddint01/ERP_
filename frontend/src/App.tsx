@@ -19,9 +19,13 @@ import { DepartmentDetailPage } from './pages/departments/DepartmentDetailPage';
 import { DepartmentsPage } from './pages/departments/DepartmentsPage';
 import { EmployeeDetailPage } from './pages/employees/EmployeeDetailPage';
 import { EmployeesPage } from './pages/employees/EmployeesPage';
+import { EnrollmentDetailPage } from './pages/enrollments/EnrollmentDetailPage';
+import { EnrollmentsPage } from './pages/enrollments/EnrollmentsPage';
 import { ExpensesPage } from './pages/expenses/ExpensesPage';
 import { AccountsPage } from './pages/finance/AccountsPage';
 import { ReportsPage } from './pages/finance/ReportsPage';
+import { GroupDetailPage } from './pages/groups/GroupDetailPage';
+import { GroupsPage } from './pages/groups/GroupsPage';
 import { GuardianDetailPage } from './pages/guardians/GuardianDetailPage';
 import { GuardiansPage } from './pages/guardians/GuardiansPage';
 import { InventoryPage } from './pages/inventory/InventoryPage';
@@ -48,6 +52,8 @@ import { StudentDetailPage } from './pages/students/StudentDetailPage';
 import { StudentsPage } from './pages/students/StudentsPage';
 import { SupplierDetailPage } from './pages/suppliers/SupplierDetailPage';
 import { SuppliersPage } from './pages/suppliers/SuppliersPage';
+import { TeacherDetailPage } from './pages/teachers/TeacherDetailPage';
+import { TeachersPage } from './pages/teachers/TeachersPage';
 import { UsersPage } from './pages/UsersPage';
 
 export default function App() {
@@ -72,6 +78,12 @@ export default function App() {
           <Route path="/branches/:id" element={<BranchDetailPage />} />
           <Route path="/classrooms" element={<ClassroomsPage />} />
           <Route path="/classrooms/:id" element={<ClassroomDetailPage />} />
+          <Route path="/groups" element={<GroupsPage />} />
+          <Route path="/groups/:id" element={<GroupDetailPage />} />
+          <Route path="/enrollments" element={<EnrollmentsPage />} />
+          <Route path="/enrollments/:id" element={<EnrollmentDetailPage />} />
+          <Route path="/teachers" element={<TeachersPage />} />
+          <Route path="/teachers/:id" element={<TeacherDetailPage />} />
           <Route path="/customers" element={<CustomersPage />} />
           <Route path="/customers/:id" element={<CustomerDetailPage />} />
           <Route path="/orders" element={<OrdersPage />} />

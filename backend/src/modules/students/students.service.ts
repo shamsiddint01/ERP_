@@ -24,7 +24,19 @@ const STUDENT_DETAIL_INCLUDE = {
     orderBy: { isPrimary: 'desc' },
   },
   enrollments: {
-    include: { group: { include: { course: { select: { id: true, name: true, code: true } } } } },
+    include: {
+      group: {
+        select: {
+          id: true,
+          name: true,
+          code: true,
+          status: true,
+          course: { select: { id: true, name: true, code: true } },
+          branch: { select: { id: true, name: true, code: true } },
+          teacherEmployee: { select: { id: true, fullName: true } },
+        },
+      },
+    },
     orderBy: { createdAt: 'desc' },
   },
 } satisfies Prisma.StudentInclude;

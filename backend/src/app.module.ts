@@ -45,6 +45,9 @@ import { CourseCategoriesModule } from './modules/course-categories/course-categ
 import { CoursesModule } from './modules/courses/courses.module.js';
 import { BranchesModule } from './modules/branches/branches.module.js';
 import { ClassroomsModule } from './modules/classrooms/classrooms.module.js';
+import { GroupsModule } from './modules/groups/groups.module.js';
+import { TeachersModule } from './modules/teachers/teachers.module.js';
+import { EnrollmentsModule } from './modules/enrollments/enrollments.module.js';
 
 @Module({
   imports: [
@@ -92,6 +95,9 @@ import { ClassroomsModule } from './modules/classrooms/classrooms.module.js';
     CoursesModule,
     BranchesModule,
     ClassroomsModule,
+    GroupsModule,
+    TeachersModule,
+    EnrollmentsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

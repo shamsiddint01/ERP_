@@ -242,6 +242,58 @@ async function seedEducationCoreDemo(): Promise<void> {
       update: {},
     });
   }
+  const room102 = await prisma.classroom.findUniqueOrThrow({ where: { branchId_roomNumber: { branchId: branch.id, roomNumber: '102' } } });
+  const room201 = await prisma.classroom.findUniqueOrThrow({ where: { branchId_roomNumber: { branchId: chilonzor.id, roomNumber: '201' } } });
+  const room202 = await prisma.classroom.findUniqueOrThrow({ where: { branchId_roomNumber: { branchId: chilonzor.id, roomNumber: '202' } } });
+
+  // Phase D — teaching staff. These are brand-new Employee rows (none of the
+  // three pre-existing employees in this database came from this seed, so
+  // they're left untouched); keyed by employeeCode so re-running never
+  // duplicates them.
+  const teacherEmployeeDefs = [
+    { code: 'EMP-TCH-001', firstName: 'Sarvinoz', lastName: 'Tashkentova', phone: '+998901112240', hireDate: '2023-01-15' },
+    { code: 'EMP-TCH-002', firstName: 'Jahongir', lastName: 'Rustamov', phone: '+998901112241', hireDate: '2024-03-01' },
+    { code: 'EMP-TCH-003', firstName: 'Kamila', lastName: 'Nazarova', phone: '+998901112242', hireDate: '2022-09-01' },
+  ];
+  const teacherEmployeesByCode: Record<string, { id: string }> = {};
+  for (const t of teacherEmployeeDefs) {
+    teacherEmployeesByCode[t.code] = await prisma.employee.upsert({
+      where: { employeeCode: t.code },
+      create: {
+        employeeCode: t.code,
+        firstName: t.firstName,
+        lastName: t.lastName,
+        fullName: `${t.firstName} ${t.lastName}`,
+        phone: t.phone,
+        hireDate: new Date(t.hireDate),
+        status: 'ACTIVE',
+      },
+      update: {},
+    });
+  }
+
+  const teacherProfileDefs = [
+    { employeeCode: 'EMP-TCH-001', specialization: 'IELTS, General English', qualification: 'CELTA certified', experienceYears: 5, hourlyRate: '80000', perLessonRate: '120000', perGroupRate: '1500000' },
+    { employeeCode: 'EMP-TCH-002', specialization: 'Python, Backend Development', qualification: 'BSc Computer Science', experienceYears: 3, hourlyRate: '90000', perLessonRate: '140000', perGroupRate: '1800000' },
+    { employeeCode: 'EMP-TCH-003', specialization: 'Mathematics', qualification: 'MSc Mathematics', experienceYears: 7, hourlyRate: '75000', perLessonRate: '110000', perGroupRate: '1400000' },
+  ];
+  for (const tp of teacherProfileDefs) {
+    const employeeId = teacherEmployeesByCode[tp.employeeCode].id;
+    await prisma.teacherProfile.upsert({
+      where: { employeeId },
+      create: {
+        employeeId,
+        specialization: tp.specialization,
+        qualification: tp.qualification,
+        experienceYears: tp.experienceYears,
+        hourlyRate: tp.hourlyRate,
+        perLessonRate: tp.perLessonRate,
+        perGroupRate: tp.perGroupRate,
+        status: 'ACTIVE',
+      },
+      update: {},
+    });
+  }
 
   const languages = await prisma.courseCategory.upsert({
     where: { code: 'CAT-LANG' },
@@ -278,8 +330,45 @@ async function seedEducationCoreDemo(): Promise<void> {
   }
 
   const groupDefs = [
-    { code: 'ENG-A1-01', name: 'English A1 — Evening', courseCode: 'ENG-GEN', level: 'ELEMENTARY' as const, tuition: '600000', start: '2026-09-01' },
-    { code: 'IELTS-01', name: 'IELTS Intensive', courseCode: 'IELTS', level: 'UPPER_INTERMEDIATE' as const, tuition: '900000', start: '2026-09-15' },
+    { code: 'ENG-A1-01', name: 'English A1 — Evening', courseCode: 'ENG-GEN', level: 'ELEMENTARY' as const, tuition: '600000', start: '2026-09-01', branchId: branch.id, classroomId: room101.id, capacity: 12, teacherEmployeeId: undefined as string | undefined },
+    { code: 'IELTS-01', name: 'IELTS Intensive', courseCode: 'IELTS', level: 'UPPER_INTERMEDIATE' as const, tuition: '900000', start: '2026-09-15', branchId: branch.id, classroomId: room101.id, capacity: 12, teacherEmployeeId: undefined as string | undefined },
+    // Phase D additions — multiple branches/classrooms, each with a real teacher assigned.
+    {
+      code: 'IELTS-02',
+      name: 'IELTS Weekend',
+      courseCode: 'IELTS',
+      level: 'UPPER_INTERMEDIATE' as const,
+      tuition: '900000',
+      start: '2026-09-01',
+      branchId: chilonzor.id,
+      classroomId: room201.id,
+      capacity: 10,
+      teacherEmployeeId: teacherEmployeesByCode['EMP-TCH-001'].id as string | undefined,
+    },
+    {
+      code: 'PY-BACK-01',
+      name: 'Python Backend — Batch 1',
+      courseCode: 'PY-BACK',
+      level: 'INTERMEDIATE' as const,
+      tuition: '1100000',
+      start: '2026-09-10',
+      branchId: branch.id,
+      classroomId: room102.id,
+      capacity: 8,
+      teacherEmployeeId: teacherEmployeesByCode['EMP-TCH-002'].id as string | undefined,
+    },
+    {
+      code: 'MATH-01-EVE',
+      name: 'Mathematics — Evening',
+      courseCode: 'MATH-01',
+      level: 'INTERMEDIATE' as const,
+      tuition: '500000',
+      start: '2026-08-01',
+      branchId: chilonzor.id,
+      classroomId: room202.id,
+      capacity: 15,
+      teacherEmployeeId: teacherEmployeesByCode['EMP-TCH-003'].id as string | undefined,
+    },
   ];
   const groupsByCode: Record<string, { id: string }> = {};
   for (const g of groupDefs) {
@@ -289,9 +378,10 @@ async function seedEducationCoreDemo(): Promise<void> {
         code: g.code,
         name: g.name,
         courseId: coursesByCode[g.courseCode].id,
-        branchId: branch.id,
-        classroomId: room101.id,
-        capacity: 12,
+        branchId: g.branchId,
+        classroomId: g.classroomId,
+        teacherEmployeeId: g.teacherEmployeeId,
+        capacity: g.capacity,
         tuitionAmount: g.tuition,
         level: g.level,
         startDate: new Date(g.start),
@@ -307,6 +397,10 @@ async function seedEducationCoreDemo(): Promise<void> {
     { code: 'STU-000003', firstName: 'Sardor', lastName: 'Aliyev', phone: '+998901112235' },
     { code: 'STU-000004', firstName: 'Nilufar', lastName: 'Xolmatova', phone: '+998901112236' },
     { code: 'STU-000005', firstName: 'Otabek', lastName: 'Ergashev', phone: '+998901112237' },
+    // Phase D additions — enough distinct students to populate the new groups.
+    { code: 'STU-000006', firstName: 'Sevara', lastName: 'Nodirova', phone: '+998901112238' },
+    { code: 'STU-000007', firstName: 'Bekzod', lastName: 'Islomov', phone: '+998901112239' },
+    { code: 'STU-000008', firstName: 'Madina', lastName: 'Tursunova', phone: '+998901112243' },
   ];
   const studentsByCode: Record<string, { id: string }> = {};
   for (const s of studentDefs) {
@@ -349,19 +443,31 @@ async function seedEducationCoreDemo(): Promise<void> {
     });
   }
 
-  // Enrollments — key on (studentId, groupId, ACTIVE) via findFirst; a student
-  // may historically re-enrol, so no unique constraint, just a dedupe here.
+  // Enrollments — key on (studentId, groupId, status) via findFirst; a
+  // student may historically re-enrol (or hold a TRANSFERRED/COMPLETED row
+  // alongside a current ACTIVE one in a different group), so there's no
+  // blocking unique constraint, just an idempotent dedupe here.
   const enrollmentDefs = [
-    { studentCode: 'STU-000001', groupCode: 'ENG-A1-01', tuition: '600000' },
-    { studentCode: 'STU-000002', groupCode: 'IELTS-01', tuition: '900000' },
+    { studentCode: 'STU-000001', groupCode: 'ENG-A1-01', tuition: '600000', status: 'ACTIVE' as const, start: '2026-09-01' },
+    { studentCode: 'STU-000002', groupCode: 'IELTS-01', tuition: '900000', status: 'ACTIVE' as const, start: '2026-09-15' },
+    // Phase D additions — distributed across the new groups, with a genuine
+    // transfer (STU-000003: ENG-A1-01 -> IELTS-02) and a completed enrollment
+    // as the required historical examples.
+    { studentCode: 'STU-000003', groupCode: 'ENG-A1-01', tuition: '600000', status: 'TRANSFERRED' as const, start: '2026-09-01' },
+    { studentCode: 'STU-000003', groupCode: 'IELTS-02', tuition: '900000', status: 'ACTIVE' as const, start: '2026-09-05' },
+    { studentCode: 'STU-000004', groupCode: 'PY-BACK-01', tuition: '1100000', status: 'ACTIVE' as const, start: '2026-09-10' },
+    { studentCode: 'STU-000005', groupCode: 'PY-BACK-01', tuition: '1100000', status: 'PAUSED' as const, start: '2026-09-10' },
+    { studentCode: 'STU-000006', groupCode: 'MATH-01-EVE', tuition: '500000', status: 'COMPLETED' as const, start: '2026-08-01' },
+    { studentCode: 'STU-000007', groupCode: 'MATH-01-EVE', tuition: '500000', status: 'ACTIVE' as const, start: '2026-08-01' },
+    { studentCode: 'STU-000008', groupCode: 'IELTS-02', tuition: '900000', status: 'ACTIVE' as const, start: '2026-09-05' },
   ];
   for (const e of enrollmentDefs) {
     const studentId = studentsByCode[e.studentCode].id;
     const groupId = groupsByCode[e.groupCode].id;
-    const existing = await prisma.enrollment.findFirst({ where: { studentId, groupId, status: 'ACTIVE' } });
+    const existing = await prisma.enrollment.findFirst({ where: { studentId, groupId, status: e.status } });
     if (!existing) {
       await prisma.enrollment.create({
-        data: { studentId, groupId, startDate: new Date('2026-09-01'), status: 'ACTIVE', agreedTuition: e.tuition },
+        data: { studentId, groupId, startDate: new Date(e.start), status: e.status, agreedTuition: e.tuition },
       });
     }
   }
@@ -457,7 +563,7 @@ async function seedEducationCoreDemo(): Promise<void> {
   }
 
   console.log(
-    '  -> 2 branches, 5 classrooms, 3 course categories, 6 courses, 2 groups, 5 students, 6 guardians, 2 enrollments, 7 leads, 10 lead activities ensured',
+    '  -> 2 branches, 5 classrooms, 3 course categories, 6 courses, 3 teacher profiles, 5 groups, 8 students, 6 guardians, 9 enrollments, 7 leads, 10 lead activities ensured',
   );
 }
 

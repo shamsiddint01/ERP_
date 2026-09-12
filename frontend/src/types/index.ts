@@ -874,12 +874,20 @@ export interface StudentEnrollmentItem {
   groupId: string;
   startDate: string;
   endDate: string | null;
-  status: string;
+  status: EnrollmentStatus;
   agreedTuition: string | null;
   discountAmount: string | null;
   notes: string | null;
   createdAt: string;
-  group: { id: string; name: string; code: string; status: string; course: { id: string; name: string; code: string } };
+  group: {
+    id: string;
+    name: string;
+    code: string;
+    status: StudentGroupStatus;
+    course: { id: string; name: string; code: string };
+    branch: { id: string; name: string; code: string };
+    teacherEmployee: { id: string; fullName: string } | null;
+  };
 }
 
 export interface StudentDetail extends StudentListItem {
@@ -1033,3 +1041,127 @@ export interface ClassroomListItem {
 }
 
 export type ClassroomDetail = ClassroomListItem;
+
+// =========================================================================
+// EDUCATION CENTER — GROUPS / TEACHER PROFILES / ENROLLMENTS — Phase D
+// =========================================================================
+
+export type StudentGroupStatus = 'PLANNED' | 'ACTIVE' | 'PAUSED' | 'COMPLETED' | 'CANCELLED';
+export type TeacherProfileStatus = 'ACTIVE' | 'INACTIVE';
+export type EnrollmentStatus = 'ACTIVE' | 'COMPLETED' | 'PAUSED' | 'CANCELLED' | 'TRANSFERRED';
+
+export interface GroupListItem {
+  id: string;
+  code: string;
+  name: string;
+  courseId: string;
+  course: { id: string; name: string; code: string };
+  branchId: string;
+  branch: { id: string; name: string; code: string };
+  classroomId: string | null;
+  classroom: { id: string; name: string; roomNumber: string } | null;
+  teacherEmployeeId: string | null;
+  teacherEmployee: { id: string; fullName: string } | null;
+  capacity: number;
+  tuitionAmount: string | null;
+  level: CourseLevel | null;
+  startDate: string;
+  endDate: string | null;
+  status: StudentGroupStatus;
+  notes: string | null;
+  createdAt: string;
+  enrolledCount: number;
+  availableSeats: number;
+}
+
+export interface GroupDetail extends GroupListItem {
+  enrollments: Array<{
+    id: string;
+    studentId: string;
+    student: { id: string; studentCode: string; fullName: string; status: StudentStatus };
+    groupId: string;
+    startDate: string;
+    endDate: string | null;
+    status: EnrollmentStatus;
+    agreedTuition: string | null;
+    discountAmount: string | null;
+    notes: string | null;
+    createdAt: string;
+  }>;
+}
+
+export interface TeacherEmployeeSummary {
+  id: string;
+  employeeCode: string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  phone: string;
+  email: string | null;
+  status: string;
+  department: { id: string; name: string } | null;
+  position: { id: string; title: string } | null;
+}
+
+export interface TeacherListItem {
+  id: string;
+  employeeId: string;
+  employee: TeacherEmployeeSummary & { _count: { taughtGroups: number } };
+  bio: string | null;
+  specialization: string | null;
+  qualification: string | null;
+  experienceYears: number | null;
+  status: TeacherProfileStatus;
+  hourlyRate: string | null;
+  perLessonRate: string | null;
+  perGroupRate: string | null;
+  createdAt: string;
+}
+
+export interface TeacherDetail extends Omit<TeacherListItem, 'employee'> {
+  employee: TeacherEmployeeSummary;
+  groups: Array<{
+    id: string;
+    code: string;
+    name: string;
+    status: StudentGroupStatus;
+    capacity: number;
+    startDate: string;
+    endDate: string | null;
+    course: { id: string; name: string; code: string };
+    branch: { id: string; name: string; code: string };
+    enrolledCount: number;
+  }>;
+  workload: { activeGroupsCount: number; activeStudentsCount: number; totalEnrolledStudents: number };
+}
+
+export interface EnrollmentListItem {
+  id: string;
+  studentId: string;
+  student: { id: string; studentCode: string; fullName: string; status: StudentStatus };
+  groupId: string;
+  group: {
+    id: string;
+    name: string;
+    code: string;
+    status: StudentGroupStatus;
+    capacity: number;
+    tuitionAmount: string | null;
+    course: { id: string; name: string; code: string };
+    branch: { id: string; name: string; code: string };
+    teacherEmployee: { id: string; fullName: string } | null;
+  };
+  startDate: string;
+  endDate: string | null;
+  status: EnrollmentStatus;
+  agreedTuition: string | null;
+  discountAmount: string | null;
+  notes: string | null;
+  createdAt: string;
+}
+
+export type EnrollmentDetail = EnrollmentListItem;
+
+export interface TransferredEnrollment extends EnrollmentDetail {
+  transferredTo: EnrollmentDetail;
+}
