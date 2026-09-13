@@ -3,6 +3,8 @@ import { AppLayout } from './components/AppLayout';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { useAuthBootstrap } from './hooks/useAuthBootstrap';
 import { AttendancePage } from './pages/attendance/AttendancePage';
+import { StudentAttendanceOverviewPage } from './pages/attendance/StudentAttendanceOverviewPage';
+import { StudentAttendancePage } from './pages/attendance/StudentAttendancePage';
 import { AuditLogPage } from './pages/AuditLogPage';
 import { BranchDetailPage } from './pages/branches/BranchDetailPage';
 import { BranchesPage } from './pages/branches/BranchesPage';
@@ -24,6 +26,7 @@ import { EnrollmentsPage } from './pages/enrollments/EnrollmentsPage';
 import { ExpensesPage } from './pages/expenses/ExpensesPage';
 import { AccountsPage } from './pages/finance/AccountsPage';
 import { ReportsPage } from './pages/finance/ReportsPage';
+import { GroupAttendancePage } from './pages/groups/GroupAttendancePage';
 import { GroupDetailPage } from './pages/groups/GroupDetailPage';
 import { GroupsPage } from './pages/groups/GroupsPage';
 import { GuardianDetailPage } from './pages/guardians/GuardianDetailPage';
@@ -33,6 +36,7 @@ import { WarehousesPage } from './pages/inventory/WarehousesPage';
 import { InvoicesPage } from './pages/invoices/InvoicesPage';
 import { LeadDetailPage } from './pages/leads/LeadDetailPage';
 import { LeadsPage } from './pages/leads/LeadsPage';
+import { LessonAttendancePage } from './pages/lessons/LessonAttendancePage';
 import { LessonDetailPage } from './pages/lessons/LessonDetailPage';
 import { LessonsPage } from './pages/lessons/LessonsPage';
 import { LoginPage } from './pages/LoginPage';
@@ -71,6 +75,7 @@ export default function App() {
           <Route path="/" element={<DashboardPage />} />
           <Route path="/students" element={<StudentsPage />} />
           <Route path="/students/:id" element={<StudentDetailPage />} />
+          <Route path="/students/:id/attendance" element={<StudentAttendancePage />} />
           <Route path="/guardians" element={<GuardiansPage />} />
           <Route path="/guardians/:id" element={<GuardianDetailPage />} />
           <Route path="/leads" element={<LeadsPage />} />
@@ -84,12 +89,14 @@ export default function App() {
           <Route path="/classrooms/:id" element={<ClassroomDetailPage />} />
           <Route path="/groups" element={<GroupsPage />} />
           <Route path="/groups/:id" element={<GroupDetailPage />} />
+          <Route path="/groups/:id/attendance" element={<GroupAttendancePage />} />
           <Route path="/enrollments" element={<EnrollmentsPage />} />
           <Route path="/enrollments/:id" element={<EnrollmentDetailPage />} />
           <Route path="/schedules" element={<SchedulesPage />} />
           <Route path="/schedules/calendar" element={<ScheduleCalendarPage />} />
           <Route path="/lessons" element={<LessonsPage />} />
           <Route path="/lessons/:id" element={<LessonDetailPage />} />
+          <Route path="/lessons/:id/attendance" element={<LessonAttendancePage />} />
           <Route path="/teachers" element={<TeachersPage />} />
           <Route path="/teachers/:id" element={<TeacherDetailPage />} />
           <Route path="/customers" element={<CustomersPage />} />
@@ -114,6 +121,7 @@ export default function App() {
           <Route path="/employees" element={<EmployeesPage />} />
           <Route path="/employees/:id" element={<EmployeeDetailPage />} />
           <Route path="/attendance" element={<AttendancePage />} />
+          <Route path="/attendance/student" element={<StudentAttendanceOverviewPage />} />
           <Route path="/compensation" element={<CompensationPage />} />
           <Route path="/payroll" element={<PayrollPeriodsPage />} />
           <Route path="/payroll/reports" element={<PayrollReportsPage />} />

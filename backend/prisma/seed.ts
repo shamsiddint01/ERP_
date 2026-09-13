@@ -43,6 +43,8 @@ const ROLE_DEFINITIONS: Array<{
       finance: [PermissionAction.VIEW, PermissionAction.EXPORT],
       reports: [PermissionAction.VIEW, PermissionAction.EXPORT],
       notifications: [PermissionAction.VIEW],
+      // Phase F — "Manager: view/manage".
+      student_attendance: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE, PermissionAction.EXPORT],
     },
   },
   {
@@ -63,6 +65,8 @@ const ROLE_DEFINITIONS: Array<{
       payroll: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.APPROVE, PermissionAction.EXPORT],
       reports: [PermissionAction.VIEW, PermissionAction.EXPORT],
       notifications: [PermissionAction.VIEW],
+      // Phase F — "Accountant: generally read-only".
+      student_attendance: [PermissionAction.VIEW],
     },
   },
   {
@@ -89,6 +93,38 @@ const ROLE_DEFINITIONS: Array<{
       purchases: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT],
       orders: [PermissionAction.VIEW],
       employees: [PermissionAction.VIEW],
+      notifications: [PermissionAction.VIEW],
+    },
+  },
+  // Phase F — a teacher's *actual* scope (their own groups/lessons only) is
+  // enforced in StudentAttendanceService based on their TeacherProfile
+  // linkage, not by this role name — but they still need these blanket
+  // module-level grants to reach the relevant pages/endpoints at all.
+  {
+    name: 'Teacher',
+    description: "Takes attendance for their own groups' lessons.",
+    grants: {
+      groups: [PermissionAction.VIEW],
+      schedules: [PermissionAction.VIEW],
+      lessons: [PermissionAction.VIEW],
+      students: [PermissionAction.VIEW],
+      // enrollments:VIEW is what lets the Lesson Attendance page build the
+      // eligible-student roster in the first place — without it, a teacher
+      // couldn't mark attendance for even their OWN lesson.
+      enrollments: [PermissionAction.VIEW],
+      student_attendance: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT],
+      notifications: [PermissionAction.VIEW],
+    },
+  },
+  {
+    name: 'Reception',
+    description: "Front-desk: looks up students, groups and attendance on parents' behalf.",
+    grants: {
+      students: [PermissionAction.VIEW],
+      guardians: [PermissionAction.VIEW],
+      groups: [PermissionAction.VIEW],
+      lessons: [PermissionAction.VIEW],
+      student_attendance: [PermissionAction.VIEW],
       notifications: [PermissionAction.VIEW],
     },
   },
@@ -184,6 +220,9 @@ async function main() {
 
   console.log('Seeding Education Center demo data (Phase A)...');
   await seedEducationCoreDemo();
+
+  console.log('Seeding a demo Teacher login (Phase F)...');
+  await seedDemoTeacherUser();
 
   console.log('Invalidating cached role-permissions (RolePermissionsCacheService)...');
   await flushRolePermissionsCache();
@@ -718,9 +757,71 @@ async function seedEducationCoreDemo(): Promise<void> {
   const mathThursday = firstLessonByGroupDay['MATH-01-EVE:THURSDAY'];
   await overrideIfStillScheduled(mathThursday, { status: 'NO_SHOW' });
 
+  // Phase F — StudentAttendance demo rows against the lessons just generated
+  // above. Deliberately reuses the same four lessons the status-overrides
+  // above already touched, so the demo data tells one consistent story:
+  // engMonday stays untouched (CANCELLED lessons can never receive
+  // attendance — this is also exercised by a unit/e2e test, not just left
+  // implicit here), mathTuesday/mathThursday/pyMonday each get real marks
+  // covering every StudentAttendanceStatus value.
+  const admin = await prisma.user.findUniqueOrThrow({ where: { username: 'admin' } });
+  async function markAttendance(lessonRef: { id: string } | undefined, studentCode: string, status: 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED') {
+    if (!lessonRef) return;
+    const studentId = studentsByCode[studentCode].id;
+    const lesson = await prisma.lesson.findUniqueOrThrow({ where: { id: lessonRef.id } });
+    const enrollment = await prisma.enrollment.findFirst({
+      where: { studentId, groupId: lesson.groupId, status: { not: 'CANCELLED' }, startDate: { lte: lesson.scheduledStart } },
+      orderBy: { startDate: 'desc' },
+    });
+    await prisma.studentAttendance.upsert({
+      where: { lessonId_studentId: { lessonId: lessonRef.id, studentId } },
+      create: { lessonId: lessonRef.id, studentId, enrollmentId: enrollment?.id, status, markedByUserId: admin.id },
+      update: {},
+    });
+  }
+
+  await markAttendance(mathTuesday, 'STU-000006', 'PRESENT');
+  await markAttendance(mathTuesday, 'STU-000007', 'LATE');
+  await markAttendance(mathThursday, 'STU-000006', 'ABSENT');
+  await markAttendance(mathThursday, 'STU-000007', 'ABSENT');
+  await markAttendance(pyMonday, 'STU-000004', 'PRESENT');
+  await markAttendance(pyMonday, 'STU-000005', 'EXCUSED');
+  const attendanceCount = await prisma.studentAttendance.count();
+
   console.log(
-    `  -> 2 branches, 5 classrooms, 3 course categories, 6 courses, 3 teacher profiles, 5 groups, 8 students, 6 guardians, 9 enrollments, 7 leads, 10 lead activities, ${scheduleCount} schedules, ${lessonCount} lessons ensured`,
+    `  -> 2 branches, 5 classrooms, 3 course categories, 6 courses, 3 teacher profiles, 5 groups, 8 students, 6 guardians, 9 enrollments, 7 leads, 10 lead activities, ${scheduleCount} schedules, ${lessonCount} lessons, ${attendanceCount} attendance records ensured`,
   );
+}
+
+/**
+ * A real, logged-in-able demo account for the "Teacher" RBAC role, linked to
+ * one of the Phase D teacher employees — needed to actually exercise
+ * StudentAttendanceService's teacher-scoping (own groups/lessons only) as a
+ * genuine teacher rather than only as Admin. Sarvinoz Tashkentova
+ * (EMP-TCH-001) teaches IELTS Weekend (IELTS-02), which already has real
+ * schedules/enrollments seeded above.
+ */
+async function seedDemoTeacherUser(): Promise<void> {
+  const teacherRole = await prisma.role.findUnique({ where: { name: 'Teacher' } });
+  const teacherEmployee = await prisma.employee.findUnique({ where: { employeeCode: 'EMP-TCH-001' } });
+  if (!teacherRole || !teacherEmployee) return; // defensive — both are seeded above in this same run
+
+  const password = process.env.SEED_TEACHER_PASSWORD ?? 'ChangeMe123!';
+  const passwordHash = await bcrypt.hash(password, 10);
+  await prisma.user.upsert({
+    where: { username: 'teacher.sarvinoz' },
+    create: {
+      fullName: teacherEmployee.fullName,
+      email: 'sarvinoz.tashkentova@erp.local',
+      username: 'teacher.sarvinoz',
+      passwordHash,
+      roleId: teacherRole.id,
+      employeeId: teacherEmployee.id,
+      status: 'ACTIVE',
+    },
+    update: {},
+  });
+  console.log(`  -> teacher.sarvinoz / ${password} (Teacher role, linked to EMP-TCH-001)`);
 }
 
 /**

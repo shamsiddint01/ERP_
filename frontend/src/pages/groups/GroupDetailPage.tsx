@@ -1,4 +1,4 @@
-import { ArrowLeftOutlined, EditOutlined, PlusOutlined, StopOutlined, ThunderboltOutlined, UserAddOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, CarryOutOutlined, EditOutlined, PlusOutlined, StopOutlined, ThunderboltOutlined, UserAddOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { App, Button, Card, Col, Descriptions, Empty, Popconfirm, Row, Space, Spin, Statistic, Table, Tabs, Tag, Typography } from 'antd';
 import dayjs from 'dayjs';
@@ -89,6 +89,7 @@ export function GroupDetailPage() {
   const canCreateSchedule = hasPermission('schedules', 'CREATE');
   const canEditSchedule = hasPermission('schedules', 'EDIT');
   const canDeleteSchedule = hasPermission('schedules', 'DELETE');
+  const canViewAttendance = hasPermission('student_attendance', 'VIEW');
 
   return (
     <div>
@@ -107,6 +108,11 @@ export function GroupDetailPage() {
           <Col>
             <Space>
               <Tag color={STATUS_COLORS[group.status]}>{STATUS_LABELS[group.status]}</Tag>
+              {canViewAttendance && (
+                <Button icon={<CarryOutOutlined />} onClick={() => navigate(`/groups/${group.id}/attendance`)}>
+                  Davomat hisobot
+                </Button>
+              )}
               {canEnroll && group.availableSeats > 0 && (
                 <Button icon={<UserAddOutlined />} onClick={() => setEnrollOpen(true)}>
                   O'quvchi yozish

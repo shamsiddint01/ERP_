@@ -798,7 +798,10 @@ export type NotificationType =
   | 'EXPENSE_PENDING'
   | 'PAYROLL_PENDING'
   | 'ATTENDANCE_ALERT'
-  | 'SYSTEM';
+  | 'SYSTEM'
+  | 'STUDENT_ABSENT'
+  | 'STUDENT_LATE'
+  | 'STUDENT_REPEATED_ABSENCE';
 
 export type NotificationSeverity = 'INFO' | 'SUCCESS' | 'WARNING' | 'CRITICAL';
 
@@ -1230,3 +1233,96 @@ export interface LessonListItem {
 }
 
 export type LessonDetail = LessonListItem;
+
+// =========================================================================
+// STUDENT ATTENDANCE — Phase F
+// =========================================================================
+
+export type StudentAttendanceStatus = 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED';
+
+export interface StudentAttendanceListItem {
+  id: string;
+  lessonId: string;
+  lesson: {
+    id: string;
+    scheduledStart: string;
+    scheduledEnd: string;
+    status: LessonStatus;
+    topic: string | null;
+    groupId: string;
+    group: { id: string; name: string; code: string };
+    teacherEmployeeId: string | null;
+    teacherEmployee: { id: string; fullName: string } | null;
+    branchId: string;
+    branch: { id: string; name: string; code: string };
+  };
+  studentId: string;
+  student: { id: string; studentCode: string; fullName: string };
+  enrollmentId: string | null;
+  enrollment: { id: string; startDate: string; endDate: string | null; status: EnrollmentStatus } | null;
+  status: StudentAttendanceStatus;
+  markedAt: string;
+  markedBy: { id: string; fullName: string };
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type StudentAttendanceDetail = StudentAttendanceListItem;
+
+export interface AttendanceSummary {
+  totalMarked: number;
+  present: number;
+  absent: number;
+  late: number;
+  excused: number;
+  markedAttendancePercentage: number;
+}
+
+export interface StudentAttendanceHistoryRecord {
+  lessonId: string;
+  scheduledStart: string;
+  topic: string | null;
+  group: { id: string; name: string; code: string };
+  status: StudentAttendanceStatus | 'UNMARKED';
+  notes: string | null;
+  attendanceId: string | null;
+}
+
+export interface StudentAttendanceSummary {
+  studentId: string;
+  eligibleLessons: number;
+  present: number;
+  absent: number;
+  late: number;
+  excused: number;
+  unmarked: number;
+  attendancePercentage: number;
+  records: StudentAttendanceHistoryRecord[];
+}
+
+export interface GroupAttendanceStudentRow {
+  student: { id: string; studentCode: string; fullName: string };
+  enrollmentId: string;
+  eligibleLessons: number;
+  present: number;
+  absent: number;
+  late: number;
+  excused: number;
+  unmarked: number;
+  attendancePercentage: number;
+}
+
+export interface GroupAttendanceSummary {
+  groupId: string;
+  groupName: string;
+  totalLessons: number;
+  students: GroupAttendanceStudentRow[];
+}
+
+export interface BulkAttendanceResult {
+  id: string;
+  lessonId: string;
+  markedCount: number;
+  results: StudentAttendanceListItem[];
+}

@@ -1,8 +1,14 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query, Res } from '@nestjs/common';
 import { PermissionAction } from '@prisma/client';
 import { ApiTags } from '@nestjs/swagger';
+import type { Response } from 'express';
 import { Audited } from '../../shared/decorators/audited.decorator.js';
+import { CurrentUser } from '../../shared/decorators/current-user.decorator.js';
 import { RequirePermission } from '../../shared/decorators/require-permission.decorator.js';
+import type { AuthenticatedUser } from '../../shared/types/authenticated-request.js';
+import { toCsv } from '../reports/report-export.util.js';
+import { AttendanceDateRangeDto } from '../student-attendance/dto/attendance-date-range.dto.js';
+import { StudentAttendanceService } from '../student-attendance/student-attendance.service.js';
 import { CreateStudentDto } from './dto/create-student.dto.js';
 import { LinkGuardianDto } from './dto/link-guardian.dto.js';
 import { QueryStudentDto } from './dto/query-student.dto.js';
@@ -13,7 +19,10 @@ import { StudentsService } from './students.service.js';
 @ApiTags('students')
 @Controller('students')
 export class StudentsController {
-  constructor(private readonly studentsService: StudentsService) {}
+  constructor(
+    private readonly studentsService: StudentsService,
+    private readonly studentAttendanceService: StudentAttendanceService,
+  ) {}
 
   @Get()
   @RequirePermission('students', PermissionAction.VIEW)
@@ -71,5 +80,30 @@ export class StudentsController {
   @Audited('Student', 'GUARDIAN_UNLINK')
   removeGuardian(@Param('id', ParseUUIDPipe) id: string, @Param('guardianId', ParseUUIDPipe) guardianId: string) {
     return this.studentsService.removeGuardian(id, guardianId);
+  }
+
+  @Get(':id/attendance')
+  @RequirePermission('student_attendance', PermissionAction.VIEW)
+  async attendance(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query() query: AttendanceDateRangeDto,
+    @Query('format') format: string | undefined,
+    @CurrentUser() user: AuthenticatedUser,
+    @Res() res: Response,
+  ) {
+    const report = await this.studentAttendanceService.getStudentSummary(id, query, user.id);
+    if (format === 'csv') {
+      const rows = report.records.map((r) => ({
+        date: r.scheduledStart,
+        group: r.group.name,
+        topic: r.topic ?? '',
+        status: r.status,
+        notes: r.notes ?? '',
+      }));
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader('Content-Disposition', `attachment; filename="student-${id}-attendance.csv"`);
+      return res.send(toCsv(rows));
+    }
+    return res.json(report);
   }
 }

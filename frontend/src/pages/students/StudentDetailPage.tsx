@@ -1,4 +1,4 @@
-import { ArrowLeftOutlined, EditOutlined, LinkOutlined, PauseCircleOutlined, PlayCircleOutlined, StarFilled, StarOutlined, StopOutlined, SwapOutlined, UserAddOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, CarryOutOutlined, EditOutlined, LinkOutlined, PauseCircleOutlined, PlayCircleOutlined, StarFilled, StarOutlined, StopOutlined, SwapOutlined, UserAddOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { App, Button, Card, Col, Descriptions, Empty, Popconfirm, Row, Space, Spin, Table, Tabs, Tag, Typography } from 'antd';
 import { useState } from 'react';
@@ -107,6 +107,7 @@ export function StudentDetailPage() {
   if (!student) return null;
 
   const canEdit = hasPermission('students', 'EDIT');
+  const canViewAttendance = hasPermission('student_attendance', 'VIEW');
 
   return (
     <div>
@@ -127,6 +128,11 @@ export function StudentDetailPage() {
           <Col>
             <Space>
               <Tag color={STATUS_COLORS[student.status]}>{STATUS_LABELS[student.status]}</Tag>
+              {canViewAttendance && (
+                <Button icon={<CarryOutOutlined />} onClick={() => navigate(`/students/${student.id}/attendance`)}>
+                  Davomat
+                </Button>
+              )}
               {canEdit && (
                 <Button icon={<EditOutlined />} onClick={() => setEditOpen(true)}>
                   Tahrirlash

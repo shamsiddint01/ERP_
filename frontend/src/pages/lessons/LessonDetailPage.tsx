@@ -1,4 +1,4 @@
-import { ArrowLeftOutlined, CheckCircleOutlined, CloseCircleOutlined, EditOutlined, PlayCircleOutlined, StopOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, CarryOutOutlined, CheckCircleOutlined, CloseCircleOutlined, EditOutlined, PlayCircleOutlined, StopOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { App, Button, Card, Col, Descriptions, Popconfirm, Row, Space, Spin, Tag, Typography } from 'antd';
 import dayjs from 'dayjs';
@@ -92,6 +92,7 @@ export function LessonDetailPage() {
   if (!lesson) return null;
 
   const canEdit = hasPermission('lessons', 'EDIT');
+  const canViewAttendance = hasPermission('student_attendance', 'VIEW');
   const isBusy = startMutation.isPending || completeMutation.isPending || cancelMutation.isPending || noShowMutation.isPending;
   const isOpenState = lesson.status === 'SCHEDULED' || lesson.status === 'IN_PROGRESS';
 
@@ -115,6 +116,11 @@ export function LessonDetailPage() {
           <Col>
             <Space wrap>
               <Tag color={STATUS_COLORS[lesson.status]}>{STATUS_LABELS[lesson.status]}</Tag>
+              {canViewAttendance && lesson.status !== 'CANCELLED' && (
+                <Button icon={<CarryOutOutlined />} onClick={() => navigate(`/lessons/${lesson.id}/attendance`)}>
+                  Davomat
+                </Button>
+              )}
               {canEdit && lesson.status === 'SCHEDULED' && (
                 <Button icon={<PlayCircleOutlined />} loading={isBusy} onClick={() => startMutation.mutate()}>
                   Boshlash

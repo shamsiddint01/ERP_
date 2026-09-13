@@ -295,6 +295,12 @@ enum NotificationType {
   PAYROLL_PENDING
   ATTENDANCE_ALERT
   SYSTEM
+  // Phase F — deliberately distinct from ATTENDANCE_ALERT (employee
+  // attendance): student attendance is never merged with employee attendance
+  // anywhere in this system, notifications included.
+  STUDENT_ABSENT
+  STUDENT_LATE
+  STUDENT_REPEATED_ABSENCE
 }
 
 enum NotificationSeverity {
@@ -434,6 +440,18 @@ enum LessonStatus {
   NO_SHOW
 }
 
+/// Phase F. LATE counts as attended (the student was physically present, just
+/// tardy); ABSENT and EXCUSED do not — an excused absence is still tracked
+/// separately from an unexcused one for reporting, but neither counts toward
+/// the attendance percentage. See StudentAttendanceService for the single
+/// place this rule is applied.
+enum StudentAttendanceStatus {
+  PRESENT
+  ABSENT
+  LATE
+  EXCUSED
+}
+
 // =========================================================================
 // 1. USERS & ROLES (RBAC)
 // =========================================================================
@@ -476,6 +494,9 @@ model User {
   // Education center (Phase A) — optional portal links
   student  Student?
   guardian Guardian? @relation("GuardianUser")
+
+  // Phase F
+  markedStudentAttendances StudentAttendance[] @relation("StudentAttendanceMarkedBy")
 
   @@map("users")
 }
@@ -1170,13 +1191,13 @@ model Employee {
   payrolls            Payroll[]
 
   // Education center (Phase A/D/E)
-  managedBranches   Branch[]        @relation("BranchManager")
-  taughtGroups      StudentGroup[]  @relation("GroupTeacher")
-  assignedLeads     Lead[]          @relation("LeadAssignee")
-  leadActivities    LeadActivity[]  @relation("LeadActivityEmployee")
-  teacherProfile    TeacherProfile?
-  taughtSchedules   Schedule[]      @relation("ScheduleTeacher")
-  taughtLessons     Lesson[]        @relation("LessonTeacher")
+  managedBranches Branch[]        @relation("BranchManager")
+  taughtGroups    StudentGroup[]  @relation("GroupTeacher")
+  assignedLeads   Lead[]          @relation("LeadAssignee")
+  leadActivities  LeadActivity[]  @relation("LeadActivityEmployee")
+  teacherProfile  TeacherProfile?
+  taughtSchedules Schedule[]      @relation("ScheduleTeacher")
+  taughtLessons   Lesson[]        @relation("LessonTeacher")
 
   @@index([departmentId])
   @@index([positionId])
@@ -1656,6 +1677,7 @@ model Student {
 
   guardians   StudentGuardian[]
   enrollments Enrollment[]
+  attendances StudentAttendance[]
 
   @@index([status])
   @@index([branchId])
@@ -1760,6 +1782,8 @@ model Enrollment {
   createdAt      DateTime         @default(now()) @map("created_at")
   updatedAt      DateTime         @updatedAt @map("updated_at")
 
+  attendances StudentAttendance[]
+
   @@index([studentId])
   @@index([groupId])
   @@index([status])
@@ -1860,6 +1884,8 @@ model Lesson {
   createdAt         DateTime     @default(now()) @map("created_at")
   updatedAt         DateTime     @updatedAt @map("updated_at")
 
+  studentAttendances StudentAttendance[]
+
   @@unique([scheduleId, scheduledStart])
   @@index([groupId])
   @@index([scheduleId])
@@ -1869,4 +1895,38 @@ model Lesson {
   @@index([status])
   @@index([scheduledStart])
   @@map("lessons")
+}
+
+/// One student's attendance mark for one Lesson (Phase F). Deliberately its
+/// own model, never merged with Employee AttendanceRecord — a different
+/// entity, a different audience, a different lifecycle. enrollmentId is
+/// nullable: it is always resolved and stored by StudentAttendanceService at
+/// creation time (the enrollment valid for the lesson's date), but is kept
+/// nullable at the schema level — mirroring Lesson.scheduleId's own
+/// nullable-FK-for-resilience precedent — rather than a hard NOT NULL that
+/// would make a future historical-data import or an Enrollment data-model
+/// change a breaking migration.
+model StudentAttendance {
+  id             String                  @id @default(uuid())
+  lessonId       String                  @map("lesson_id")
+  lesson         Lesson                  @relation(fields: [lessonId], references: [id])
+  studentId      String                  @map("student_id")
+  student        Student                 @relation(fields: [studentId], references: [id])
+  enrollmentId   String?                 @map("enrollment_id")
+  enrollment     Enrollment?             @relation(fields: [enrollmentId], references: [id])
+  status         StudentAttendanceStatus
+  markedAt       DateTime                @default(now()) @map("marked_at")
+  markedByUserId String                  @map("marked_by_user_id")
+  markedBy       User                    @relation("StudentAttendanceMarkedBy", fields: [markedByUserId], references: [id])
+  notes          String?
+  createdAt      DateTime                @default(now()) @map("created_at")
+  updatedAt      DateTime                @updatedAt @map("updated_at")
+
+  @@unique([lessonId, studentId])
+  @@index([lessonId])
+  @@index([studentId])
+  @@index([enrollmentId])
+  @@index([status])
+  @@index([markedByUserId])
+  @@map("student_attendances")
 }

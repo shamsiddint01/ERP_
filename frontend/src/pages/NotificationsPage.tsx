@@ -33,6 +33,9 @@ const TYPE_LABELS: Record<NotificationType, string> = {
   PAYROLL_PENDING: 'Tasdiqlashni kutayotgan ish haqi',
   ATTENDANCE_ALERT: 'Davomat ogohlantirishi',
   SYSTEM: 'Tizim',
+  STUDENT_ABSENT: "O'quvchi kelmadi",
+  STUDENT_LATE: "O'quvchi kech qoldi",
+  STUDENT_REPEATED_ABSENCE: 'Takroriy davomatsizlik',
 };
 
 export function NotificationsPage() {

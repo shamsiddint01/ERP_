@@ -2,7 +2,11 @@ import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query
 import { PermissionAction } from '@prisma/client';
 import { ApiTags } from '@nestjs/swagger';
 import { Audited } from '../../shared/decorators/audited.decorator.js';
+import { CurrentUser } from '../../shared/decorators/current-user.decorator.js';
 import { RequirePermission } from '../../shared/decorators/require-permission.decorator.js';
+import type { AuthenticatedUser } from '../../shared/types/authenticated-request.js';
+import { StudentAttendanceService } from '../student-attendance/student-attendance.service.js';
+import { BulkMarkAttendanceDto } from '../student-attendance/dto/bulk-mark-attendance.dto.js';
 import { CreateLessonDto } from './dto/create-lesson.dto.js';
 import { QueryLessonDto } from './dto/query-lesson.dto.js';
 import { UpdateLessonDto } from './dto/update-lesson.dto.js';
@@ -11,7 +15,10 @@ import { LessonsService } from './lessons.service.js';
 @ApiTags('lessons')
 @Controller('lessons')
 export class LessonsController {
-  constructor(private readonly lessonsService: LessonsService) {}
+  constructor(
+    private readonly lessonsService: LessonsService,
+    private readonly studentAttendanceService: StudentAttendanceService,
+  ) {}
 
   @Get()
   @RequirePermission('lessons', PermissionAction.VIEW)
@@ -72,5 +79,12 @@ export class LessonsController {
   @Audited('Lesson', 'NO_SHOW')
   noShow(@Param('id', ParseUUIDPipe) id: string) {
     return this.lessonsService.noShow(id);
+  }
+
+  @Post(':lessonId/attendance/bulk')
+  @RequirePermission('student_attendance', PermissionAction.CREATE)
+  @Audited('StudentAttendance', 'BULK_MARK')
+  bulkAttendance(@Param('lessonId', ParseUUIDPipe) lessonId: string, @Body() dto: BulkMarkAttendanceDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.studentAttendanceService.bulkMark(lessonId, dto.entries, user.id);
   }
 }

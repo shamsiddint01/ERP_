@@ -22,6 +22,10 @@ const DEFAULT_SEVERITY: Record<NotificationType, NotificationSeverity> = {
   PAYROLL_PENDING: NotificationSeverity.INFO,
   ATTENDANCE_ALERT: NotificationSeverity.WARNING,
   SYSTEM: NotificationSeverity.INFO,
+  // Phase F — student attendance, deliberately distinct from ATTENDANCE_ALERT (employee attendance).
+  STUDENT_ABSENT: NotificationSeverity.WARNING,
+  STUDENT_LATE: NotificationSeverity.INFO,
+  STUDENT_REPEATED_ABSENCE: NotificationSeverity.CRITICAL,
 };
 
 export interface NotifyInput {

@@ -47,6 +47,9 @@ export const PERMISSION_MODULES = {
   // Phase E — spec calls for exactly these four actions (no EXPORT).
   schedules: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE],
   lessons: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE],
+  // Phase F — DELETE is a genuine hard delete here (correcting a mistaken
+  // mark), unlike most modules above; EXPORT backs the CSV report download.
+  student_attendance: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE, PermissionAction.EXPORT],
 } as const satisfies Record<string, PermissionAction[]>;
 
 export type PermissionModule = keyof typeof PERMISSION_MODULES;
