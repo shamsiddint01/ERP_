@@ -1,0 +1,84 @@
+import { describe, expect, it, vi } from 'vitest';
+import { NotificationsScheduler } from './notifications.scheduler.js';
+
+function createPrismaMock(overrides: Record<string, Record<string, unknown>> = {}) {
+  return {
+    inventoryStock: { findMany: vi.fn().mockResolvedValue([]) },
+    invoice: { findMany: vi.fn().mockResolvedValue([]), updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
+    expense: { findMany: vi.fn().mockResolvedValue([]) },
+    payroll: { findMany: vi.fn().mockResolvedValue([]) },
+    tuitionCharge: {
+      findMany: vi.fn().mockResolvedValue([]),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      ...overrides.tuitionCharge,
+    },
+  };
+}
+
+function createScheduler(prisma: ReturnType<typeof createPrismaMock>) {
+  const notifications = { notifyByPermission: vi.fn().mockResolvedValue(1) };
+  return { scheduler: new NotificationsScheduler(prisma as never, notifications as never), notifications };
+}
+
+function fakeCharge(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'charge1',
+    billingPeriod: '2026-09',
+    netAmount: '500000',
+    dueDate: new Date('2026-09-15'),
+    status: 'PENDING',
+    student: { fullName: 'Test Student' },
+    ...overrides,
+  };
+}
+
+describe('NotificationsScheduler — tuition scans (Phase G)', () => {
+  it('scanTuitionDue notifies for a charge due within the reminder window', async () => {
+    const prisma = createPrismaMock({ tuitionCharge: { findMany: vi.fn().mockResolvedValue([fakeCharge()]) } });
+    const { scheduler, notifications } = createScheduler(prisma);
+
+    const summary = await scheduler.runDailyScans();
+
+    expect(summary.tuitionDue).toBe(1);
+    expect(notifications.notifyByPermission).toHaveBeenCalledWith('tuition', 'VIEW', expect.objectContaining({ type: 'TUITION_DUE' }));
+  });
+
+  it('scanOverdueTuition flips a PENDING charge to OVERDUE and notifies', async () => {
+    const findMany = vi.fn().mockResolvedValueOnce([]).mockResolvedValueOnce([fakeCharge({ status: 'PENDING' })]);
+    const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+    const prisma = createPrismaMock({ tuitionCharge: { findMany, updateMany } });
+    const { scheduler, notifications } = createScheduler(prisma);
+
+    const summary = await scheduler.runDailyScans();
+
+    expect(updateMany).toHaveBeenCalledWith({ where: { id: 'charge1', status: 'PENDING' }, data: { status: 'OVERDUE' } });
+    expect(summary.overdueTuition).toBe(1);
+    expect(notifications.notifyByPermission).toHaveBeenCalledWith('tuition', 'VIEW', expect.objectContaining({ type: 'TUITION_OVERDUE', severity: 'CRITICAL' }));
+  });
+
+  it('does not re-flip a charge that is already OVERDUE, but still notifies (dedup handled by NotificationsService itself)', async () => {
+    const findMany = vi.fn().mockResolvedValueOnce([]).mockResolvedValueOnce([fakeCharge({ status: 'OVERDUE' })]);
+    const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+    const prisma = createPrismaMock({ tuitionCharge: { findMany, updateMany } });
+    const { scheduler } = createScheduler(prisma);
+
+    await scheduler.runDailyScans();
+
+    expect(updateMany).not.toHaveBeenCalled();
+  });
+
+  it('never scans CANCELLED or PAID charges for either tuition scan', async () => {
+    const dueFindMany = vi.fn().mockResolvedValue([]);
+    const prisma = createPrismaMock({ tuitionCharge: { findMany: dueFindMany } });
+    const { scheduler } = createScheduler(prisma);
+
+    await scheduler.runDailyScans();
+
+    for (const call of dueFindMany.mock.calls) {
+      const statusFilter = (call[0] as { where: { status: { in?: string[] } | string } }).where.status;
+      const statuses = typeof statusFilter === 'string' ? [statusFilter] : (statusFilter.in ?? []);
+      expect(statuses).not.toContain('CANCELLED');
+      expect(statuses).not.toContain('PAID');
+    }
+  });
+});

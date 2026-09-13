@@ -5,6 +5,7 @@ import { Audited } from '../../shared/decorators/audited.decorator.js';
 import { CurrentUser } from '../../shared/decorators/current-user.decorator.js';
 import { RequirePermission } from '../../shared/decorators/require-permission.decorator.js';
 import type { AuthenticatedUser } from '../../shared/types/authenticated-request.js';
+import { AllocatePaymentDto } from '../tuition/dto/allocate-payment.dto.js';
 import { CreatePaymentDto } from './dto/create-payment.dto.js';
 import { QueryPaymentDto } from './dto/query-payment.dto.js';
 import { PaymentsService } from './payments.service.js';
@@ -38,5 +39,12 @@ export class PaymentsController {
   @Audited('Payment', 'REFUND')
   refund(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.paymentsService.refund(id, user.id);
+  }
+
+  @Post(':id/allocate')
+  @RequirePermission('tuition', PermissionAction.EDIT)
+  @Audited('Payment', 'ALLOCATE')
+  allocate(@Param('id', ParseUUIDPipe) id: string, @Body() dto: AllocatePaymentDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.paymentsService.allocate(id, dto, user.id);
   }
 }

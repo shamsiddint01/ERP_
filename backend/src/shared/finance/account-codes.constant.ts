@@ -13,6 +13,9 @@ export const ACCOUNT_CODES = {
   DEDUCTIONS_PAYABLE: '2300',
   OWNER_EQUITY: '3100',
   SALES_REVENUE: '4100',
+  // Phase G — kept distinct from SALES_REVENUE so tuition revenue is
+  // visible on its own line in the P&L, not blended with retail sales.
+  TUITION_REVENUE: '4200',
   RENT_EXPENSE: '5100',
   UTILITIES_EXPENSE: '5200',
   SALARIES_EXPENSE: '5300',

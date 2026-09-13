@@ -26,6 +26,10 @@ const DEFAULT_SEVERITY: Record<NotificationType, NotificationSeverity> = {
   STUDENT_ABSENT: NotificationSeverity.WARNING,
   STUDENT_LATE: NotificationSeverity.INFO,
   STUDENT_REPEATED_ABSENCE: NotificationSeverity.CRITICAL,
+  // Phase G — tuition billing, distinct from the retail PAYMENT_DUE/INVOICE_OVERDUE/NEW_PAYMENT types.
+  TUITION_DUE: NotificationSeverity.WARNING,
+  TUITION_OVERDUE: NotificationSeverity.CRITICAL,
+  TUITION_PAYMENT_RECEIVED: NotificationSeverity.INFO,
 };
 
 export interface NotifyInput {

@@ -1,10 +1,20 @@
-import { SearchOutlined, UndoOutlined } from '@ant-design/icons';
+import { SearchOutlined, SplitCellsOutlined, UndoOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { App, Button, Input, Popconfirm, Select, Space, Table, Tag, Typography } from 'antd';
 import { useState } from 'react';
-import { listPayments, refundPayment } from '../../api/payments';
+import { listPayments, refundPayment, type PaymentQuery } from '../../api/payments';
+import { AllocatePaymentModal } from '../../components/AllocatePaymentModal';
 import { useAuthStore } from '../../store/auth.store';
 import type { Payment, PaymentMethod, PaymentStatus } from '../../types';
+
+const REFERENCE_TYPE_LABELS: Record<NonNullable<PaymentQuery['referenceType']>, string> = {
+  ORDER: 'Sotuv',
+  INVOICE: 'Hisob-faktura',
+  PURCHASE_ORDER: 'Xarid',
+  EXPENSE: 'Xarajat',
+  OTHER: 'Boshqa',
+  TUITION_CHARGE: "O'quv to'lovi",
+};
 
 const METHOD_LABELS: Record<PaymentMethod, string> = {
   CASH: 'Naqd',
@@ -28,11 +38,13 @@ export function PaymentsPage() {
   const [search, setSearch] = useState('');
   const [method, setMethod] = useState<PaymentMethod | undefined>();
   const [status, setStatus] = useState<PaymentStatus | undefined>();
+  const [referenceType, setReferenceType] = useState<PaymentQuery['referenceType']>();
   const [page, setPage] = useState(1);
+  const [allocatingPayment, setAllocatingPayment] = useState<Payment | null>(null);
 
   const paymentsQuery = useQuery({
-    queryKey: ['payments', { search, method, status, page }],
-    queryFn: () => listPayments({ search: search || undefined, method, status, page, pageSize: 20 }),
+    queryKey: ['payments', { search, method, status, referenceType, page }],
+    queryFn: () => listPayments({ search: search || undefined, method, status, referenceType, page, pageSize: 20 }),
     placeholderData: (prev) => prev,
   });
 
@@ -52,6 +64,7 @@ export function PaymentsPage() {
   });
 
   const canRefund = hasPermission('payments', 'APPROVE');
+  const canAllocate = hasPermission('tuition', 'EDIT');
 
   return (
     <div>
@@ -93,6 +106,16 @@ export function PaymentsPage() {
             setPage(1);
           }}
         />
+        <Select
+          placeholder="Manba turi"
+          allowClear
+          style={{ width: 180 }}
+          options={Object.entries(REFERENCE_TYPE_LABELS).map(([value, label]) => ({ value, label }))}
+          onChange={(value) => {
+            setReferenceType(value);
+            setPage(1);
+          }}
+        />
       </Space>
 
       <Table<Payment>
@@ -102,8 +125,12 @@ export function PaymentsPage() {
         pagination={{ current: page, pageSize: 20, total: paymentsQuery.data?.total, onChange: setPage }}
         columns={[
           { title: 'Raqam', dataIndex: 'paymentNumber' },
-          { title: 'Mijoz', render: (_, record) => record.payerCustomer?.companyName ?? record.payerCustomer?.name ?? '—' },
-          { title: 'Manba', dataIndex: 'referenceType' },
+          {
+            title: "Mijoz / O'quvchi",
+            render: (_, record) =>
+              record.payerCustomer?.companyName ?? record.payerCustomer?.name ?? (record.referenceType === 'TUITION_CHARGE' ? "O'quvchi to'lovi" : '—'),
+          },
+          { title: 'Manba', dataIndex: 'referenceType', render: (v: Payment['referenceType']) => (v ? (REFERENCE_TYPE_LABELS[v] ?? v) : '—') },
           { title: 'Summa', dataIndex: 'amount', render: (v: string) => Number(v).toLocaleString('uz-UZ') },
           { title: 'Usul', dataIndex: 'method', render: (v: PaymentMethod) => METHOD_LABELS[v] },
           { title: 'Sana', dataIndex: 'createdAt', render: (v: string) => new Date(v).toLocaleString('uz-UZ') },
@@ -111,18 +138,27 @@ export function PaymentsPage() {
           { title: 'Kim yozgan', dataIndex: ['recordedBy', 'fullName'] },
           {
             title: 'Amallar',
-            render: (_, record) =>
-              canRefund &&
-              record.status === 'COMPLETED' && (
-                <Popconfirm title="To'lovni qaytarish?" onConfirm={() => refundMutation.mutate(record.id)}>
-                  <Button size="small" danger icon={<UndoOutlined />}>
-                    Qaytarish
+            render: (_, record) => (
+              <Space>
+                {canAllocate && record.referenceType === 'TUITION_CHARGE' && record.status === 'COMPLETED' && (
+                  <Button size="small" icon={<SplitCellsOutlined />} onClick={() => setAllocatingPayment(record)}>
+                    Taqsimlash
                   </Button>
-                </Popconfirm>
-              ),
+                )}
+                {canRefund && record.status === 'COMPLETED' && (
+                  <Popconfirm title="To'lovni qaytarish?" onConfirm={() => refundMutation.mutate(record.id)}>
+                    <Button size="small" danger icon={<UndoOutlined />}>
+                      Qaytarish
+                    </Button>
+                  </Popconfirm>
+                )}
+              </Space>
+            ),
           },
         ]}
       />
+
+      <AllocatePaymentModal open={!!allocatingPayment} onClose={() => setAllocatingPayment(null)} payment={allocatingPayment} />
     </div>
   );
 }

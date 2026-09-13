@@ -62,6 +62,62 @@ export class FinanceLedgerService {
     );
   }
 
+  /**
+   * Tuition billed (Phase G): revenue is recognized the moment a
+   * TuitionCharge is created, exactly like recordSale recognizes an Order's
+   * revenue at completion — Dr Accounts Receivable / Cr Tuition Revenue for
+   * the charge's netAmount (after any discount, which is why this posts the
+   * already-discounted figure, not the gross amount).
+   */
+  async recordTuitionCharge(
+    params: { netAmount: number; chargeId: string; studentName: string; billingPeriod: string; createdByUserId: string },
+    tx?: TransactionClient,
+  ): Promise<JournalEntryWithLines> {
+    if (!tx) return this.prisma.$transaction((trx) => this.recordTuitionCharge(params, trx));
+    const [ar, tuitionRevenue] = await Promise.all([
+      this.accountByCode(ACCOUNT_CODES.ACCOUNTS_RECEIVABLE, tx),
+      this.accountByCode(ACCOUNT_CODES.TUITION_REVENUE, tx),
+    ]);
+    return this.journal.postEntry(
+      {
+        description: `Tuition billed to ${params.studentName} for ${params.billingPeriod}`,
+        referenceType: 'TUITION_CHARGE',
+        referenceId: params.chargeId,
+        createdByUserId: params.createdByUserId,
+        lines: [
+          { accountId: ar.id, debit: params.netAmount },
+          { accountId: tuitionRevenue.id, credit: params.netAmount },
+        ],
+      },
+      tx,
+    );
+  }
+
+  /** Reverses a previously-billed, never-paid tuition charge on cancellation: Dr Tuition Revenue / Cr Accounts Receivable (exact inverse of recordTuitionCharge). */
+  async recordTuitionChargeCancellation(
+    params: { netAmount: number; chargeId: string; studentName: string; billingPeriod: string; createdByUserId: string },
+    tx?: TransactionClient,
+  ): Promise<JournalEntryWithLines> {
+    if (!tx) return this.prisma.$transaction((trx) => this.recordTuitionChargeCancellation(params, trx));
+    const [tuitionRevenue, ar] = await Promise.all([
+      this.accountByCode(ACCOUNT_CODES.TUITION_REVENUE, tx),
+      this.accountByCode(ACCOUNT_CODES.ACCOUNTS_RECEIVABLE, tx),
+    ]);
+    return this.journal.postEntry(
+      {
+        description: `Tuition charge for ${params.studentName} (${params.billingPeriod}) cancelled`,
+        referenceType: 'TUITION_CHARGE',
+        referenceId: params.chargeId,
+        createdByUserId: params.createdByUserId,
+        lines: [
+          { accountId: tuitionRevenue.id, debit: params.netAmount },
+          { accountId: ar.id, credit: params.netAmount },
+        ],
+      },
+      tx,
+    );
+  }
+
   /** Money received from a customer: Dr Cash/Bank / Cr Accounts Receivable. */
   async recordCustomerPayment(
     params: { amount: number; method: PaymentMethod; paymentId: string; paymentNumber: string; createdByUserId: string },

@@ -129,6 +129,10 @@ enum PaymentReferenceType {
   PURCHASE_ORDER
   EXPENSE
   OTHER
+  // Phase G — referenceId is the payer Student's id, not a specific charge:
+  // a tuition payment's actual per-charge breakdown lives in
+  // TuitionAllocation, resolved via POST /payments/:id/allocate.
+  TUITION_CHARGE
 }
 
 enum AccountType {
@@ -173,6 +177,7 @@ enum TransactionReferenceType {
   INVOICE
   MANUAL
   PAYROLL
+  TUITION_CHARGE
 }
 
 enum ExpenseStatus {
@@ -301,6 +306,11 @@ enum NotificationType {
   STUDENT_ABSENT
   STUDENT_LATE
   STUDENT_REPEATED_ABSENCE
+  // Phase G — tuition billing, distinct from the retail PAYMENT_DUE/
+  // INVOICE_OVERDUE/NEW_PAYMENT types for the same reason as Phase F's split.
+  TUITION_DUE
+  TUITION_OVERDUE
+  TUITION_PAYMENT_RECEIVED
 }
 
 enum NotificationSeverity {
@@ -497,6 +507,9 @@ model User {
 
   // Phase F
   markedStudentAttendances StudentAttendance[] @relation("StudentAttendanceMarkedBy")
+
+  // Phase G
+  tuitionAllocationsMade TuitionAllocation[] @relation("TuitionAllocationAllocatedBy")
 
   @@map("users")
 }
@@ -952,6 +965,8 @@ model Payment {
   notes                 String?
   createdAt             DateTime                @default(now()) @map("created_at")
   updatedAt             DateTime                @updatedAt @map("updated_at")
+
+  tuitionAllocations TuitionAllocation[]
 
   @@index([referenceType, referenceId])
   @@index([status])
@@ -1675,9 +1690,11 @@ model Student {
   createdAt           DateTime      @default(now()) @map("created_at")
   updatedAt           DateTime      @updatedAt @map("updated_at")
 
-  guardians   StudentGuardian[]
-  enrollments Enrollment[]
-  attendances StudentAttendance[]
+  guardians        StudentGuardian[]
+  enrollments      Enrollment[]
+  attendances      StudentAttendance[]
+  tuitionCharges   TuitionCharge[]
+  studentDiscounts StudentDiscount[]
 
   @@index([status])
   @@index([branchId])
@@ -1782,7 +1799,9 @@ model Enrollment {
   createdAt      DateTime         @default(now()) @map("created_at")
   updatedAt      DateTime         @updatedAt @map("updated_at")
 
-  attendances StudentAttendance[]
+  attendances      StudentAttendance[]
+  tuitionCharges   TuitionCharge[]
+  studentDiscounts StudentDiscount[]
 
   @@index([studentId])
   @@index([groupId])
@@ -1929,4 +1948,139 @@ model StudentAttendance {
   @@index([status])
   @@index([markedByUserId])
   @@map("student_attendances")
+}
+
+/// Phase G. No hard DB unique constraint on (enrollmentId, billingPeriod) by
+/// design — duplicate billing is prevented at the service layer (a
+/// transaction-scoped advisory lock + a live check), specifically so the
+/// spec's "unless explicitly overridden by a safe business rule" escape
+/// hatch can exist at all. A genuine unique constraint could never be
+/// overridden.
+enum TuitionChargeStatus {
+  PENDING
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+/// value's meaning depends on type: a percentage (0-100) for PERCENTAGE, a
+/// flat currency amount for every other type (FIXED/SIBLING/SCHOLARSHIP/
+/// PROMOTIONAL/CUSTOM) — SIBLING/SCHOLARSHIP/PROMOTIONAL/CUSTOM are all
+/// fixed-style reasons/labels for a discount rather than distinct math, kept
+/// separate from FIXED so reporting can tell *why* a discount was granted.
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+  SIBLING
+  SCHOLARSHIP
+  PROMOTIONAL
+  CUSTOM
+}
+
+/// One billing period's tuition charge for one Enrollment (Phase G). Money
+/// fields are frozen at creation time — a StudentDiscount added, changed, or
+/// removed afterward never silently rewrites an already-created charge
+/// (spec: "Do not change historical charges silently"); only a brand new
+/// charge picks up the student's then-current active discounts. amount/
+/// discountAmount/netAmount are immutable after creation (see
+/// UpdateTuitionChargeDto) — a genuine correction cancels this charge and
+/// bills a new one, rather than mutating posted financial history.
+model TuitionCharge {
+  id             String              @id @default(uuid())
+  studentId      String              @map("student_id")
+  student        Student             @relation(fields: [studentId], references: [id])
+  enrollmentId   String              @map("enrollment_id")
+  enrollment     Enrollment          @relation(fields: [enrollmentId], references: [id])
+  /// Freeform "YYYY-MM" bucket — a billing period is a coarse calendar
+  /// month, not a specific instant, so (like Schedule's HH:mm strings) a
+  /// plain sortable string avoids any timezone-conversion risk a DateTime
+  /// would carry for a value that was never really a point in time.
+  billingPeriod  String              @map("billing_period")
+  amount         Decimal             @db.Decimal(18, 2)
+  discountAmount Decimal             @default(0) @map("discount_amount") @db.Decimal(18, 2)
+  netAmount      Decimal             @map("net_amount") @db.Decimal(18, 2)
+  dueDate        DateTime            @map("due_date") @db.Date
+  status         TuitionChargeStatus @default(PENDING)
+  description    String?
+  createdAt      DateTime            @default(now()) @map("created_at")
+  updatedAt      DateTime            @updatedAt @map("updated_at")
+
+  allocations TuitionAllocation[]
+
+  @@index([studentId])
+  @@index([enrollmentId])
+  @@index([billingPeriod])
+  @@index([status])
+  @@index([dueDate])
+  @@map("tuition_charges")
+}
+
+/// A payment covering one or more TuitionCharges (Phase G) — never merges
+/// with the simpler 1:1 Payment<->Invoice/Order reconciliation elsewhere in
+/// this system. @@unique([paymentId, tuitionChargeId]) makes "allocate more
+/// to the same charge from the same payment" an update-in-place rather than
+/// a second row, which is what POST /payments/:id/allocate relies on to be
+/// safely re-callable.
+model TuitionAllocation {
+  id                String        @id @default(uuid())
+  paymentId         String        @map("payment_id")
+  payment           Payment       @relation(fields: [paymentId], references: [id])
+  tuitionChargeId   String        @map("tuition_charge_id")
+  tuitionCharge     TuitionCharge @relation(fields: [tuitionChargeId], references: [id])
+  amount            Decimal       @db.Decimal(18, 2)
+  allocatedByUserId String        @map("allocated_by_user_id")
+  allocatedBy       User          @relation("TuitionAllocationAllocatedBy", fields: [allocatedByUserId], references: [id])
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  @@unique([paymentId, tuitionChargeId])
+  @@index([paymentId])
+  @@index([tuitionChargeId])
+  @@map("tuition_allocations")
+}
+
+/// A reusable discount definition (Phase G) — a small catalog, like
+/// ExpenseCategory, granted to specific students via StudentDiscount below.
+model Discount {
+  id          String       @id @default(uuid())
+  name        String
+  type        DiscountType
+  value       Decimal      @db.Decimal(18, 2)
+  description String?
+  isActive    Boolean      @default(true) @map("is_active")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  studentDiscounts StudentDiscount[]
+
+  @@index([isActive])
+  @@index([type])
+  @@map("discounts")
+}
+
+/// Grants one Discount to one Student (Phase G) — scoped to a single
+/// Enrollment when enrollmentId is set, or the student's every enrollment
+/// when null. Only ever read when a NEW TuitionCharge is created; never
+/// retroactively applied to existing charges.
+model StudentDiscount {
+  id           String      @id @default(uuid())
+  studentId    String      @map("student_id")
+  student      Student     @relation(fields: [studentId], references: [id])
+  discountId   String      @map("discount_id")
+  discount     Discount    @relation(fields: [discountId], references: [id])
+  enrollmentId String?     @map("enrollment_id")
+  enrollment   Enrollment? @relation(fields: [enrollmentId], references: [id])
+  startDate    DateTime    @map("start_date") @db.Date
+  endDate      DateTime?   @map("end_date") @db.Date
+  isActive     Boolean     @default(true) @map("is_active")
+  notes        String?
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  @@index([studentId])
+  @@index([discountId])
+  @@index([enrollmentId])
+  @@index([isActive])
+  @@map("student_discounts")
 }

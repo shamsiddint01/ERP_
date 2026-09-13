@@ -10,15 +10,27 @@ export interface PaymentQuery {
   status?: PaymentStatus;
   from?: string;
   to?: string;
+  referenceType?: 'ORDER' | 'INVOICE' | 'PURCHASE_ORDER' | 'EXPENSE' | 'OTHER' | 'TUITION_CHARGE';
+  referenceId?: string;
 }
 
 export interface CreatePaymentPayload {
-  referenceType: 'ORDER' | 'INVOICE' | 'PURCHASE_ORDER';
+  referenceType: 'ORDER' | 'INVOICE' | 'PURCHASE_ORDER' | 'TUITION_CHARGE';
+  /** For TUITION_CHARGE this is the payer Student's id, not a specific charge — see AllocatePaymentPayload for per-charge assignment. */
   referenceId: string;
   amount: number;
   method: PaymentMethod;
   externalTransactionId?: string;
   notes?: string;
+}
+
+export interface AllocationEntry {
+  tuitionChargeId: string;
+  amount: number;
+}
+
+export interface AllocatePaymentPayload {
+  allocations: AllocationEntry[];
 }
 
 export async function listPayments(query: PaymentQuery) {
@@ -33,5 +45,10 @@ export async function createPayment(payload: CreatePaymentPayload) {
 
 export async function refundPayment(id: string) {
   const { data } = await apiClient.post<Payment>(`/payments/${id}/refund`);
+  return data;
+}
+
+export async function allocatePayment(id: string, payload: AllocatePaymentPayload) {
+  const { data } = await apiClient.post(`/payments/${id}/allocate`, payload);
   return data;
 }

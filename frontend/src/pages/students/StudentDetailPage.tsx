@@ -1,4 +1,4 @@
-import { ArrowLeftOutlined, CarryOutOutlined, EditOutlined, LinkOutlined, PauseCircleOutlined, PlayCircleOutlined, StarFilled, StarOutlined, StopOutlined, SwapOutlined, UserAddOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, CarryOutOutlined, EditOutlined, LinkOutlined, PauseCircleOutlined, PlayCircleOutlined, StarFilled, StarOutlined, StopOutlined, SwapOutlined, UserAddOutlined, WalletOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { App, Button, Card, Col, Descriptions, Empty, Popconfirm, Row, Space, Spin, Table, Tabs, Tag, Typography } from 'antd';
 import { useState } from 'react';
@@ -108,6 +108,7 @@ export function StudentDetailPage() {
 
   const canEdit = hasPermission('students', 'EDIT');
   const canViewAttendance = hasPermission('student_attendance', 'VIEW');
+  const canViewFinance = hasPermission('tuition', 'VIEW');
 
   return (
     <div>
@@ -131,6 +132,11 @@ export function StudentDetailPage() {
               {canViewAttendance && (
                 <Button icon={<CarryOutOutlined />} onClick={() => navigate(`/students/${student.id}/attendance`)}>
                   Davomat
+                </Button>
+              )}
+              {canViewFinance && (
+                <Button icon={<WalletOutlined />} onClick={() => navigate(`/students/${student.id}/finance`)}>
+                  Moliya
                 </Button>
               )}
               {canEdit && (

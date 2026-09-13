@@ -45,6 +45,11 @@ const ROLE_DEFINITIONS: Array<{
       notifications: [PermissionAction.VIEW],
       // Phase F — "Manager: view/manage".
       student_attendance: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE, PermissionAction.EXPORT],
+      // Phase G — "Manager: view/appropriate management" — can see billing and
+      // step in to approve/cancel a charge, but catalog upkeep (creating
+      // charges, managing the Discount catalog) stays with Accountant.
+      tuition: [PermissionAction.VIEW, PermissionAction.APPROVE, PermissionAction.EXPORT],
+      discounts: [PermissionAction.VIEW],
     },
   },
   {
@@ -67,6 +72,9 @@ const ROLE_DEFINITIONS: Array<{
       notifications: [PermissionAction.VIEW],
       // Phase F — "Accountant: generally read-only".
       student_attendance: [PermissionAction.VIEW],
+      // Phase G — "Accountant: full" tuition/billing/discount administration.
+      tuition: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.APPROVE, PermissionAction.EXPORT],
+      discounts: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE],
     },
   },
   {
@@ -126,6 +134,13 @@ const ROLE_DEFINITIONS: Array<{
       lessons: [PermissionAction.VIEW],
       student_attendance: [PermissionAction.VIEW],
       notifications: [PermissionAction.VIEW],
+      // Phase G — "Reception: create/view payments according to policy": can
+      // see what a family owes and take a payment against it (including
+      // assigning that payment to the right charge — structurally the same
+      // action as recording it), but never bills a new charge or touches the
+      // Discount catalog.
+      tuition: [PermissionAction.VIEW, PermissionAction.EDIT],
+      payments: [PermissionAction.VIEW, PermissionAction.CREATE],
     },
   },
 ];
@@ -223,6 +238,9 @@ async function main() {
 
   console.log('Seeding a demo Teacher login (Phase F)...');
   await seedDemoTeacherUser();
+
+  console.log('Seeding tuition billing/payments/discounts demo data (Phase G)...');
+  await seedTuitionBillingDemo(accountIdByCode);
 
   console.log('Invalidating cached role-permissions (RolePermissionsCacheService)...');
   await flushRolePermissionsCache();
@@ -825,6 +843,175 @@ async function seedDemoTeacherUser(): Promise<void> {
 }
 
 /**
+ * Phase G demo data: a small Discount catalog, one active StudentDiscount
+ * grant, and one TuitionCharge per demo scenario below — each pushed through
+ * to a DIFFERENT final status (PAID/PARTIALLY_PAID/OVERDUE/PENDING with a
+ * discount applied/CANCELLED) against the enrollments seedEducationCoreDemo
+ * already created, so the /tuition, /students/:id/finance and tuition report
+ * pages all have something real to show out of the box. Money movement is
+ * posted via postSeedJournalEntry (same helper backfillHistoricalJournalEntries
+ * uses) rather than the real TuitionChargeService/PaymentsService, since this
+ * script runs outside Nest's DI container — but the Dr/Cr postings mirror
+ * FinanceLedgerService.recordTuitionCharge/recordCustomerPayment exactly.
+ * Idempotent: guarded per-scenario by "does this enrollment+billingPeriod
+ * already have a charge", so re-running the seed never double-bills.
+ */
+async function seedTuitionBillingDemo(accountIdByCode: Map<string, string>): Promise<void> {
+  const admin = await prisma.user.findUniqueOrThrow({ where: { username: 'admin' } });
+  const arId = accountIdByCode.get(ACCOUNT_CODES.ACCOUNTS_RECEIVABLE)!;
+  const cashId = accountIdByCode.get(ACCOUNT_CODES.CASH)!;
+  const tuitionRevenueId = accountIdByCode.get(ACCOUNT_CODES.TUITION_REVENUE)!;
+
+  async function findEnrollment(studentCode: string, groupCode: string) {
+    const student = await prisma.student.findUniqueOrThrow({ where: { studentCode } });
+    const group = await prisma.studentGroup.findUniqueOrThrow({ where: { code: groupCode } });
+    return prisma.enrollment.findFirstOrThrow({ where: { studentId: student.id, groupId: group.id }, orderBy: { createdAt: 'desc' } });
+  }
+
+  async function findOrCreateDiscount(name: string, type: 'PERCENTAGE' | 'FIXED', value: string, description: string) {
+    const existing = await prisma.discount.findFirst({ where: { name } });
+    if (existing) return existing;
+    return prisma.discount.create({ data: { name, type, value, description } });
+  }
+
+  const siblingDiscount = await findOrCreateDiscount('Sibling Discount', 'PERCENTAGE', '10', '10% off for a second sibling enrolled at the center.');
+  await findOrCreateDiscount('Early Payment', 'FIXED', '50000', 'Flat discount for paying before the 5th of the month.');
+  await findOrCreateDiscount('Merit Scholarship', 'PERCENTAGE', '50', 'Half-tuition scholarship for top-performing students.');
+
+  /** Bills one enrollment for one period, optionally paying/allocating/cancelling it, entirely skipped if that (enrollment, billingPeriod) was already billed by an earlier seed run. */
+  async function billScenario(params: {
+    studentCode: string;
+    groupCode: string;
+    billingPeriod: string;
+    dueDate: string;
+    grantDiscountId?: string;
+    payAmount?: number; // omit for an unpaid demo charge
+    cancel?: boolean;
+    forceStatus?: 'OVERDUE'; // demo-only override so an unpaid past-due charge visibly reads OVERDUE without waiting for the daily scan
+  }) {
+    const enrollment = await findEnrollment(params.studentCode, params.groupCode);
+    const existing = await prisma.tuitionCharge.findFirst({ where: { enrollmentId: enrollment.id, billingPeriod: params.billingPeriod } });
+    if (existing) return;
+
+    if (params.grantDiscountId) {
+      const alreadyGranted = await prisma.studentDiscount.findFirst({ where: { studentId: enrollment.studentId, discountId: params.grantDiscountId } });
+      if (!alreadyGranted) {
+        await prisma.studentDiscount.create({
+          data: { studentId: enrollment.studentId, discountId: params.grantDiscountId, startDate: new Date('2026-09-01'), notes: 'Seeded demo grant.' },
+        });
+      }
+    }
+
+    const amount = Number(enrollment.agreedTuition ?? 0);
+    let discountAmount = 0;
+    if (params.grantDiscountId) {
+      const discount = await prisma.discount.findUniqueOrThrow({ where: { id: params.grantDiscountId } });
+      discountAmount = discount.type === 'PERCENTAGE' ? (amount * Number(discount.value)) / 100 : Number(discount.value);
+    }
+    const netAmount = Math.max(amount - discountAmount, 0);
+
+    const charge = await prisma.tuitionCharge.create({
+      data: {
+        studentId: enrollment.studentId,
+        enrollmentId: enrollment.id,
+        billingPeriod: params.billingPeriod,
+        amount,
+        discountAmount,
+        netAmount,
+        dueDate: new Date(params.dueDate),
+        status: params.forceStatus ?? 'PENDING',
+      },
+    });
+
+    if (netAmount > 0) {
+      await postSeedJournalEntry({
+        entryDate: new Date(params.dueDate),
+        description: `Tuition billed for ${params.billingPeriod} (${params.studentCode})`,
+        referenceType: 'TUITION_CHARGE',
+        referenceId: charge.id,
+        createdByUserId: admin.id,
+        lines: [
+          { accountId: arId, debit: netAmount },
+          { accountId: tuitionRevenueId, credit: netAmount },
+        ],
+      });
+    }
+
+    if (params.cancel) {
+      await prisma.tuitionCharge.update({ where: { id: charge.id }, data: { status: 'CANCELLED' } });
+      if (netAmount > 0) {
+        await postSeedJournalEntry({
+          entryDate: new Date(params.dueDate),
+          description: `Tuition charge for ${params.studentCode} (${params.billingPeriod}) cancelled`,
+          referenceType: 'TUITION_CHARGE',
+          referenceId: charge.id,
+          createdByUserId: admin.id,
+          lines: [
+            { accountId: tuitionRevenueId, debit: netAmount },
+            { accountId: arId, credit: netAmount },
+          ],
+        });
+      }
+      return;
+    }
+
+    if (!params.payAmount) return;
+
+    const paymentNumber = await generateDocumentNumber('PAY', () => prisma.payment.count());
+    const payment = await prisma.payment.create({
+      data: {
+        paymentNumber,
+        direction: 'INBOUND',
+        amount: params.payAmount,
+        method: 'CASH',
+        status: 'COMPLETED',
+        referenceType: 'TUITION_CHARGE',
+        referenceId: enrollment.studentId,
+        paidAt: new Date(params.dueDate),
+        recordedByUserId: admin.id,
+      },
+    });
+    await postSeedJournalEntry({
+      entryDate: new Date(params.dueDate),
+      description: `Payment ${paymentNumber} received via CASH`,
+      referenceType: 'PAYMENT',
+      referenceId: payment.id,
+      createdByUserId: admin.id,
+      lines: [
+        { accountId: cashId, debit: params.payAmount },
+        { accountId: arId, credit: params.payAmount },
+      ],
+    });
+    await prisma.tuitionAllocation.create({
+      data: { paymentId: payment.id, tuitionChargeId: charge.id, amount: params.payAmount, allocatedByUserId: admin.id },
+    });
+    await prisma.tuitionCharge.update({
+      where: { id: charge.id },
+      data: { status: params.payAmount >= netAmount ? 'PAID' : 'PARTIALLY_PAID' },
+    });
+  }
+
+  // Fully paid.
+  await billScenario({ studentCode: 'STU-000001', groupCode: 'ENG-A1-01', billingPeriod: '2026-09', dueDate: '2026-09-30', payAmount: 600000 });
+  // Partially paid.
+  await billScenario({ studentCode: 'STU-000002', groupCode: 'IELTS-01', billingPeriod: '2026-09', dueDate: '2026-09-30', payAmount: 400000 });
+  // Past due, unpaid — OVERDUE (demo-forced so it's visible without waiting for the daily scheduler scan).
+  await billScenario({ studentCode: 'STU-000004', groupCode: 'PY-BACK-01', billingPeriod: '2026-07', dueDate: '2026-07-31', forceStatus: 'OVERDUE' });
+  // Unpaid, with an active Sibling Discount grant — demonstrates discount computation (1,100,000 - 10% = 990,000).
+  await billScenario({ studentCode: 'STU-000005', groupCode: 'PY-BACK-01', billingPeriod: '2026-09', dueDate: '2026-09-30', grantDiscountId: siblingDiscount.id });
+  // Billed then cancelled — demonstrates the reversing journal entry.
+  await billScenario({ studentCode: 'STU-000007', groupCode: 'MATH-01-EVE', billingPeriod: '2026-08', dueDate: '2026-08-31', cancel: true });
+
+  const [chargeCount, discountCount, grantCount, paymentCount] = await Promise.all([
+    prisma.tuitionCharge.count(),
+    prisma.discount.count(),
+    prisma.studentDiscount.count(),
+    prisma.payment.count({ where: { referenceType: 'TUITION_CHARGE' } }),
+  ]);
+  console.log(`  -> ${chargeCount} tuition charges, ${discountCount} discounts, ${grantCount} discount grants, ${paymentCount} tuition payments ensured`);
+}
+
+/**
  * Re-running this seed against a live deployment (e.g. to adjust a starter
  * role's default grants) rewrites RolePermission rows directly in Postgres,
  * bypassing RolesService.updatePermissions() — the only place that normally
@@ -889,6 +1076,7 @@ async function seedChartOfAccounts(): Promise<Map<string, string>> {
     { code: ACCOUNT_CODES.OWNER_EQUITY, name: "Owner's Equity", type: 'EQUITY', category: 'EQUITY', parentCode: '3000', isPostable: true },
     { code: '4000', name: 'Revenue', type: 'REVENUE', category: 'REVENUE', isPostable: false },
     { code: ACCOUNT_CODES.SALES_REVENUE, name: 'Sales Revenue', type: 'REVENUE', category: 'REVENUE', parentCode: '4000', isPostable: true },
+    { code: ACCOUNT_CODES.TUITION_REVENUE, name: 'Tuition Revenue', type: 'REVENUE', category: 'REVENUE', parentCode: '4000', isPostable: true },
     { code: '5000', name: 'Expenses', type: 'EXPENSE', category: 'EXPENSE', isPostable: false },
     { code: ACCOUNT_CODES.RENT_EXPENSE, name: 'Rent Expense', type: 'EXPENSE', category: 'EXPENSE', parentCode: '5000', isPostable: true },
     { code: ACCOUNT_CODES.UTILITIES_EXPENSE, name: 'Utilities Expense', type: 'EXPENSE', category: 'EXPENSE', parentCode: '5000', isPostable: true },

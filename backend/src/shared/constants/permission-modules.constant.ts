@@ -50,6 +50,12 @@ export const PERMISSION_MODULES = {
   // Phase F — DELETE is a genuine hard delete here (correcting a mistaken
   // mark), unlike most modules above; EXPORT backs the CSV report download.
   student_attendance: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE, PermissionAction.EXPORT],
+  // Phase G — DELETE is deliberately absent: a TuitionCharge is never
+  // deleted, only cancelled via its own guarded action endpoint (APPROVE
+  // gates that cancellation, mirroring purchases/orders' own APPROVE-gated
+  // workflow actions).
+  tuition: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.APPROVE, PermissionAction.EXPORT],
+  discounts: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE],
 } as const satisfies Record<string, PermissionAction[]>;
 
 export type PermissionModule = keyof typeof PERMISSION_MODULES;

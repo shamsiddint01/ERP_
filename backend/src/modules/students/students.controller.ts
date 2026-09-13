@@ -9,6 +9,9 @@ import type { AuthenticatedUser } from '../../shared/types/authenticated-request
 import { toCsv } from '../reports/report-export.util.js';
 import { AttendanceDateRangeDto } from '../student-attendance/dto/attendance-date-range.dto.js';
 import { StudentAttendanceService } from '../student-attendance/student-attendance.service.js';
+import { GrantDiscountDto } from '../discounts/dto/grant-discount.dto.js';
+import { DiscountsService } from '../discounts/discounts.service.js';
+import { StudentFinanceService } from '../tuition/student-finance.service.js';
 import { CreateStudentDto } from './dto/create-student.dto.js';
 import { LinkGuardianDto } from './dto/link-guardian.dto.js';
 import { QueryStudentDto } from './dto/query-student.dto.js';
@@ -22,6 +25,8 @@ export class StudentsController {
   constructor(
     private readonly studentsService: StudentsService,
     private readonly studentAttendanceService: StudentAttendanceService,
+    private readonly studentFinanceService: StudentFinanceService,
+    private readonly discountsService: DiscountsService,
   ) {}
 
   @Get()
@@ -105,5 +110,37 @@ export class StudentsController {
       return res.send(toCsv(rows));
     }
     return res.json(report);
+  }
+
+  @Get(':id/balance')
+  @RequirePermission('tuition', PermissionAction.VIEW)
+  balance(@Param('id', ParseUUIDPipe) id: string) {
+    return this.studentFinanceService.getBalance(id);
+  }
+
+  @Get(':id/financial-summary')
+  @RequirePermission('tuition', PermissionAction.VIEW)
+  financialSummary(@Param('id', ParseUUIDPipe) id: string) {
+    return this.studentFinanceService.getFinancialSummary(id);
+  }
+
+  @Get(':id/discounts')
+  @RequirePermission('discounts', PermissionAction.VIEW)
+  listDiscountGrants(@Param('id', ParseUUIDPipe) id: string) {
+    return this.discountsService.listStudentGrants(id);
+  }
+
+  @Post(':id/discounts')
+  @RequirePermission('discounts', PermissionAction.CREATE)
+  @Audited('StudentDiscount')
+  grantDiscount(@Param('id', ParseUUIDPipe) id: string, @Body() dto: GrantDiscountDto) {
+    return this.discountsService.grantToStudent(id, dto);
+  }
+
+  @Delete(':id/discounts/:studentDiscountId')
+  @RequirePermission('discounts', PermissionAction.DELETE)
+  @Audited('StudentDiscount', 'REVOKE')
+  revokeDiscount(@Param('id', ParseUUIDPipe) id: string, @Param('studentDiscountId', ParseUUIDPipe) studentDiscountId: string) {
+    return this.discountsService.revokeGrant(id, studentDiscountId);
   }
 }

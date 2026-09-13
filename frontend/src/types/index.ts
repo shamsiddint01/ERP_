@@ -395,7 +395,7 @@ export interface Payment {
   currency: string;
   method: PaymentMethod;
   status: PaymentStatus;
-  referenceType: 'ORDER' | 'INVOICE' | 'PURCHASE_ORDER' | 'EXPENSE' | 'OTHER' | null;
+  referenceType: 'ORDER' | 'INVOICE' | 'PURCHASE_ORDER' | 'EXPENSE' | 'OTHER' | 'TUITION_CHARGE' | null;
   referenceId: string | null;
   paidAt: string | null;
   notes: string | null;
@@ -1325,4 +1325,105 @@ export interface BulkAttendanceResult {
   lessonId: string;
   markedCount: number;
   results: StudentAttendanceListItem[];
+}
+
+// =========================================================================
+// TUITION BILLING, PAYMENTS, DISCOUNTS & STUDENT BALANCES — Phase G
+// =========================================================================
+
+export type TuitionChargeStatus = 'PENDING' | 'PARTIALLY_PAID' | 'PAID' | 'OVERDUE' | 'CANCELLED';
+export type DiscountType = 'PERCENTAGE' | 'FIXED' | 'SIBLING' | 'SCHOLARSHIP' | 'PROMOTIONAL' | 'CUSTOM';
+
+export interface TuitionAllocationRecord {
+  id: string;
+  amount: string;
+  createdAt: string;
+  payment: { id: string; paymentNumber: string; method: PaymentMethod; paidAt: string | null };
+  allocatedBy: { id: string; fullName: string };
+}
+
+export interface TuitionCharge {
+  id: string;
+  studentId: string;
+  student: { id: string; studentCode: string; fullName: string };
+  enrollmentId: string;
+  enrollment: {
+    id: string;
+    startDate: string;
+    endDate: string | null;
+    status: EnrollmentStatus;
+    group: { id: string; name: string; code: string; branch: { id: string; name: string } };
+  };
+  billingPeriod: string;
+  amount: string;
+  discountAmount: string;
+  netAmount: string;
+  dueDate: string;
+  status: TuitionChargeStatus;
+  description: string | null;
+  createdAt: string;
+  updatedAt: string;
+  allocations: TuitionAllocationRecord[];
+}
+
+export interface StudentBalance {
+  studentId: string;
+  totalBilled: number;
+  discounts: number;
+  paid: number;
+  outstanding: number;
+  overdue: number;
+}
+
+export interface StudentFinancialSummaryCharge extends TuitionCharge {
+  allocatedAmount: number;
+  outstanding: number;
+}
+
+export interface StudentFinancialSummaryPayment extends Payment {
+  allocatedAmount: number;
+  unallocatedAmount: number;
+  tuitionAllocations: Array<{ id: string; amount: string; tuitionChargeId: string }>;
+}
+
+export interface StudentFinancialSummaryAllocation {
+  id: string;
+  amount: string;
+  createdAt: string;
+  tuitionChargeId: string;
+  billingPeriod: string;
+  payment: { id: string; paymentNumber: string; method: PaymentMethod };
+}
+
+export interface StudentDiscount {
+  id: string;
+  studentId: string;
+  discountId: string;
+  discount: Discount;
+  enrollmentId: string | null;
+  enrollment: { id: string; group: { id: string; name: string } } | null;
+  startDate: string;
+  endDate: string | null;
+  isActive: boolean;
+  notes: string | null;
+  createdAt: string;
+}
+
+export interface StudentFinancialSummary {
+  balance: StudentBalance;
+  charges: StudentFinancialSummaryCharge[];
+  payments: StudentFinancialSummaryPayment[];
+  allocationHistory: StudentFinancialSummaryAllocation[];
+  discounts: StudentDiscount[];
+}
+
+export interface Discount {
+  id: string;
+  name: string;
+  type: DiscountType;
+  value: string;
+  description: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }

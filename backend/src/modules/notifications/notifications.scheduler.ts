@@ -9,7 +9,12 @@ export interface ScanSummary {
   overdueInvoices: number;
   pendingExpenses: number;
   pendingPayrolls: number;
+  tuitionDue: number;
+  overdueTuition: number;
 }
+
+/** Tuition due within this many days triggers a reminder (once — dedupe keeps it from repeating every day until read). */
+const TUITION_DUE_REMINDER_DAYS = 3;
 
 /**
  * Daily backstop for the notifications that aren't tied to a single state
@@ -33,18 +38,21 @@ export class NotificationsScheduler {
     const summary = await this.runDailyScans();
     this.logger.log(
       `Daily notification scan: ${summary.lowStock} low-stock, ${summary.overdueInvoices} overdue invoices, ` +
-        `${summary.pendingExpenses} pending expenses, ${summary.pendingPayrolls} pending payrolls`,
+        `${summary.pendingExpenses} pending expenses, ${summary.pendingPayrolls} pending payrolls, ` +
+        `${summary.tuitionDue} tuition due soon, ${summary.overdueTuition} overdue tuition`,
     );
   }
 
   async runDailyScans(): Promise<ScanSummary> {
-    const [lowStock, overdueInvoices, pendingExpenses, pendingPayrolls] = await Promise.all([
+    const [lowStock, overdueInvoices, pendingExpenses, pendingPayrolls, tuitionDue, overdueTuition] = await Promise.all([
       this.scanLowStock(),
       this.scanOverdueInvoices(),
       this.scanPendingExpenses(),
       this.scanPendingPayrolls(),
+      this.scanTuitionDue(),
+      this.scanOverdueTuition(),
     ]);
-    return { lowStock, overdueInvoices, pendingExpenses, pendingPayrolls };
+    return { lowStock, overdueInvoices, pendingExpenses, pendingPayrolls, tuitionDue, overdueTuition };
   }
 
   /** Products at or below their minimum stock level in any warehouse. */
@@ -140,6 +148,55 @@ export class NotificationsScheduler {
         referenceType: 'Payroll',
         referenceId: payroll.id,
         actionUrl: '/payroll',
+      });
+    }
+    return notified;
+  }
+
+  /** PENDING/PARTIALLY_PAID tuition charges due within TUITION_DUE_REMINDER_DAYS — a one-time-per-charge reminder (dedupe: same recipient/type/referenceId, unread). */
+  private async scanTuitionDue(): Promise<number> {
+    const now = new Date();
+    const horizon = new Date(now.getTime() + TUITION_DUE_REMINDER_DAYS * 24 * 60 * 60 * 1000);
+    const charges = await this.prisma.tuitionCharge.findMany({
+      where: { status: { in: ['PENDING', 'PARTIALLY_PAID'] }, dueDate: { gte: now, lte: horizon } },
+      select: { id: true, billingPeriod: true, netAmount: true, dueDate: true, student: { select: { fullName: true } } },
+    });
+
+    let notified = 0;
+    for (const charge of charges) {
+      notified += await this.notifications.notifyByPermission('tuition', 'VIEW', {
+        type: 'TUITION_DUE',
+        title: "To'lov muddati yaqinlashmoqda",
+        message: `${charge.student.fullName} — ${charge.billingPeriod} uchun ${Number(charge.netAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })}, muddati ${charge.dueDate.toISOString().slice(0, 10)}.`,
+        referenceType: 'TuitionCharge',
+        referenceId: charge.id,
+        actionUrl: '/tuition',
+      });
+    }
+    return notified;
+  }
+
+  /** PENDING/PARTIALLY_PAID/OVERDUE tuition charges past their due date — flips status to OVERDUE and notifies (mirrors scanOverdueInvoices exactly). */
+  private async scanOverdueTuition(): Promise<number> {
+    const now = new Date();
+    const charges = await this.prisma.tuitionCharge.findMany({
+      where: { dueDate: { lt: now }, status: { in: ['PENDING', 'PARTIALLY_PAID', 'OVERDUE'] } },
+      select: { id: true, billingPeriod: true, netAmount: true, dueDate: true, status: true, student: { select: { fullName: true } } },
+    });
+
+    let notified = 0;
+    for (const charge of charges) {
+      if (charge.status !== 'OVERDUE') {
+        await this.prisma.tuitionCharge.updateMany({ where: { id: charge.id, status: charge.status }, data: { status: 'OVERDUE' } });
+      }
+      notified += await this.notifications.notifyByPermission('tuition', 'VIEW', {
+        type: 'TUITION_OVERDUE',
+        severity: 'CRITICAL',
+        title: "Muddati o'tgan to'lov",
+        message: `${charge.student.fullName} — ${charge.billingPeriod} uchun ${Number(charge.netAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })}, muddati ${charge.dueDate.toISOString().slice(0, 10)} edi.`,
+        referenceType: 'TuitionCharge',
+        referenceId: charge.id,
+        actionUrl: '/tuition',
       });
     }
     return notified;
