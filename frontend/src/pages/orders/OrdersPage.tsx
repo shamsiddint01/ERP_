@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { listOrders } from '../../api/orders';
 import { CreateOrderModal } from '../../components/CreateOrderModal';
+import { LegacyModuleNotice } from '../../components/LegacyModuleNotice';
 import { useAuthStore } from '../../store/auth.store';
 import type { Order, OrderPaymentStatus, OrderStatus } from '../../types';
 
@@ -55,6 +56,7 @@ export function OrdersPage() {
 
   return (
     <div>
+      <LegacyModuleNotice />
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
         <Typography.Title level={4} style={{ margin: 0 }}>
           Sotuvlar / Buyurtmalar

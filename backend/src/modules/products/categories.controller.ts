@@ -7,6 +7,7 @@ import { CategoriesService } from './categories.service.js';
 import { CreateCategoryDto } from './dto/create-category.dto.js';
 import { UpdateCategoryDto } from './dto/update-category.dto.js';
 
+/** @deprecated Legacy retail module — retained for historical records and existing operations. Primary product is the education center (Course/CourseCategory). */
 @ApiTags('product-categories')
 @Controller('product-categories')
 export class CategoriesController {

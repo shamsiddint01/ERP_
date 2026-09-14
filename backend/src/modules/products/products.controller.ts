@@ -8,6 +8,7 @@ import { QueryProductDto } from './dto/query-product.dto.js';
 import { UpdateProductDto } from './dto/update-product.dto.js';
 import { ProductsService } from './products.service.js';
 
+/** @deprecated Legacy retail module — retained for historical records and existing operations. Primary product is the education center (Course). */
 @ApiTags('products')
 @Controller('products')
 export class ProductsController {

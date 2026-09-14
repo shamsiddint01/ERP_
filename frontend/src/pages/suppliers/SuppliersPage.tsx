@@ -4,6 +4,7 @@ import { App, Button, Form, Input, Modal, Select, Space, Table, Tag, Typography 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createSupplier, deactivateSupplier, listSuppliers } from '../../api/suppliers';
+import { LegacyModuleNotice } from '../../components/LegacyModuleNotice';
 import { useAuthStore } from '../../store/auth.store';
 import type { SupplierListItem, SupplierStatus } from '../../types';
 
@@ -56,6 +57,7 @@ export function SuppliersPage() {
 
   return (
     <div>
+      <LegacyModuleNotice />
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
         <Typography.Title level={4} style={{ margin: 0 }}>
           Yetkazib beruvchilar

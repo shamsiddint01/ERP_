@@ -8,6 +8,7 @@ import { CreateCustomerDto } from './dto/create-customer.dto.js';
 import { QueryCustomerDto } from './dto/query-customer.dto.js';
 import { UpdateCustomerDto } from './dto/update-customer.dto.js';
 
+/** @deprecated Legacy retail module — retained for historical records and existing operations. Primary product is the education center (Student/Guardian). */
 @ApiTags('customers')
 @Controller('customers')
 export class CustomersController {

@@ -9,6 +9,7 @@ import { QuerySupplierDto } from './dto/query-supplier.dto.js';
 import { UpdateSupplierDto } from './dto/update-supplier.dto.js';
 import { SuppliersService } from './suppliers.service.js';
 
+/** @deprecated Legacy retail module — retained for historical records and existing operations. Primary product is the education center. */
 @ApiTags('suppliers')
 @Controller('suppliers')
 export class SuppliersController {

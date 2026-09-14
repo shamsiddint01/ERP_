@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { cancelTransfer, completeTransfer, getInventorySummary, listMovements, listStock, listTransfers } from '../../api/inventory';
 import { listWarehouses } from '../../api/warehouses';
 import { CreateTransferModal } from '../../components/CreateTransferModal';
+import { LegacyModuleNotice } from '../../components/LegacyModuleNotice';
 import { StockActionModal } from '../../components/StockActionModal';
 import { StockStatusBadge } from '../../components/StockStatusBadge';
 import { useAuthStore } from '../../store/auth.store';
@@ -236,6 +237,7 @@ export function InventoryPage() {
 
   return (
     <div>
+      <LegacyModuleNotice />
       <Typography.Title level={4}>Ombor</Typography.Title>
 
       <Row gutter={16} style={{ marginBottom: 24 }}>

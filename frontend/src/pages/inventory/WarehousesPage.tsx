@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { App, Button, Form, Input, Modal, Space, Table, Tag, Typography } from 'antd';
 import { useState } from 'react';
 import { createWarehouse, deactivateWarehouse, listWarehouses } from '../../api/warehouses';
+import { LegacyModuleNotice } from '../../components/LegacyModuleNotice';
 import { useAuthStore } from '../../store/auth.store';
 import type { Warehouse } from '../../types';
 
@@ -46,6 +47,7 @@ export function WarehousesPage() {
 
   return (
     <div>
+      <LegacyModuleNotice />
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
         <Typography.Title level={4} style={{ margin: 0 }}>
           Omborlar

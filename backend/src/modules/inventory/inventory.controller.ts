@@ -13,6 +13,7 @@ import { StockInDto } from './dto/stock-in.dto.js';
 import { StockOutDto } from './dto/stock-out.dto.js';
 import { InventoryService } from './inventory.service.js';
 
+/** @deprecated Legacy retail module — retained for historical records and existing operations. Primary product is the education center. */
 @ApiTags('inventory')
 @Controller('inventory')
 export class InventoryController {

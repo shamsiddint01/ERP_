@@ -5,6 +5,7 @@ import type { SorterResult } from 'antd/es/table/interface';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { createCustomer, deactivateCustomer, listCustomers } from '../../api/customers';
+import { LegacyModuleNotice } from '../../components/LegacyModuleNotice';
 import { useAuthStore } from '../../store/auth.store';
 import type { CustomerListItem, CustomerStatus } from '../../types';
 
@@ -59,6 +60,7 @@ export function CustomersPage() {
 
   return (
     <div>
+      <LegacyModuleNotice />
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
         <Typography.Title level={4} style={{ margin: 0 }}>
           Mijozlar

@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { listPurchaseOrders } from '../../api/purchases';
 import { CreatePurchaseOrderModal } from '../../components/CreatePurchaseOrderModal';
+import { LegacyModuleNotice } from '../../components/LegacyModuleNotice';
 import { useAuthStore } from '../../store/auth.store';
 import type { PurchaseOrder, PurchaseOrderStatus } from '../../types';
 
@@ -42,6 +43,7 @@ export function PurchasesPage() {
 
   return (
     <div>
+      <LegacyModuleNotice />
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
         <Typography.Title level={4} style={{ margin: 0 }}>
           Xarid buyurtmalari

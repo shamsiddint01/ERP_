@@ -11,6 +11,7 @@ import { QueryOrderDto } from './dto/query-order.dto.js';
 import { UpdateOrderDto } from './dto/update-order.dto.js';
 import { OrdersService } from './orders.service.js';
 
+/** @deprecated Legacy retail module — retained for historical records and existing operations. Primary product is the education center. */
 @ApiTags('orders')
 @Controller('orders')
 export class OrdersController {

@@ -9,6 +9,7 @@ import { QueryInvoiceDto } from './dto/query-invoice.dto.js';
 import { UpdateInvoiceDto } from './dto/update-invoice.dto.js';
 import { InvoicesService } from './invoices.service.js';
 
+/** @deprecated Legacy retail module — retained for historical records and existing operations. Primary product is the education center (Tuition/Payment). */
 @ApiTags('invoices')
 @Controller('invoices')
 export class InvoicesController {

@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { App, Button, Descriptions, Drawer, Input, Popconfirm, Select, Space, Table, Tag, Typography } from 'antd';
 import { useState } from 'react';
 import { getInvoice, listInvoices, openInvoicePdf, voidInvoice } from '../../api/invoices';
+import { LegacyModuleNotice } from '../../components/LegacyModuleNotice';
 import { RecordPaymentModal } from '../../components/RecordPaymentModal';
 import { useAuthStore } from '../../store/auth.store';
 import type { Invoice, InvoiceStatus } from '../../types';
@@ -63,6 +64,7 @@ export function InvoicesPage() {
 
   return (
     <div>
+      <LegacyModuleNotice />
       <Typography.Title level={4}>Hisob-fakturalar</Typography.Title>
 
       <Space style={{ marginBottom: 16 }} wrap>

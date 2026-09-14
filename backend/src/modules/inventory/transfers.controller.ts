@@ -9,6 +9,7 @@ import { CreateTransferDto } from './dto/create-transfer.dto.js';
 import { QueryTransfersDto } from './dto/query-transfers.dto.js';
 import { TransfersService } from './transfers.service.js';
 
+/** @deprecated Legacy retail module — retained for historical records and existing operations. Primary product is the education center. */
 @ApiTags('inventory')
 @Controller('inventory/transfers')
 export class TransfersController {

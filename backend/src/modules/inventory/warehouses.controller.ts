@@ -7,6 +7,7 @@ import { CreateWarehouseDto } from './dto/create-warehouse.dto.js';
 import { UpdateWarehouseDto } from './dto/update-warehouse.dto.js';
 import { WarehousesService } from './warehouses.service.js';
 
+/** @deprecated Legacy retail module — retained for historical records and existing operations. Primary product is the education center (Branch is the education-center equivalent). */
 @ApiTags('warehouses')
 @Controller('warehouses')
 export class WarehousesController {

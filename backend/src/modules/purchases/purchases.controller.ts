@@ -11,6 +11,7 @@ import { ReceivePurchaseOrderDto } from './dto/receive-purchase-order.dto.js';
 import { UpdatePurchaseOrderDto } from './dto/update-purchase-order.dto.js';
 import { PurchasesService } from './purchases.service.js';
 
+/** @deprecated Legacy retail module — retained for historical records and existing operations. Primary product is the education center. */
 @ApiTags('purchases')
 @Controller('purchases')
 export class PurchasesController {

@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { listCategories } from '../../api/categories';
 import { createProduct, deactivateProduct, listProducts, updateProduct, type ProductPayload } from '../../api/products';
 import { CategoryManagerDrawer } from '../../components/CategoryManagerDrawer';
+import { LegacyModuleNotice } from '../../components/LegacyModuleNotice';
 import { StockStatusBadge } from '../../components/StockStatusBadge';
 import { useAuthStore } from '../../store/auth.store';
 import type { ProductListItem, ProductStatus } from '../../types';
@@ -94,6 +95,7 @@ export function ProductsPage() {
 
   return (
     <div>
+      <LegacyModuleNotice />
       <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
         <Typography.Title level={4} style={{ margin: 0 }}>
           Mahsulotlar
