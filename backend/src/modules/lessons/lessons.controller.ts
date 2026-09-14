@@ -22,8 +22,8 @@ export class LessonsController {
 
   @Get()
   @RequirePermission('lessons', PermissionAction.VIEW)
-  findAll(@Query() query: QueryLessonDto) {
-    return this.lessonsService.findAll(query);
+  findAll(@Query() query: QueryLessonDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.lessonsService.findAll(query, user.id);
   }
 
   @Get(':id')
@@ -42,43 +42,43 @@ export class LessonsController {
   @Patch(':id')
   @RequirePermission('lessons', PermissionAction.EDIT)
   @Audited('Lesson')
-  update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateLessonDto) {
-    return this.lessonsService.update(id, dto);
+  update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateLessonDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.lessonsService.update(id, dto, user.id);
   }
 
   @Delete(':id')
   @RequirePermission('lessons', PermissionAction.DELETE)
   @Audited('Lesson', 'CANCEL')
-  remove(@Param('id', ParseUUIDPipe) id: string) {
-    return this.lessonsService.remove(id);
+  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.lessonsService.remove(id, user.id);
   }
 
   @Post(':id/start')
   @RequirePermission('lessons', PermissionAction.EDIT)
   @Audited('Lesson', 'START')
-  start(@Param('id', ParseUUIDPipe) id: string) {
-    return this.lessonsService.start(id);
+  start(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.lessonsService.start(id, user.id);
   }
 
   @Post(':id/complete')
   @RequirePermission('lessons', PermissionAction.EDIT)
   @Audited('Lesson', 'COMPLETE')
-  complete(@Param('id', ParseUUIDPipe) id: string) {
-    return this.lessonsService.complete(id);
+  complete(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.lessonsService.complete(id, user.id);
   }
 
   @Post(':id/cancel')
   @RequirePermission('lessons', PermissionAction.EDIT)
   @Audited('Lesson', 'CANCEL')
-  cancel(@Param('id', ParseUUIDPipe) id: string) {
-    return this.lessonsService.cancel(id);
+  cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.lessonsService.cancel(id, user.id);
   }
 
   @Post(':id/no-show')
   @RequirePermission('lessons', PermissionAction.EDIT)
   @Audited('Lesson', 'NO_SHOW')
-  noShow(@Param('id', ParseUUIDPipe) id: string) {
-    return this.lessonsService.noShow(id);
+  noShow(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.lessonsService.noShow(id, user.id);
   }
 
   @Post(':lessonId/attendance/bulk')

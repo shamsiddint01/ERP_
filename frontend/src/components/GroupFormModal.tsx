@@ -7,6 +7,7 @@ import { listClassrooms } from '../api/classrooms';
 import { listCourses } from '../api/courses';
 import { createGroup, updateGroup, type GroupPayload } from '../api/groups';
 import { listTeachers } from '../api/teachers';
+import { useAuthStore } from '../store/auth.store';
 import type { CourseLevel, GroupDetail, StudentGroupStatus } from '../types';
 
 interface GroupFormModalProps {
@@ -51,11 +52,13 @@ const STATUS_OPTIONS: Array<{ value: StudentGroupStatus; label: string }> = [
 export function GroupFormModal({ open, onClose, group }: GroupFormModalProps) {
   const { message } = App.useApp();
   const queryClient = useQueryClient();
+  const hasPermission = useAuthStore((state) => state.hasPermission);
   const [form] = Form.useForm<FormValues>();
   // Reactively reads the form's own branchId field instead of mirroring it
   // into separate state — one source of truth, no extra effect-driven sync.
   const branchId = Form.useWatch('branchId', form);
   const isEdit = !!group;
+  const canTeachers = hasPermission('teachers', 'VIEW');
 
   const coursesQuery = useQuery({ queryKey: ['courses', { pageSize: 100, status: 'ACTIVE', forGroupSelect: true }], queryFn: () => listCourses({ pageSize: 100, status: 'ACTIVE' }), enabled: open });
   const branchesQuery = useQuery({ queryKey: ['branches', { pageSize: 100, status: 'ACTIVE', forGroupSelect: true }], queryFn: () => listBranches({ pageSize: 100, status: 'ACTIVE' }), enabled: open });
@@ -66,7 +69,7 @@ export function GroupFormModal({ open, onClose, group }: GroupFormModalProps) {
     enabled: open && !!branchId,
   });
   // Only active TeacherProfiles are offered — never an arbitrary Employee (Phase D §28).
-  const teachersQuery = useQuery({ queryKey: ['teachers', { pageSize: 100, status: 'ACTIVE', forGroupSelect: true }], queryFn: () => listTeachers({ pageSize: 100, status: 'ACTIVE' }), enabled: open });
+  const teachersQuery = useQuery({ queryKey: ['teachers', { pageSize: 100, status: 'ACTIVE', forGroupSelect: true }], queryFn: () => listTeachers({ pageSize: 100, status: 'ACTIVE' }), enabled: open && canTeachers });
 
   useEffect(() => {
     if (!open) return;
@@ -149,16 +152,18 @@ export function GroupFormModal({ open, onClose, group }: GroupFormModalProps) {
             placeholder={branchId ? 'Xonani tanlang' : "Avval filialni tanlang"}
           />
         </Form.Item>
-        <Form.Item name="teacherEmployeeId" label="O'qituvchi">
-          <Select
-            allowClear
-            showSearch
-            loading={teachersQuery.isLoading}
-            filterOption={(input, option) => ((option?.label as string) ?? '').toLowerCase().includes(input.toLowerCase())}
-            options={teachersQuery.data?.items.map((t) => ({ value: t.employeeId, label: t.employee.fullName }))}
-            placeholder="Faol o'qituvchilar ro'yxatidan tanlang"
-          />
-        </Form.Item>
+        {canTeachers && (
+          <Form.Item name="teacherEmployeeId" label="O'qituvchi">
+            <Select
+              allowClear
+              showSearch
+              loading={teachersQuery.isLoading}
+              filterOption={(input, option) => ((option?.label as string) ?? '').toLowerCase().includes(input.toLowerCase())}
+              options={teachersQuery.data?.items.map((t) => ({ value: t.employeeId, label: t.employee.fullName }))}
+              placeholder="Faol o'qituvchilar ro'yxatidan tanlang"
+            />
+          </Form.Item>
+        )}
         <Form.Item name="capacity" label="Sig'imi" rules={[{ type: 'number', min: 1, message: "Sig'im musbat son bo'lishi kerak" }]}>
           <InputNumber min={1} style={{ width: '100%' }} />
         </Form.Item>

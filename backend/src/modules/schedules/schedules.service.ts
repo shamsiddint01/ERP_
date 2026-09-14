@@ -31,13 +31,17 @@ export class SchedulesService {
     registry.register('Schedule', (id) => this.prisma.schedule.findUnique({ where: { id } }));
   }
 
-  async findAll(query: QueryScheduleDto): Promise<PaginatedResult<unknown>> {
+  async findAll(query: QueryScheduleDto, actorUserId: string): Promise<PaginatedResult<unknown>> {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 20;
 
+    // "Own schedules" (Phase K): silently narrows a teacher caller to their
+    // own schedules regardless of what teacherEmployeeId they pass — same
+    // pattern as GroupsService.findAll/LessonsService.findAll.
+    const teacherScope = await this.resolveTeacherScope(actorUserId);
     const where: Prisma.ScheduleWhereInput = {
       groupId: query.groupId,
-      teacherEmployeeId: query.teacherEmployeeId,
+      teacherEmployeeId: teacherScope ?? query.teacherEmployeeId,
       branchId: query.branchId,
       classroomId: query.classroomId,
       dayOfWeek: query.dayOfWeek,
@@ -322,5 +326,14 @@ export class SchedulesService {
         );
       }
     }
+  }
+
+  /** Mirrors exams/teacher-scope.util.ts's resolveTeacherScope exactly (duplicated per this codebase's established per-module convention). */
+  private async resolveTeacherScope(userId: string): Promise<string | null> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { employeeId: true } });
+    if (!user?.employeeId) return null;
+    const profile = await this.prisma.teacherProfile.findUnique({ where: { employeeId: user.employeeId }, select: { status: true } });
+    if (!profile || profile.status !== 'ACTIVE') return null;
+    return user.employeeId;
   }
 }

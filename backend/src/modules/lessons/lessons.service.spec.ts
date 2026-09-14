@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { describe, expect, it, vi } from 'vitest';
 import { AuditEntityRegistryService } from '../../shared/audit/audit-entity-registry.service.js';
@@ -52,6 +52,9 @@ function createPrismaMock(overrides: Record<string, unknown> = {}) {
       ...(overrides.classroom as Record<string, unknown>),
     },
     schedule: { findUnique: vi.fn().mockResolvedValue({ id: 'sched1' }), ...(overrides.schedule as Record<string, unknown>) },
+    // Defaults to "not a teacher" (no employeeId) so assertTeacherScopeAllows is a no-op unless a test explicitly overrides it to exercise ownership scoping.
+    user: { findUnique: vi.fn().mockResolvedValue({ employeeId: null }), ...(overrides.user as Record<string, unknown>) },
+    teacherProfile: { findUnique: vi.fn().mockResolvedValue({ status: 'ACTIVE' }), ...(overrides.teacherProfile as Record<string, unknown>) },
     $transaction: vi.fn((cb: (tx: unknown) => unknown) => cb(txStub)),
     __tx: txStub,
   };
@@ -160,34 +163,34 @@ describe('LessonsService', () => {
   describe('update', () => {
     it('throws NotFoundException for a non-existent lesson', async () => {
       const prisma = createPrismaMock();
-      await expect(createService(prisma).update('missing', { topic: 'x' })).rejects.toThrow(NotFoundException);
+      await expect(createService(prisma).update('missing', { topic: 'x' }, 'user1')).rejects.toThrow(NotFoundException);
     });
 
     it('allows editing topic/homework/notes on a COMPLETED lesson', async () => {
       const prisma = createPrismaMock({ lesson: { findUnique: vi.fn().mockResolvedValue(fakeLesson({ status: 'COMPLETED' })) } });
-      const result = await createService(prisma).update('lesson1', { homework: 'Extra reading' });
+      const result = await createService(prisma).update('lesson1', { homework: 'Extra reading' }, 'user1');
       expect(result).toMatchObject({ homework: 'Extra reading' });
     });
 
     it('refuses to reschedule (change time) a COMPLETED lesson', async () => {
       const prisma = createPrismaMock({ lesson: { findUnique: vi.fn().mockResolvedValue(fakeLesson({ status: 'COMPLETED' })) } });
-      await expect(createService(prisma).update('lesson1', { scheduledStart: '2026-09-15T13:00:00.000Z' })).rejects.toThrow(ConflictException);
+      await expect(createService(prisma).update('lesson1', { scheduledStart: '2026-09-15T13:00:00.000Z' }, 'user1')).rejects.toThrow(ConflictException);
     });
 
     it('refuses to reassign the classroom of a CANCELLED lesson', async () => {
       const prisma = createPrismaMock({ lesson: { findUnique: vi.fn().mockResolvedValue(fakeLesson({ status: 'CANCELLED' })) } });
-      await expect(createService(prisma).update('lesson1', { classroomId: 'room1' })).rejects.toThrow(ConflictException);
+      await expect(createService(prisma).update('lesson1', { classroomId: 'room1' }, 'user1')).rejects.toThrow(ConflictException);
     });
 
     it('allows rescheduling a SCHEDULED lesson and re-checks collision', async () => {
       const prisma = createPrismaMock({ lesson: { findUnique: vi.fn().mockResolvedValue(fakeLesson()) } });
-      const result = await createService(prisma).update('lesson1', { scheduledStart: '2026-09-15T13:00:00.000Z', scheduledEnd: '2026-09-15T14:30:00.000Z' });
+      const result = await createService(prisma).update('lesson1', { scheduledStart: '2026-09-15T13:00:00.000Z', scheduledEnd: '2026-09-15T14:30:00.000Z' }, 'user1');
       expect(result).toBeDefined();
     });
 
     it('rejects rescheduling into an inverted time range', async () => {
       const prisma = createPrismaMock({ lesson: { findUnique: vi.fn().mockResolvedValue(fakeLesson()) } });
-      await expect(createService(prisma).update('lesson1', { scheduledStart: '2026-09-14T14:30:00.000Z', scheduledEnd: '2026-09-14T13:00:00.000Z' })).rejects.toThrow(
+      await expect(createService(prisma).update('lesson1', { scheduledStart: '2026-09-14T14:30:00.000Z', scheduledEnd: '2026-09-14T13:00:00.000Z' }, 'user1')).rejects.toThrow(
         BadRequestException,
       );
     });
@@ -196,7 +199,7 @@ describe('LessonsService', () => {
   describe('workflow', () => {
     it('start(): SCHEDULED -> IN_PROGRESS sets actualStart', async () => {
       const prisma = createPrismaMock({ lesson: { findUnique: vi.fn().mockResolvedValue(fakeLesson()) } });
-      await createService(prisma).start('lesson1');
+      await createService(prisma).start('lesson1', 'user1');
       expect(prisma.lesson.updateMany).toHaveBeenCalledWith({
         where: { id: 'lesson1', status: 'SCHEDULED' },
         data: expect.objectContaining({ status: 'IN_PROGRESS', actualStart: expect.any(Date) }),
@@ -205,20 +208,20 @@ describe('LessonsService', () => {
 
     it('start(): rejects starting an already-IN_PROGRESS lesson', async () => {
       const prisma = createPrismaMock({ lesson: { findUnique: vi.fn().mockResolvedValue(fakeLesson({ status: 'IN_PROGRESS' })) } });
-      await expect(createService(prisma).start('lesson1')).rejects.toThrow(ConflictException);
+      await expect(createService(prisma).start('lesson1', 'user1')).rejects.toThrow(ConflictException);
     });
 
     it('start(): 409 when a concurrent change wins the CAS race (updateMany count 0)', async () => {
       const prisma = createPrismaMock({
         lesson: { findUnique: vi.fn().mockResolvedValue(fakeLesson()), updateMany: vi.fn().mockResolvedValue({ count: 0 }) },
       });
-      await expect(createService(prisma).start('lesson1')).rejects.toThrow(ConflictException);
+      await expect(createService(prisma).start('lesson1', 'user1')).rejects.toThrow(ConflictException);
     });
 
     it('complete(): allowed directly from SCHEDULED, backfilling actualStart to scheduledStart', async () => {
       const lesson = fakeLesson();
       const prisma = createPrismaMock({ lesson: { findUnique: vi.fn().mockResolvedValue(lesson) } });
-      await createService(prisma).complete('lesson1');
+      await createService(prisma).complete('lesson1', 'user1');
       expect(prisma.lesson.updateMany).toHaveBeenCalledWith({
         where: { id: 'lesson1', status: 'SCHEDULED' },
         data: expect.objectContaining({ status: 'COMPLETED', actualStart: lesson.scheduledStart, actualEnd: expect.any(Date) }),
@@ -229,7 +232,7 @@ describe('LessonsService', () => {
       const actualStart = new Date('2026-09-14T13:05:00.000Z');
       const lesson = fakeLesson({ status: 'IN_PROGRESS', actualStart });
       const prisma = createPrismaMock({ lesson: { findUnique: vi.fn().mockResolvedValue(lesson) } });
-      await createService(prisma).complete('lesson1');
+      await createService(prisma).complete('lesson1', 'user1');
       expect(prisma.lesson.updateMany).toHaveBeenCalledWith({
         where: { id: 'lesson1', status: 'IN_PROGRESS' },
         data: expect.objectContaining({ actualStart }),
@@ -238,45 +241,88 @@ describe('LessonsService', () => {
 
     it('complete(): rejects completing an already-CANCELLED lesson', async () => {
       const prisma = createPrismaMock({ lesson: { findUnique: vi.fn().mockResolvedValue(fakeLesson({ status: 'CANCELLED' })) } });
-      await expect(createService(prisma).complete('lesson1')).rejects.toThrow(ConflictException);
+      await expect(createService(prisma).complete('lesson1', 'user1')).rejects.toThrow(ConflictException);
     });
 
     it('cancel(): SCHEDULED -> CANCELLED', async () => {
       const prisma = createPrismaMock({ lesson: { findUnique: vi.fn().mockResolvedValue(fakeLesson()) } });
-      await createService(prisma).cancel('lesson1');
+      await createService(prisma).cancel('lesson1', 'user1');
       expect(prisma.lesson.updateMany).toHaveBeenCalledWith({ where: { id: 'lesson1', status: 'SCHEDULED' }, data: { status: 'CANCELLED' } });
     });
 
     it('cancel(): rejects cancelling a COMPLETED lesson', async () => {
       const prisma = createPrismaMock({ lesson: { findUnique: vi.fn().mockResolvedValue(fakeLesson({ status: 'COMPLETED' })) } });
-      await expect(createService(prisma).cancel('lesson1')).rejects.toThrow(ConflictException);
+      await expect(createService(prisma).cancel('lesson1', 'user1')).rejects.toThrow(ConflictException);
     });
 
     it('noShow(): SCHEDULED -> NO_SHOW', async () => {
       const prisma = createPrismaMock({ lesson: { findUnique: vi.fn().mockResolvedValue(fakeLesson()) } });
-      await createService(prisma).noShow('lesson1');
+      await createService(prisma).noShow('lesson1', 'user1');
       expect(prisma.lesson.updateMany).toHaveBeenCalledWith({ where: { id: 'lesson1', status: 'SCHEDULED' }, data: { status: 'NO_SHOW' } });
     });
 
     it('noShow(): rejects marking an already-NO_SHOW lesson again', async () => {
       const prisma = createPrismaMock({ lesson: { findUnique: vi.fn().mockResolvedValue(fakeLesson({ status: 'NO_SHOW' })) } });
-      await expect(createService(prisma).noShow('lesson1')).rejects.toThrow(ConflictException);
+      await expect(createService(prisma).noShow('lesson1', 'user1')).rejects.toThrow(ConflictException);
     });
   });
 
   describe('remove', () => {
     it('cancels instead of hard-deleting', async () => {
       const prisma = createPrismaMock({ lesson: { findUnique: vi.fn().mockResolvedValue(fakeLesson()) } });
-      const result = await createService(prisma).remove('lesson1');
+      const result = await createService(prisma).remove('lesson1', 'user1');
       expect(result).toBeDefined();
       expect(prisma.lesson.updateMany).toHaveBeenCalledWith({ where: { id: 'lesson1', status: 'SCHEDULED' }, data: { status: 'CANCELLED' } });
+    });
+  });
+
+  describe('teacher ownership scoping (Phase K)', () => {
+    function teacherPrisma(ownLesson: Record<string, unknown> = {}) {
+      return createPrismaMock({
+        lesson: { findUnique: vi.fn().mockResolvedValue(fakeLesson({ teacherEmployeeId: 'teacherA-emp', ...ownLesson })) },
+        user: { findUnique: vi.fn().mockResolvedValue({ employeeId: 'teacherA-emp' }) },
+        teacherProfile: { findUnique: vi.fn().mockResolvedValue({ status: 'ACTIVE' }) },
+      });
+    }
+
+    it('allows a teacher to start/complete/cancel/update/remove their OWN lesson', async () => {
+      const prisma = teacherPrisma();
+      await expect(createService(prisma).start('lesson1', 'teacherA-user')).resolves.toBeDefined();
+      await expect(createService(prisma).cancel('lesson1', 'teacherA-user')).resolves.toBeDefined();
+    });
+
+    it('rejects a teacher starting/completing/cancelling/updating ANOTHER teacher\'s lesson with ForbiddenException', async () => {
+      const prisma = teacherPrisma({ teacherEmployeeId: 'teacherB-emp' });
+      await expect(createService(prisma).start('lesson1', 'teacherA-user')).rejects.toThrow(ForbiddenException);
+      await expect(createService(prisma).complete('lesson1', 'teacherA-user')).rejects.toThrow(ForbiddenException);
+      await expect(createService(prisma).cancel('lesson1', 'teacherA-user')).rejects.toThrow(ForbiddenException);
+      await expect(createService(prisma).noShow('lesson1', 'teacherA-user')).rejects.toThrow(ForbiddenException);
+      await expect(createService(prisma).update('lesson1', { topic: 'x' }, 'teacherA-user')).rejects.toThrow(ForbiddenException);
+      await expect(createService(prisma).remove('lesson1', 'teacherA-user')).rejects.toThrow(ForbiddenException);
+    });
+
+    it('never scopes a non-teacher caller (no employeeId) — Manager/Admin can act on any lesson', async () => {
+      const prisma = createPrismaMock({
+        lesson: { findUnique: vi.fn().mockResolvedValue(fakeLesson({ teacherEmployeeId: 'teacherB-emp' })) },
+        user: { findUnique: vi.fn().mockResolvedValue({ employeeId: null }) },
+      });
+      await expect(createService(prisma).start('lesson1', 'manager-user')).resolves.toBeDefined();
+    });
+
+    it('never scopes a caller whose TeacherProfile is not ACTIVE', async () => {
+      const prisma = createPrismaMock({
+        lesson: { findUnique: vi.fn().mockResolvedValue(fakeLesson({ teacherEmployeeId: 'teacherB-emp' })) },
+        user: { findUnique: vi.fn().mockResolvedValue({ employeeId: 'former-teacher-emp' }) },
+        teacherProfile: { findUnique: vi.fn().mockResolvedValue({ status: 'INACTIVE' }) },
+      });
+      await expect(createService(prisma).start('lesson1', 'former-teacher-user')).resolves.toBeDefined();
     });
   });
 
   describe('findAll', () => {
     it('applies filters and pagination, defaulting to scheduledStart desc', async () => {
       const prisma = createPrismaMock();
-      await createService(prisma).findAll({ groupId: 'group1', status: 'SCHEDULED', page: 2, pageSize: 5 });
+      await createService(prisma).findAll({ groupId: 'group1', status: 'SCHEDULED', page: 2, pageSize: 5 }, 'user1');
 
       expect(prisma.lesson.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -290,11 +336,18 @@ describe('LessonsService', () => {
 
     it('applies a date range filter on scheduledStart', async () => {
       const prisma = createPrismaMock();
-      await createService(prisma).findAll({ dateFrom: '2026-09-01', dateTo: '2026-09-30', page: 1, pageSize: 20 });
+      await createService(prisma).findAll({ dateFrom: '2026-09-01', dateTo: '2026-09-30', page: 1, pageSize: 20 }, 'user1');
 
       expect(prisma.lesson.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: expect.objectContaining({ scheduledStart: { gte: new Date('2026-09-01'), lte: new Date('2026-09-30') } }) }),
       );
+    });
+
+    it("(Phase K) narrows to the teacher's own lessons, silently overriding any teacherEmployeeId query param they pass", async () => {
+      const prisma = createPrismaMock({ user: { findUnique: vi.fn().mockResolvedValue({ employeeId: 'teacherA-emp' }) } });
+      await createService(prisma).findAll({ teacherEmployeeId: 'someone-elses-emp', page: 1, pageSize: 20 }, 'teacherA-user');
+
+      expect(prisma.lesson.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ teacherEmployeeId: 'teacherA-emp' }) }));
     });
   });
 });

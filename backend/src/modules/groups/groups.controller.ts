@@ -26,8 +26,8 @@ export class GroupsController {
 
   @Get()
   @RequirePermission('groups', PermissionAction.VIEW)
-  findAll(@Query() query: QueryGroupDto) {
-    return this.groupsService.findAll(query);
+  findAll(@Query() query: QueryGroupDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.groupsService.findAll(query, user.id);
   }
 
   @Get(':id')

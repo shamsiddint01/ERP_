@@ -48,6 +48,8 @@ function createPrismaMock(overrides: Record<string, unknown> = {}) {
       findUnique: vi.fn().mockResolvedValue({ id: 'room1', branchId: 'branch1' }),
       ...(overrides.classroom as Record<string, unknown>),
     },
+    user: { findUnique: vi.fn().mockResolvedValue({ employeeId: null }), ...(overrides.user as Record<string, unknown>) },
+    teacherProfile: { findUnique: vi.fn().mockResolvedValue({ status: 'ACTIVE' }), ...(overrides.teacherProfile as Record<string, unknown>) },
     $transaction: vi.fn((cb: (tx: unknown) => unknown) => cb(txStub)),
     __tx: txStub,
   };
@@ -236,7 +238,7 @@ describe('SchedulesService', () => {
   describe('findAll', () => {
     it('applies filters and pagination', async () => {
       const prisma = createPrismaMock();
-      await createService(prisma).findAll({ groupId: 'group1', branchId: 'branch1', status: 'ACTIVE', page: 2, pageSize: 10 });
+      await createService(prisma).findAll({ groupId: 'group1', branchId: 'branch1', status: 'ACTIVE', page: 2, pageSize: 10 }, 'user1');
 
       expect(prisma.schedule.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -249,7 +251,7 @@ describe('SchedulesService', () => {
 
     it('defaults to day-of-week then start-time ordering when no sortBy is given', async () => {
       const prisma = createPrismaMock();
-      await createService(prisma).findAll({ page: 1, pageSize: 20 });
+      await createService(prisma).findAll({ page: 1, pageSize: 20 }, 'user1');
 
       expect(prisma.schedule.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ orderBy: [{ dayOfWeek: 'asc' }, { startTime: 'asc' }] }),
@@ -258,9 +260,16 @@ describe('SchedulesService', () => {
 
     it('honours an explicit, sortable sortBy/sortDir', async () => {
       const prisma = createPrismaMock();
-      await createService(prisma).findAll({ sortBy: 'startDate', sortDir: 'desc', page: 1, pageSize: 20 });
+      await createService(prisma).findAll({ sortBy: 'startDate', sortDir: 'desc', page: 1, pageSize: 20 }, 'user1');
 
       expect(prisma.schedule.findMany).toHaveBeenCalledWith(expect.objectContaining({ orderBy: { startDate: 'desc' } }));
+    });
+
+    it("(Phase K) narrows to the teacher's own schedules, silently overriding any teacherEmployeeId query param they pass", async () => {
+      const prisma = createPrismaMock({ user: { findUnique: vi.fn().mockResolvedValue({ employeeId: 'teacherA-emp' }) } });
+      await createService(prisma).findAll({ teacherEmployeeId: 'someone-elses-emp', page: 1, pageSize: 20 }, 'teacherA-user');
+
+      expect(prisma.schedule.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ teacherEmployeeId: 'teacherA-emp' }) }));
     });
   });
 });

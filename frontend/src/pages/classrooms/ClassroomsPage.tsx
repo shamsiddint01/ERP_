@@ -21,7 +21,8 @@ export function ClassroomsPage() {
   const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
 
-  const branchesQuery = useQuery({ queryKey: ['branches', { pageSize: 100 }], queryFn: () => listBranches({ pageSize: 100 }) });
+  const canBranches = hasPermission('branches', 'VIEW');
+  const branchesQuery = useQuery({ queryKey: ['branches', { pageSize: 100 }], queryFn: () => listBranches({ pageSize: 100 }), enabled: canBranches });
   const classroomsQuery = useQuery({
     queryKey: ['classrooms', { search, branchId, status, page }],
     queryFn: () => listClassrooms({ search: search || undefined, branchId, status, page, pageSize: 20 }),
@@ -52,16 +53,18 @@ export function ClassroomsPage() {
             setPage(1);
           }}
         />
-        <Select
-          placeholder="Filial"
-          allowClear
-          style={{ width: 200 }}
-          options={branchesQuery.data?.items.map((b) => ({ value: b.id, label: b.name }))}
-          onChange={(value) => {
-            setBranchId(value);
-            setPage(1);
-          }}
-        />
+        {canBranches && (
+          <Select
+            placeholder="Filial"
+            allowClear
+            style={{ width: 200 }}
+            options={branchesQuery.data?.items.map((b) => ({ value: b.id, label: b.name }))}
+            onChange={(value) => {
+              setBranchId(value);
+              setPage(1);
+            }}
+          />
+        )}
         <Select
           placeholder="Status"
           allowClear

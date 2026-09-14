@@ -37,11 +37,20 @@ export function EnrollmentsPage() {
   const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
 
-  const studentsQuery = useQuery({ queryKey: ['students', { search: studentSearch || undefined, pageSize: 20, forEnrollmentFilter: true }], queryFn: () => listStudents({ search: studentSearch || undefined, pageSize: 20 }) });
-  const groupsQuery = useQuery({ queryKey: ['groups', { pageSize: 100, forEnrollmentFilter: true }], queryFn: () => listGroups({ pageSize: 100 }) });
-  const coursesQuery = useQuery({ queryKey: ['courses', { pageSize: 100 }], queryFn: () => listCourses({ pageSize: 100 }) });
-  const teachersQuery = useQuery({ queryKey: ['teachers', { pageSize: 100 }], queryFn: () => listTeachers({ pageSize: 100 }) });
-  const branchesQuery = useQuery({ queryKey: ['branches', { pageSize: 100 }], queryFn: () => listBranches({ pageSize: 100 }) });
+  const canStudents = hasPermission('students', 'VIEW');
+  const canGroups = hasPermission('groups', 'VIEW');
+  const canCourses = hasPermission('courses', 'VIEW');
+  const canTeachers = hasPermission('teachers', 'VIEW');
+  const canBranches = hasPermission('branches', 'VIEW');
+  const studentsQuery = useQuery({
+    queryKey: ['students', { search: studentSearch || undefined, pageSize: 20, forEnrollmentFilter: true }],
+    queryFn: () => listStudents({ search: studentSearch || undefined, pageSize: 20 }),
+    enabled: canStudents,
+  });
+  const groupsQuery = useQuery({ queryKey: ['groups', { pageSize: 100, forEnrollmentFilter: true }], queryFn: () => listGroups({ pageSize: 100 }), enabled: canGroups });
+  const coursesQuery = useQuery({ queryKey: ['courses', { pageSize: 100 }], queryFn: () => listCourses({ pageSize: 100 }), enabled: canCourses });
+  const teachersQuery = useQuery({ queryKey: ['teachers', { pageSize: 100 }], queryFn: () => listTeachers({ pageSize: 100 }), enabled: canTeachers });
+  const branchesQuery = useQuery({ queryKey: ['branches', { pageSize: 100 }], queryFn: () => listBranches({ pageSize: 100 }), enabled: canBranches });
 
   const enrollmentsQuery = useQuery({
     queryKey: ['enrollments', { studentId, groupId, courseId, teacherEmployeeId, branchId, status, dateRange, page }],
@@ -64,60 +73,70 @@ export function EnrollmentsPage() {
       </Space>
 
       <Space style={{ marginBottom: 16 }} wrap>
-        <Select
-          showSearch
-          placeholder="O'quvchi"
-          allowClear
-          style={{ width: 200 }}
-          loading={studentsQuery.isLoading}
-          filterOption={false}
-          onSearch={setStudentSearch}
-          options={studentsQuery.data?.items.map((s) => ({ value: s.id, label: s.fullName }))}
-          onChange={(value) => {
-            setStudentId(value);
-            setPage(1);
-          }}
-        />
-        <Select
-          placeholder="Guruh"
-          allowClear
-          style={{ width: 180 }}
-          options={groupsQuery.data?.items.map((g) => ({ value: g.id, label: g.name }))}
-          onChange={(value) => {
-            setGroupId(value);
-            setPage(1);
-          }}
-        />
-        <Select
-          placeholder="Kurs"
-          allowClear
-          style={{ width: 170 }}
-          options={coursesQuery.data?.items.map((c) => ({ value: c.id, label: c.name }))}
-          onChange={(value) => {
-            setCourseId(value);
-            setPage(1);
-          }}
-        />
-        <Select
-          placeholder="O'qituvchi"
-          allowClear
-          style={{ width: 170 }}
-          options={teachersQuery.data?.items.map((t) => ({ value: t.employeeId, label: t.employee.fullName }))}
-          onChange={(value) => {
-            setTeacherEmployeeId(value);
-            setPage(1);
-          }}
-        />
-        <Select
-          placeholder="Filial"
-          allowClear
-          style={{ width: 150 }}
-          options={branchesQuery.data?.items.map((b) => ({ value: b.id, label: b.name }))}
-          onChange={(value) => {
-            setBranchId(value);
-            setPage(1);
-          }}
-        />
+        {canStudents && (
+          <Select
+            showSearch
+            placeholder="O'quvchi"
+            allowClear
+            style={{ width: 200 }}
+            loading={studentsQuery.isLoading}
+            filterOption={false}
+            onSearch={setStudentSearch}
+            options={studentsQuery.data?.items.map((s) => ({ value: s.id, label: s.fullName }))}
+            onChange={(value) => {
+              setStudentId(value);
+              setPage(1);
+            }}
+          />
+        )}
+        {canGroups && (
+          <Select
+            placeholder="Guruh"
+            allowClear
+            style={{ width: 180 }}
+            options={groupsQuery.data?.items.map((g) => ({ value: g.id, label: g.name }))}
+            onChange={(value) => {
+              setGroupId(value);
+              setPage(1);
+            }}
+          />
+        )}
+        {canCourses && (
+          <Select
+            placeholder="Kurs"
+            allowClear
+            style={{ width: 170 }}
+            options={coursesQuery.data?.items.map((c) => ({ value: c.id, label: c.name }))}
+            onChange={(value) => {
+              setCourseId(value);
+              setPage(1);
+            }}
+          />
+        )}
+        {canTeachers && (
+          <Select
+            placeholder="O'qituvchi"
+            allowClear
+            style={{ width: 170 }}
+            options={teachersQuery.data?.items.map((t) => ({ value: t.employeeId, label: t.employee.fullName }))}
+            onChange={(value) => {
+              setTeacherEmployeeId(value);
+              setPage(1);
+            }}
+          />
+        )}
+        {canBranches && (
+          <Select
+            placeholder="Filial"
+            allowClear
+            style={{ width: 150 }}
+            options={branchesQuery.data?.items.map((b) => ({ value: b.id, label: b.name }))}
+            onChange={(value) => {
+              setBranchId(value);
+              setPage(1);
+            }}
+          />
+        )}
         <Select
           placeholder="Status"
           allowClear

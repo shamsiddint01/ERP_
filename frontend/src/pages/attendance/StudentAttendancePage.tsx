@@ -7,6 +7,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { listGroups } from '../../api/groups';
 import { getStudent } from '../../api/students';
 import { downloadStudentAttendanceCsv, getStudentAttendanceHistory } from '../../api/studentAttendance';
+import { useAuthStore } from '../../store/auth.store';
 import { ATTENDANCE_STATUS_COLORS, ATTENDANCE_STATUS_LABELS } from '../../utils/attendanceStatus';
 import type { StudentAttendanceHistoryRecord } from '../../types';
 
@@ -14,11 +15,13 @@ export function StudentAttendancePage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { message } = App.useApp();
+  const hasPermission = useAuthStore((state) => state.hasPermission);
   const [groupId, setGroupId] = useState<string | undefined>();
   const [dateRange, setDateRange] = useState<[string, string] | undefined>();
 
+  const canGroups = hasPermission('groups', 'VIEW');
   const studentQuery = useQuery({ queryKey: ['student', id], queryFn: () => getStudent(id!), enabled: !!id });
-  const groupsQuery = useQuery({ queryKey: ['groups', { pageSize: 100, forAttendanceFilter: true }], queryFn: () => listGroups({ pageSize: 100 }) });
+  const groupsQuery = useQuery({ queryKey: ['groups', { pageSize: 100, forAttendanceFilter: true }], queryFn: () => listGroups({ pageSize: 100 }), enabled: canGroups });
   const historyQuery = useQuery({
     queryKey: ['student-attendance-history', id, { groupId, dateRange }],
     queryFn: () => getStudentAttendanceHistory(id!, { groupId, dateFrom: dateRange?.[0], dateTo: dateRange?.[1] }),
@@ -95,13 +98,15 @@ export function StudentAttendancePage() {
 
       <Card>
         <Space style={{ marginBottom: 16 }} wrap>
-          <Select
-            placeholder="Guruh bo'yicha"
-            allowClear
-            style={{ width: 200 }}
-            options={groupsQuery.data?.items.map((g) => ({ value: g.id, label: g.name }))}
-            onChange={setGroupId}
-          />
+          {canGroups && (
+            <Select
+              placeholder="Guruh bo'yicha"
+              allowClear
+              style={{ width: 200 }}
+              options={groupsQuery.data?.items.map((g) => ({ value: g.id, label: g.name }))}
+              onChange={setGroupId}
+            />
+          )}
           <DatePicker.RangePicker onChange={(range) => setDateRange(range && range[0] && range[1] ? [range[0].format('YYYY-MM-DD'), range[1].format('YYYY-MM-DD')] : undefined)} />
         </Space>
 

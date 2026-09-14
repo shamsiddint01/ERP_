@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { LessonStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AuditEntityRegistryService } from '../../shared/audit/audit-entity-registry.service.js';
@@ -42,16 +42,20 @@ export class LessonsService {
     registry.register('Lesson', (id) => this.prisma.lesson.findUnique({ where: { id } }));
   }
 
-  async findAll(query: QueryLessonDto): Promise<PaginatedResult<unknown>> {
+  async findAll(query: QueryLessonDto, actorUserId: string): Promise<PaginatedResult<unknown>> {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 20;
     const sortBy = query.sortBy && SORTABLE_FIELDS.has(query.sortBy) ? query.sortBy : 'scheduledStart';
     const sortDir = query.sortDir ?? 'desc';
 
+    // "Own lessons" (Phase K): silently narrows a teacher caller regardless
+    // of what teacherEmployeeId they pass — same pattern as GroupsService/
+    // SchedulesService.findAll.
+    const teacherScope = await this.resolveTeacherScope(actorUserId);
     const where: Prisma.LessonWhereInput = {
       groupId: query.groupId,
       scheduleId: query.scheduleId,
-      teacherEmployeeId: query.teacherEmployeeId,
+      teacherEmployeeId: teacherScope ?? query.teacherEmployeeId,
       classroomId: query.classroomId,
       branchId: query.branchId,
       status: query.status,
@@ -135,8 +139,9 @@ export class LessonsService {
    * historical record — only its descriptive fields (topic/homework/notes,
    * e.g. filled in by the teacher right after class) may still change.
    */
-  async update(id: string, dto: UpdateLessonDto) {
+  async update(id: string, dto: UpdateLessonDto, actorUserId: string) {
     const lesson = await this.findOne(id);
+    await this.assertTeacherScopeAllows(actorUserId, lesson.teacherEmployeeId);
     const changesSchedulingFields =
       dto.teacherEmployeeId !== undefined || dto.classroomId !== undefined || dto.scheduledStart !== undefined || dto.scheduledEnd !== undefined;
     if (changesSchedulingFields && LOCKED_STATUSES.has(lesson.status)) {
@@ -189,17 +194,18 @@ export class LessonsService {
   }
 
   /** No hard delete — mirrors every other entity in this system: "removing" a lesson cancels it through the same guarded workflow transition as the /cancel action. */
-  async remove(id: string) {
-    return this.cancel(id);
+  async remove(id: string, actorUserId: string) {
+    return this.cancel(id, actorUserId);
   }
 
-  async start(id: string) {
-    return this.transitionTo(id, ['SCHEDULED'], 'IN_PROGRESS', { actualStart: new Date() });
+  async start(id: string, actorUserId: string) {
+    return this.transitionTo(id, actorUserId, ['SCHEDULED'], 'IN_PROGRESS', { actualStart: new Date() });
   }
 
   /** Completable directly from SCHEDULED too (teachers often log a lesson as done after the fact, without ever clicking "start"). Backfills actualStart to the scheduled time when it was never set. */
-  async complete(id: string) {
+  async complete(id: string, actorUserId: string) {
     const lesson = await this.findOne(id);
+    await this.assertTeacherScopeAllows(actorUserId, lesson.teacherEmployeeId);
     if (lesson.status !== 'SCHEDULED' && lesson.status !== 'IN_PROGRESS') {
       throw new ConflictException(`Cannot complete a lesson that is ${lesson.status}`);
     }
@@ -207,22 +213,41 @@ export class LessonsService {
     return this.findOne(id);
   }
 
-  async cancel(id: string) {
-    return this.transitionTo(id, ['SCHEDULED', 'IN_PROGRESS'], 'CANCELLED');
+  async cancel(id: string, actorUserId: string) {
+    return this.transitionTo(id, actorUserId, ['SCHEDULED', 'IN_PROGRESS'], 'CANCELLED');
   }
 
   /** The only way LessonStatus.NO_SHOW is ever reached — a class the student(s) never attended, as opposed to one the center called off. */
-  async noShow(id: string) {
-    return this.transitionTo(id, ['SCHEDULED', 'IN_PROGRESS'], 'NO_SHOW');
+  async noShow(id: string, actorUserId: string) {
+    return this.transitionTo(id, actorUserId, ['SCHEDULED', 'IN_PROGRESS'], 'NO_SHOW');
   }
 
-  private async transitionTo(id: string, allowedFrom: LessonStatus[], to: LessonStatus, extraData: Prisma.LessonUpdateInput = {}) {
+  private async transitionTo(id: string, actorUserId: string, allowedFrom: LessonStatus[], to: LessonStatus, extraData: Prisma.LessonUpdateInput = {}) {
     const lesson = await this.findOne(id);
+    await this.assertTeacherScopeAllows(actorUserId, lesson.teacherEmployeeId);
     if (!allowedFrom.includes(lesson.status)) {
       throw new ConflictException(`Cannot move a lesson from ${lesson.status} to ${to}`);
     }
     await this.casUpdate(id, lesson.status, { status: to, ...extraData });
     return this.findOne(id);
+  }
+
+  /** Mirrors exams/teacher-scope.util.ts's resolveTeacherScope exactly (duplicated per this codebase's established per-module convention). */
+  private async resolveTeacherScope(userId: string): Promise<string | null> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { employeeId: true } });
+    if (!user?.employeeId) return null;
+    const profile = await this.prisma.teacherProfile.findUnique({ where: { employeeId: user.employeeId }, select: { status: true } });
+    if (!profile || profile.status !== 'ACTIVE') return null;
+    return user.employeeId;
+  }
+
+  /** A teacher may only start/complete/cancel/reschedule their OWN lessons — a specific-record action rejects a foreign one outright (mirrors StudentAttendanceService/ExamsService, never silently narrows like a list view would). */
+  private async assertTeacherScopeAllows(userId: string, lessonTeacherEmployeeId: string | null): Promise<void> {
+    const teacherScope = await this.resolveTeacherScope(userId);
+    if (!teacherScope) return;
+    if (lessonTeacherEmployeeId !== teacherScope) {
+      throw new ForbiddenException('You can only manage your own lessons');
+    }
   }
 
   /** updateMany + count-check compare-and-swap: guards every workflow transition against a concurrent change to the same lesson (mirrors EnrollmentsService.transitionTo). */

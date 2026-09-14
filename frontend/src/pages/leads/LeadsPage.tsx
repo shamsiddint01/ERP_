@@ -37,8 +37,10 @@ export function LeadsPage() {
   const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
 
-  const coursesQuery = useQuery({ queryKey: ['courses', { pageSize: 100 }], queryFn: () => listCourses({ pageSize: 100 }) });
-  const branchesQuery = useQuery({ queryKey: ['branches', { pageSize: 100 }], queryFn: () => listBranches({ pageSize: 100 }) });
+  const canCourses = hasPermission('courses', 'VIEW');
+  const canBranches = hasPermission('branches', 'VIEW');
+  const coursesQuery = useQuery({ queryKey: ['courses', { pageSize: 100 }], queryFn: () => listCourses({ pageSize: 100 }), enabled: canCourses });
+  const branchesQuery = useQuery({ queryKey: ['branches', { pageSize: 100 }], queryFn: () => listBranches({ pageSize: 100 }), enabled: canBranches });
   const leadsQuery = useQuery({
     queryKey: ['leads', { search, status, preferredCourseId, preferredBranchId, page }],
     queryFn: () => listLeads({ search: search || undefined, status, preferredCourseId, preferredBranchId, page, pageSize: 20 }),
@@ -79,26 +81,30 @@ export function LeadsPage() {
             setPage(1);
           }}
         />
-        <Select
-          placeholder="Kurs"
-          allowClear
-          style={{ width: 200 }}
-          options={coursesQuery.data?.items.map((c) => ({ value: c.id, label: c.name }))}
-          onChange={(value) => {
-            setPreferredCourseId(value);
-            setPage(1);
-          }}
-        />
-        <Select
-          placeholder="Filial"
-          allowClear
-          style={{ width: 200 }}
-          options={branchesQuery.data?.items.map((b) => ({ value: b.id, label: b.name }))}
-          onChange={(value) => {
-            setPreferredBranchId(value);
-            setPage(1);
-          }}
-        />
+        {canCourses && (
+          <Select
+            placeholder="Kurs"
+            allowClear
+            style={{ width: 200 }}
+            options={coursesQuery.data?.items.map((c) => ({ value: c.id, label: c.name }))}
+            onChange={(value) => {
+              setPreferredCourseId(value);
+              setPage(1);
+            }}
+          />
+        )}
+        {canBranches && (
+          <Select
+            placeholder="Filial"
+            allowClear
+            style={{ width: 200 }}
+            options={branchesQuery.data?.items.map((b) => ({ value: b.id, label: b.name }))}
+            onChange={(value) => {
+              setPreferredBranchId(value);
+              setPage(1);
+            }}
+          />
+        )}
       </Space>
 
       <Table<LeadListItem>

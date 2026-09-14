@@ -44,6 +44,8 @@ import { Avatar, Dropdown, Layout, Menu, Space, Typography } from 'antd';
 import { useMemo } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { logout } from '../api/auth';
+import { getRequiredPermission } from '../config/routePermissions';
+import { AccessDeniedPage } from '../pages/AccessDeniedPage';
 import { useAuthStore } from '../store/auth.store';
 import { NotificationBell } from './NotificationBell';
 
@@ -126,6 +128,13 @@ export function AppLayout() {
   const pathParts = location.pathname.split('/');
   const selectedMenuKey = pathParts[1] === 'finance' ? `/${pathParts[1]}/${pathParts[2] ?? ''}` : `/${pathParts[1] ?? ''}`;
 
+  // Phase K — a route-level safety net so a stale bookmark/shared link/typed
+  // URL to a page the caller isn't permitted for shows a proper 403 page
+  // instead of a broken/empty one. The backend remains the real boundary —
+  // this only improves what the UI does before that rejection would happen.
+  const requiredPermission = getRequiredPermission(location.pathname);
+  const isRouteAllowed = !requiredPermission || hasPermission(requiredPermission.module, requiredPermission.action);
+
   async function handleLogout() {
     await logout().catch(() => undefined);
     clear();
@@ -153,9 +162,7 @@ export function AppLayout() {
             </Space>
           </Dropdown>
         </Header>
-        <Content style={{ margin: 24 }}>
-          <Outlet />
-        </Content>
+        <Content style={{ margin: 24 }}>{isRouteAllowed ? <Outlet /> : <AccessDeniedPage />}</Content>
       </Layout>
     </Layout>
   );

@@ -34,17 +34,23 @@ export class GroupsService {
     registry.register('StudentGroup', (id) => this.prisma.studentGroup.findUnique({ where: { id } }));
   }
 
-  async findAll(query: QueryGroupDto): Promise<PaginatedResult<unknown>> {
+  async findAll(query: QueryGroupDto, actorUserId: string): Promise<PaginatedResult<unknown>> {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 20;
     const sortBy = query.sortBy && SORTABLE_FIELDS.has(query.sortBy) ? query.sortBy : 'startDate';
     const sortDir = query.sortDir ?? 'desc';
 
+    // "Own groups" (Phase K): a teacher never sees another teacher's groups
+    // in this list, regardless of what teacherEmployeeId query param (if
+    // any) they pass — silently narrows rather than rejecting, exactly like
+    // every other teacher-scoped list in this app (StudentAttendanceService,
+    // AcademicProgressService).
+    const teacherScope = await this.resolveTeacherScope(actorUserId);
     const where: Prisma.StudentGroupWhereInput = {
       courseId: query.courseId,
       branchId: query.branchId,
       classroomId: query.classroomId,
-      teacherEmployeeId: query.teacherEmployeeId,
+      teacherEmployeeId: teacherScope ?? query.teacherEmployeeId,
       status: query.status,
       level: query.level,
       ...((query.startFrom || query.startTo) && {
@@ -220,5 +226,14 @@ export class GroupsService {
     if (!profile || profile.status !== 'ACTIVE') {
       throw new ConflictException('Selected employee is not an active teacher — create or activate their teacher profile first');
     }
+  }
+
+  /** Mirrors exams/teacher-scope.util.ts's resolveTeacherScope exactly (duplicated per this codebase's established per-module convention). */
+  private async resolveTeacherScope(userId: string): Promise<string | null> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId }, select: { employeeId: true } });
+    if (!user?.employeeId) return null;
+    const profile = await this.prisma.teacherProfile.findUnique({ where: { employeeId: user.employeeId }, select: { status: true } });
+    if (!profile || profile.status !== 'ACTIVE') return null;
+    return user.employeeId;
   }
 }

@@ -40,9 +40,12 @@ export function SchedulesPage() {
   const [editingSchedule, setEditingSchedule] = useState<ScheduleDetail | undefined>();
   const [generateFor, setGenerateFor] = useState<ScheduleDetail | undefined>();
 
-  const groupsQuery = useQuery({ queryKey: ['groups', { pageSize: 100, forScheduleFilter: true }], queryFn: () => listGroups({ pageSize: 100 }) });
-  const branchesQuery = useQuery({ queryKey: ['branches', { pageSize: 100, forScheduleFilter: true }], queryFn: () => listBranches({ pageSize: 100 }) });
-  const teachersQuery = useQuery({ queryKey: ['teachers', { pageSize: 100, forScheduleFilter: true }], queryFn: () => listTeachers({ pageSize: 100 }) });
+  const canGroups = hasPermission('groups', 'VIEW');
+  const canBranches = hasPermission('branches', 'VIEW');
+  const canTeachers = hasPermission('teachers', 'VIEW');
+  const groupsQuery = useQuery({ queryKey: ['groups', { pageSize: 100, forScheduleFilter: true }], queryFn: () => listGroups({ pageSize: 100 }), enabled: canGroups });
+  const branchesQuery = useQuery({ queryKey: ['branches', { pageSize: 100, forScheduleFilter: true }], queryFn: () => listBranches({ pageSize: 100 }), enabled: canBranches });
+  const teachersQuery = useQuery({ queryKey: ['teachers', { pageSize: 100, forScheduleFilter: true }], queryFn: () => listTeachers({ pageSize: 100 }), enabled: canTeachers });
 
   const schedulesQuery = useQuery({
     queryKey: ['schedules', { search, groupId, branchId, teacherEmployeeId, dayOfWeek, status, page }],
@@ -104,40 +107,46 @@ export function SchedulesPage() {
             setPage(1);
           }}
         />
-        <Select
-          placeholder="Guruh"
-          allowClear
-          showSearch
-          style={{ width: 180 }}
-          filterOption={(input, option) => ((option?.label as string) ?? '').toLowerCase().includes(input.toLowerCase())}
-          options={groupsQuery.data?.items.map((g) => ({ value: g.id, label: g.name }))}
-          onChange={(value) => {
-            setGroupId(value);
-            setPage(1);
-          }}
-        />
-        <Select
-          placeholder="Filial"
-          allowClear
-          style={{ width: 160 }}
-          options={branchesQuery.data?.items.map((b) => ({ value: b.id, label: b.name }))}
-          onChange={(value) => {
-            setBranchId(value);
-            setPage(1);
-          }}
-        />
-        <Select
-          placeholder="O'qituvchi"
-          allowClear
-          showSearch
-          style={{ width: 180 }}
-          filterOption={(input, option) => ((option?.label as string) ?? '').toLowerCase().includes(input.toLowerCase())}
-          options={teachersQuery.data?.items.map((t) => ({ value: t.employeeId, label: t.employee.fullName }))}
-          onChange={(value) => {
-            setTeacherEmployeeId(value);
-            setPage(1);
-          }}
-        />
+        {canGroups && (
+          <Select
+            placeholder="Guruh"
+            allowClear
+            showSearch
+            style={{ width: 180 }}
+            filterOption={(input, option) => ((option?.label as string) ?? '').toLowerCase().includes(input.toLowerCase())}
+            options={groupsQuery.data?.items.map((g) => ({ value: g.id, label: g.name }))}
+            onChange={(value) => {
+              setGroupId(value);
+              setPage(1);
+            }}
+          />
+        )}
+        {canBranches && (
+          <Select
+            placeholder="Filial"
+            allowClear
+            style={{ width: 160 }}
+            options={branchesQuery.data?.items.map((b) => ({ value: b.id, label: b.name }))}
+            onChange={(value) => {
+              setBranchId(value);
+              setPage(1);
+            }}
+          />
+        )}
+        {canTeachers && (
+          <Select
+            placeholder="O'qituvchi"
+            allowClear
+            showSearch
+            style={{ width: 180 }}
+            filterOption={(input, option) => ((option?.label as string) ?? '').toLowerCase().includes(input.toLowerCase())}
+            options={teachersQuery.data?.items.map((t) => ({ value: t.employeeId, label: t.employee.fullName }))}
+            onChange={(value) => {
+              setTeacherEmployeeId(value);
+              setPage(1);
+            }}
+          />
+        )}
         <Select
           placeholder="Hafta kuni"
           allowClear

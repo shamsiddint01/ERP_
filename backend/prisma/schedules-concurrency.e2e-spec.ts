@@ -203,7 +203,7 @@ describe('Lesson concurrency (Phase E, real Postgres, no mocks)', () => {
     const groupId = await makeGroup('LSN-G3');
     const lesson = await lessonsService.create({ groupId, branchId, scheduledStart: '2026-10-11T10:00:00.000Z', scheduledEnd: '2026-10-11T11:00:00.000Z' });
 
-    const results = await Promise.allSettled([lessonsService.start(lesson.id), lessonsService.start(lesson.id)]);
+    const results = await Promise.allSettled([lessonsService.start(lesson.id, 'e2e-actor'), lessonsService.start(lesson.id, 'e2e-actor')]);
 
     expect(results.filter((r) => r.status === 'fulfilled')).toHaveLength(1);
     expect(results.filter((r) => r.status === 'rejected')).toHaveLength(1);

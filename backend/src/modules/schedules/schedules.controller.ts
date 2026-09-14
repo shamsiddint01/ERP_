@@ -2,7 +2,9 @@ import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query
 import { PermissionAction } from '@prisma/client';
 import { ApiTags } from '@nestjs/swagger';
 import { Audited } from '../../shared/decorators/audited.decorator.js';
+import { CurrentUser } from '../../shared/decorators/current-user.decorator.js';
 import { RequirePermission } from '../../shared/decorators/require-permission.decorator.js';
+import type { AuthenticatedUser } from '../../shared/types/authenticated-request.js';
 import { CreateScheduleDto } from './dto/create-schedule.dto.js';
 import { GenerateLessonsDto } from './dto/generate-lessons.dto.js';
 import { QueryScheduleDto } from './dto/query-schedule.dto.js';
@@ -20,8 +22,8 @@ export class SchedulesController {
 
   @Get()
   @RequirePermission('schedules', PermissionAction.VIEW)
-  findAll(@Query() query: QueryScheduleDto) {
-    return this.schedulesService.findAll(query);
+  findAll(@Query() query: QueryScheduleDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.schedulesService.findAll(query, user.id);
   }
 
   @Get(':id')

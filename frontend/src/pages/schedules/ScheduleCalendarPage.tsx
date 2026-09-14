@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { listBranches } from '../../api/branches';
 import { listLessons } from '../../api/lessons';
 import { listSchedules } from '../../api/schedules';
+import { useAuthStore } from '../../store/auth.store';
 import type { LessonStatus, ScheduleDayOfWeek, ScheduleListItem } from '../../types';
 
 const DAYS: ScheduleDayOfWeek[] = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
@@ -37,11 +38,13 @@ const LESSON_STATUS_LABELS: Record<LessonStatus, string> = {
  */
 export function ScheduleCalendarPage() {
   const navigate = useNavigate();
+  const hasPermission = useAuthStore((state) => state.hasPermission);
   const [view, setView] = useState<'week' | 'day'>('week');
   const [branchId, setBranchId] = useState<string | undefined>();
   const [date, setDate] = useState<Dayjs>(() => dayjs());
 
-  const branchesQuery = useQuery({ queryKey: ['branches', { pageSize: 100, forCalendarFilter: true }], queryFn: () => listBranches({ pageSize: 100 }) });
+  const canBranches = hasPermission('branches', 'VIEW');
+  const branchesQuery = useQuery({ queryKey: ['branches', { pageSize: 100, forCalendarFilter: true }], queryFn: () => listBranches({ pageSize: 100 }), enabled: canBranches });
 
   // pageSize is capped at 100 server-side (PaginationQueryDto) — the same
   // practical "give me everything" ceiling used for every dropdown query
@@ -81,13 +84,15 @@ export function ScheduleCalendarPage() {
           Taqvim
         </Typography.Title>
         <Space wrap>
-          <Select
-            placeholder="Barcha filiallar"
-            allowClear
-            style={{ width: 200 }}
-            options={branchesQuery.data?.items.map((b) => ({ value: b.id, label: b.name }))}
-            onChange={setBranchId}
-          />
+          {canBranches && (
+            <Select
+              placeholder="Barcha filiallar"
+              allowClear
+              style={{ width: 200 }}
+              options={branchesQuery.data?.items.map((b) => ({ value: b.id, label: b.name }))}
+              onChange={setBranchId}
+            />
+          )}
           <Segmented value={view} onChange={(v) => setView(v as 'week' | 'day')} options={[{ label: 'Hafta', value: 'week' }, { label: 'Kun', value: 'day' }]} />
           {view === 'day' && <DatePicker value={date} onChange={(v) => v && setDate(v)} allowClear={false} />}
         </Space>

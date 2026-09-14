@@ -45,6 +45,8 @@ function createPrismaMock(overrides: Record<string, unknown> = {}) {
       ...(overrides.classroom as Record<string, unknown>),
     },
     enrollment: { count: vi.fn().mockResolvedValue(0), ...(overrides.enrollment as Record<string, unknown>) },
+    user: { findUnique: vi.fn().mockResolvedValue({ employeeId: null }), ...(overrides.user as Record<string, unknown>) },
+    teacherProfile: { findUnique: vi.fn().mockResolvedValue({ status: 'ACTIVE' }), ...(overrides.teacherProfile as Record<string, unknown>) },
     $transaction: vi.fn((cb: (tx: unknown) => unknown) => cb(txStub)),
     __tx: txStub,
   };
@@ -177,7 +179,7 @@ describe('GroupsService', () => {
       const prisma = createPrismaMock();
       const service = createService(prisma);
 
-      await service.findAll({ courseId: 'course1', branchId: 'branch1', status: 'ACTIVE', search: 'A1', sortBy: 'capacity', sortDir: 'asc', page: 1, pageSize: 20 });
+      await service.findAll({ courseId: 'course1', branchId: 'branch1', status: 'ACTIVE', search: 'A1', sortBy: 'capacity', sortDir: 'asc', page: 1, pageSize: 20 }, 'user1');
 
       expect(prisma.studentGroup.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -191,9 +193,27 @@ describe('GroupsService', () => {
       const prisma = createPrismaMock();
       const service = createService(prisma);
 
-      await service.findAll({ sortBy: 'notARealColumn', page: 1, pageSize: 20 });
+      await service.findAll({ sortBy: 'notARealColumn', page: 1, pageSize: 20 }, 'user1');
 
       expect(prisma.studentGroup.findMany).toHaveBeenCalledWith(expect.objectContaining({ orderBy: { startDate: 'desc' } }));
+    });
+
+    it("(Phase K) narrows to the teacher's own groups, silently overriding any teacherEmployeeId query param they pass", async () => {
+      const prisma = createPrismaMock({ user: { findUnique: vi.fn().mockResolvedValue({ employeeId: 'teacherA-emp' }) } });
+      const service = createService(prisma);
+
+      await service.findAll({ teacherEmployeeId: 'someone-elses-emp', page: 1, pageSize: 20 }, 'teacherA-user');
+
+      expect(prisma.studentGroup.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ teacherEmployeeId: 'teacherA-emp' }) }));
+    });
+
+    it('(Phase K) does not narrow a non-teacher caller — their own teacherEmployeeId filter (or none) passes through untouched', async () => {
+      const prisma = createPrismaMock();
+      const service = createService(prisma);
+
+      await service.findAll({ page: 1, pageSize: 20 }, 'manager-user');
+
+      expect(prisma.studentGroup.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ teacherEmployeeId: undefined }) }));
     });
   });
 });

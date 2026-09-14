@@ -33,9 +33,12 @@ export function GroupsPage() {
   const [page, setPage] = useState(1);
   const [modalOpen, setModalOpen] = useState(false);
 
-  const coursesQuery = useQuery({ queryKey: ['courses', { pageSize: 100 }], queryFn: () => listCourses({ pageSize: 100 }) });
-  const branchesQuery = useQuery({ queryKey: ['branches', { pageSize: 100 }], queryFn: () => listBranches({ pageSize: 100 }) });
-  const teachersQuery = useQuery({ queryKey: ['teachers', { pageSize: 100 }], queryFn: () => listTeachers({ pageSize: 100 }) });
+  const canCourses = hasPermission('courses', 'VIEW');
+  const canBranches = hasPermission('branches', 'VIEW');
+  const canTeachers = hasPermission('teachers', 'VIEW');
+  const coursesQuery = useQuery({ queryKey: ['courses', { pageSize: 100 }], queryFn: () => listCourses({ pageSize: 100 }), enabled: canCourses });
+  const branchesQuery = useQuery({ queryKey: ['branches', { pageSize: 100 }], queryFn: () => listBranches({ pageSize: 100 }), enabled: canBranches });
+  const teachersQuery = useQuery({ queryKey: ['teachers', { pageSize: 100 }], queryFn: () => listTeachers({ pageSize: 100 }), enabled: canTeachers });
 
   const groupsQuery = useQuery({
     queryKey: ['groups', { search, courseId, branchId, teacherEmployeeId, status, startRange, page }],
@@ -78,36 +81,42 @@ export function GroupsPage() {
             setPage(1);
           }}
         />
-        <Select
-          placeholder="Kurs"
-          allowClear
-          style={{ width: 180 }}
-          options={coursesQuery.data?.items.map((c) => ({ value: c.id, label: c.name }))}
-          onChange={(value) => {
-            setCourseId(value);
-            setPage(1);
-          }}
-        />
-        <Select
-          placeholder="Filial"
-          allowClear
-          style={{ width: 160 }}
-          options={branchesQuery.data?.items.map((b) => ({ value: b.id, label: b.name }))}
-          onChange={(value) => {
-            setBranchId(value);
-            setPage(1);
-          }}
-        />
-        <Select
-          placeholder="O'qituvchi"
-          allowClear
-          style={{ width: 180 }}
-          options={teachersQuery.data?.items.map((t) => ({ value: t.employeeId, label: t.employee.fullName }))}
-          onChange={(value) => {
-            setTeacherEmployeeId(value);
-            setPage(1);
-          }}
-        />
+        {canCourses && (
+          <Select
+            placeholder="Kurs"
+            allowClear
+            style={{ width: 180 }}
+            options={coursesQuery.data?.items.map((c) => ({ value: c.id, label: c.name }))}
+            onChange={(value) => {
+              setCourseId(value);
+              setPage(1);
+            }}
+          />
+        )}
+        {canBranches && (
+          <Select
+            placeholder="Filial"
+            allowClear
+            style={{ width: 160 }}
+            options={branchesQuery.data?.items.map((b) => ({ value: b.id, label: b.name }))}
+            onChange={(value) => {
+              setBranchId(value);
+              setPage(1);
+            }}
+          />
+        )}
+        {canTeachers && (
+          <Select
+            placeholder="O'qituvchi"
+            allowClear
+            style={{ width: 180 }}
+            options={teachersQuery.data?.items.map((t) => ({ value: t.employeeId, label: t.employee.fullName }))}
+            onChange={(value) => {
+              setTeacherEmployeeId(value);
+              setPage(1);
+            }}
+          />
+        )}
         <Select
           placeholder="Status"
           allowClear

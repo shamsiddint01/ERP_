@@ -54,27 +54,27 @@ const ROLE_DEFINITIONS: Array<{
       // Phase H — "Manager: full academic visibility".
       exams: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE, PermissionAction.EXPORT],
       grades: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE],
-      // Phase I — "Managers see broad operational reports": each
-      // /reports/education/* endpoint is gated by the underlying resource's
-      // own VIEW permission (not a blanket `reports` grant, since that would
-      // also open every OTHER existing report — trial balance, P&L — to
-      // anyone who can see education reports). Manager never actually
-      // received view access to these education-center modules in the
-      // earlier phases that defined them (student_attendance/tuition/exams
-      // were added because those specific phases required it; plain
-      // students/groups/branches/courses/leads/teachers browsing was simply
-      // never asked for until now), so it's added here, read-only.
-      students: [PermissionAction.VIEW, PermissionAction.EXPORT],
-      groups: [PermissionAction.VIEW, PermissionAction.EXPORT],
-      branches: [PermissionAction.VIEW, PermissionAction.EXPORT],
-      courses: [PermissionAction.VIEW, PermissionAction.EXPORT],
-      leads: [PermissionAction.VIEW, PermissionAction.EXPORT],
-      teachers: [PermissionAction.VIEW, PermissionAction.EXPORT],
-      // Phase J — "Manager: full operational dashboard" needs Today's
-      // Lessons/Schedule visibility too; never granted because no earlier
-      // phase's Manager requirement touched the schedules/lessons modules.
-      schedules: [PermissionAction.VIEW],
-      lessons: [PermissionAction.VIEW],
+      // Phase K — "Manager can manage: Students, Guardians, Leads, Courses,
+      // Branches, Classrooms, Groups, Teachers, Enrollments, Schedules,
+      // Lessons, Attendance, Exams, Grades, Reports" — the definitive,
+      // final grant for every education-center module Manager touches,
+      // superseding the narrower read-only grants Phases I/J added
+      // piecemeal (students/groups/branches/courses/leads/teachers were
+      // VIEW+EXPORT only; guardians/classrooms/enrollments were never
+      // granted at all; schedules/lessons were VIEW-only). "Can view
+      // finance/payroll according to policy" stays exactly as set below —
+      // VIEW+EXPORT, not full manage.
+      students: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE, PermissionAction.EXPORT],
+      guardians: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE, PermissionAction.EXPORT],
+      leads: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE, PermissionAction.EXPORT],
+      courses: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE, PermissionAction.EXPORT],
+      branches: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE, PermissionAction.EXPORT],
+      classrooms: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE, PermissionAction.EXPORT],
+      groups: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE, PermissionAction.EXPORT],
+      teachers: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE, PermissionAction.EXPORT],
+      enrollments: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE, PermissionAction.EXPORT],
+      schedules: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE],
+      lessons: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE],
     },
   },
   {
@@ -104,6 +104,14 @@ const ROLE_DEFINITIONS: Array<{
       // (relevant to teacher payroll context) but never create/edit/delete one.
       exams: [PermissionAction.VIEW],
       grades: [PermissionAction.VIEW],
+      // Phase K — "Accountant can view relevant student/group data" — never
+      // granted at all in any earlier phase (billing only ever needed
+      // TuitionCharge/Enrollment context, not the Student/StudentGroup
+      // modules themselves). Read-only: "cannot edit academic grades" is
+      // the explicit boundary, and student/group browsing is likewise never
+      // meant to extend into managing those records.
+      students: [PermissionAction.VIEW],
+      groups: [PermissionAction.VIEW],
     },
   },
   {
@@ -143,7 +151,13 @@ const ROLE_DEFINITIONS: Array<{
     grants: {
       groups: [PermissionAction.VIEW],
       schedules: [PermissionAction.VIEW],
-      lessons: [PermissionAction.VIEW],
+      // Phase K — "Teacher: own lessons" now means real management (start/
+      // complete/cancel/no-show/reschedule their own class), not just
+      // viewing — LessonsService enforces ownership per-record (a teacher
+      // can never start/complete/cancel/update another teacher's lesson;
+      // see assertTeacherScopeAllows there) and its list view silently
+      // narrows to their own lessons regardless of any filter they pass.
+      lessons: [PermissionAction.VIEW, PermissionAction.EDIT],
       students: [PermissionAction.VIEW],
       // enrollments:VIEW is what lets the Lesson Attendance page build the
       // eligible-student roster in the first place — without it, a teacher
@@ -158,15 +172,38 @@ const ROLE_DEFINITIONS: Array<{
       // are just the module-level grants to reach the endpoints at all.
       exams: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT],
       grades: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT],
+      // Phase K — "Cannot access: Finance administration, Payroll
+      // administration, User administration, Role administration" is
+      // enforced by simple absence: finance/payroll/users/roles are never
+      // granted here at all, on purpose — not an oversight to "fix" later.
     },
   },
   {
-    name: 'Reception',
-    description: "Front-desk: looks up students, groups and attendance on parents' behalf.",
+    name: 'Receptionist',
+    description: "Front-desk: registers students/guardians/leads, handles enrollment and schedule lookups, and collects payments according to policy.",
     grants: {
-      students: [PermissionAction.VIEW],
-      guardians: [PermissionAction.VIEW],
-      groups: [PermissionAction.VIEW],
+      // Phase K — "Receptionist can manage: Students, Guardians, Leads,
+      // Enrollments, Groups, Courses" — real create/edit power (registering
+      // a walk-in student, logging a lead, enrolling into a group), but
+      // never DELETE: removing a core record is reserved for Manager/Admin,
+      // matching how every other "can manage" role in this matrix still
+      // draws that same line (e.g. Accountant never gets tuition:DELETE).
+      students: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.EXPORT],
+      guardians: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.EXPORT],
+      leads: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.EXPORT],
+      enrollments: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.EXPORT],
+      groups: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.EXPORT],
+      courses: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.EXPORT],
+      // "Branches/classrooms as appropriate" — softer than "manage": a
+      // receptionist needs to know which branch/room a lesson is in, never
+      // to create or restructure one.
+      branches: [PermissionAction.VIEW],
+      classrooms: [PermissionAction.VIEW],
+      // "Schedule viewing" — explicitly view-only, unlike Teacher's own
+      // schedules/lessons (which stay list-narrowed to "own" regardless;
+      // Receptionist sees every schedule/lesson, matching a front-desk
+      // role's need to answer "when is X's class" for any student).
+      schedules: [PermissionAction.VIEW],
       lessons: [PermissionAction.VIEW],
       student_attendance: [PermissionAction.VIEW],
       notifications: [PermissionAction.VIEW],
@@ -180,9 +217,8 @@ const ROLE_DEFINITIONS: Array<{
       // Phase H — "Reception: limited view" — can see that an exam exists (to
       // answer a parent's question), never the grades/scores behind it.
       exams: [PermissionAction.VIEW],
-      // Phase J — "Reception: students / leads / schedule / attendance" on
-      // the dashboard; leads was never granted at all in any earlier phase.
-      leads: [PermissionAction.VIEW],
+      // "No payroll administration" — confirmed by simple absence: payroll
+      // is never granted here at all.
     },
   },
 ];
@@ -215,6 +251,17 @@ async function main() {
     data: allPermissions.map((permission) => ({ roleId: adminRole.id, permissionId: permission.id })),
     skipDuplicates: true,
   });
+
+  // Phase K — "Do not unnecessarily delete existing roles. Safely map or
+  // migrate existing role assignments": the final role name is
+  // "Receptionist", but every earlier phase seeded it as "Reception". A
+  // rename-in-place (not a fresh upsert under the new name) is what makes
+  // this safe — it keeps the SAME role id, so every User already assigned
+  // to it, and the row itself, transparently carries over; upserting under
+  // the new name instead would silently orphan the old "Reception" row and
+  // anyone still assigned to it. Idempotent: a second run matches zero rows
+  // and does nothing.
+  await prisma.role.updateMany({ where: { name: 'Reception' }, data: { name: 'Receptionist' } });
 
   for (const roleDef of ROLE_DEFINITIONS) {
     console.log(`Seeding role: ${roleDef.name}...`);
@@ -869,25 +916,36 @@ async function seedEducationCoreDemo(): Promise<void> {
  */
 async function seedDemoTeacherUser(): Promise<void> {
   const teacherRole = await prisma.role.findUnique({ where: { name: 'Teacher' } });
-  const teacherEmployee = await prisma.employee.findUnique({ where: { employeeCode: 'EMP-TCH-001' } });
-  if (!teacherRole || !teacherEmployee) return; // defensive — both are seeded above in this same run
+  if (!teacherRole) return; // defensive — seeded above in this same run
 
   const password = process.env.SEED_TEACHER_PASSWORD ?? 'ChangeMe123!';
   const passwordHash = await bcrypt.hash(password, 10);
-  await prisma.user.upsert({
-    where: { username: 'teacher.sarvinoz' },
-    create: {
-      fullName: teacherEmployee.fullName,
-      email: 'sarvinoz.tashkentova@erp.local',
-      username: 'teacher.sarvinoz',
-      passwordHash,
-      roleId: teacherRole.id,
-      employeeId: teacherEmployee.id,
-      status: 'ACTIVE',
-    },
-    update: {},
-  });
-  console.log(`  -> teacher.sarvinoz / ${password} (Teacher role, linked to EMP-TCH-001)`);
+
+  // Two distinct teacher logins (Phase K) — "Teacher A cannot modify
+  // Teacher B's group/lesson/attendance/grades" is untestable with only
+  // one teacher account to log in as.
+  const demoTeachers = [
+    { employeeCode: 'EMP-TCH-001', username: 'teacher.sarvinoz', email: 'sarvinoz.tashkentova@erp.local' },
+    { employeeCode: 'EMP-TCH-002', username: 'teacher.jahongir', email: 'jahongir.rustamov@erp.local' },
+  ];
+  for (const demo of demoTeachers) {
+    const teacherEmployee = await prisma.employee.findUnique({ where: { employeeCode: demo.employeeCode } });
+    if (!teacherEmployee) continue; // defensive — seeded above in this same run
+    await prisma.user.upsert({
+      where: { username: demo.username },
+      create: {
+        fullName: teacherEmployee.fullName,
+        email: demo.email,
+        username: demo.username,
+        passwordHash,
+        roleId: teacherRole.id,
+        employeeId: teacherEmployee.id,
+        status: 'ACTIVE',
+      },
+      update: {},
+    });
+    console.log(`  -> ${demo.username} / ${password} (Teacher role, linked to ${demo.employeeCode})`);
+  }
 }
 
 /**
@@ -903,7 +961,7 @@ async function seedDemoRoleUsers(): Promise<void> {
   const demoUsers = [
     { username: 'manager.aziza', fullName: 'Aziza Karimova', email: 'aziza.karimova@erp.local', roleName: 'Manager' },
     { username: 'accountant.bekzod', fullName: 'Bekzod Yusupov', email: 'bekzod.yusupov@erp.local', roleName: 'Accountant' },
-    { username: 'reception.gulnora', fullName: 'Gulnora Saidova', email: 'gulnora.saidova@erp.local', roleName: 'Reception' },
+    { username: 'reception.gulnora', fullName: 'Gulnora Saidova', email: 'gulnora.saidova@erp.local', roleName: 'Receptionist' },
   ];
 
   for (const demo of demoUsers) {
