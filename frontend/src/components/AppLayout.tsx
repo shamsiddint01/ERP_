@@ -4,6 +4,7 @@ import {
   AppstoreOutlined,
   AuditOutlined,
   BankOutlined,
+  BarChartOutlined,
   BellOutlined,
   BookOutlined,
   BorderOutlined,
@@ -83,6 +84,20 @@ export function AppLayout() {
       { key: '/finance/accounts', icon: <BankOutlined />, label: <Link to="/finance/accounts">Hisoblar rejasi</Link>, show: hasPermission('finance', 'VIEW') },
       { key: '/expenses', icon: <WalletOutlined />, label: <Link to="/expenses">Xarajatlar</Link>, show: hasPermission('expenses', 'VIEW') },
       { key: '/finance/reports', icon: <PieChartOutlined />, label: <Link to="/finance/reports">Moliyaviy hisobotlar</Link>, show: hasPermission('reports', 'VIEW') },
+      {
+        key: '/education-reports',
+        icon: <BarChartOutlined />,
+        label: <Link to="/education-reports">Ta'lim markazi hisobotlari</Link>,
+        show:
+          hasPermission('students', 'VIEW') ||
+          hasPermission('groups', 'VIEW') ||
+          hasPermission('student_attendance', 'VIEW') ||
+          hasPermission('grades', 'VIEW') ||
+          hasPermission('tuition', 'VIEW') ||
+          hasPermission('teachers', 'VIEW') ||
+          hasPermission('leads', 'VIEW') ||
+          hasPermission('branches', 'VIEW'),
+      },
       { key: '/employees', icon: <IdcardOutlined />, label: <Link to="/employees">Xodimlar</Link>, show: hasPermission('employees', 'VIEW') },
       { key: '/teachers', icon: <UserSwitchOutlined />, label: <Link to="/teachers">O'qituvchilar</Link>, show: hasPermission('teachers', 'VIEW') },
       { key: '/departments', icon: <ClusterOutlined />, label: <Link to="/departments">Bo'limlar</Link>, show: hasPermission('departments', 'VIEW') },

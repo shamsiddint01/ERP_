@@ -55,6 +55,7 @@ import { ProductsPage } from './pages/products/ProductsPage';
 import { PurchaseOrderDetailPage } from './pages/purchases/PurchaseOrderDetailPage';
 import { PurchasesPage } from './pages/purchases/PurchasesPage';
 import { PositionsPage } from './pages/positions/PositionsPage';
+import { EducationReportsPage } from './pages/reports/EducationReportsPage';
 import { RolesPage } from './pages/RolesPage';
 import { ScheduleCalendarPage } from './pages/schedules/ScheduleCalendarPage';
 import { SchedulesPage } from './pages/schedules/SchedulesPage';
@@ -132,6 +133,7 @@ export default function App() {
           <Route path="/purchases/:id" element={<PurchaseOrderDetailPage />} />
           <Route path="/finance/accounts" element={<AccountsPage />} />
           <Route path="/finance/reports" element={<ReportsPage />} />
+          <Route path="/education-reports" element={<EducationReportsPage />} />
           <Route path="/expenses" element={<ExpensesPage />} />
           <Route path="/departments" element={<DepartmentsPage />} />
           <Route path="/departments/:id" element={<DepartmentDetailPage />} />

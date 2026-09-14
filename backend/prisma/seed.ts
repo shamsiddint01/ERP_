@@ -54,6 +54,22 @@ const ROLE_DEFINITIONS: Array<{
       // Phase H — "Manager: full academic visibility".
       exams: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE, PermissionAction.EXPORT],
       grades: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE],
+      // Phase I — "Managers see broad operational reports": each
+      // /reports/education/* endpoint is gated by the underlying resource's
+      // own VIEW permission (not a blanket `reports` grant, since that would
+      // also open every OTHER existing report — trial balance, P&L — to
+      // anyone who can see education reports). Manager never actually
+      // received view access to these education-center modules in the
+      // earlier phases that defined them (student_attendance/tuition/exams
+      // were added because those specific phases required it; plain
+      // students/groups/branches/courses/leads/teachers browsing was simply
+      // never asked for until now), so it's added here, read-only.
+      students: [PermissionAction.VIEW, PermissionAction.EXPORT],
+      groups: [PermissionAction.VIEW, PermissionAction.EXPORT],
+      branches: [PermissionAction.VIEW, PermissionAction.EXPORT],
+      courses: [PermissionAction.VIEW, PermissionAction.EXPORT],
+      leads: [PermissionAction.VIEW, PermissionAction.EXPORT],
+      teachers: [PermissionAction.VIEW, PermissionAction.EXPORT],
     },
   },
   {
