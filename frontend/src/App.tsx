@@ -4,7 +4,6 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { useAuthBootstrap } from './hooks/useAuthBootstrap';
 import { AttendancePage } from './pages/attendance/AttendancePage';
 import { StudentAttendanceOverviewPage } from './pages/attendance/StudentAttendanceOverviewPage';
-import { StudentAttendancePage } from './pages/attendance/StudentAttendancePage';
 import { AuditLogPage } from './pages/AuditLogPage';
 import { BranchDetailPage } from './pages/branches/BranchDetailPage';
 import { BranchesPage } from './pages/branches/BranchesPage';
@@ -29,7 +28,7 @@ import { ExamsPage } from './pages/exams/ExamsPage';
 import { ExpensesPage } from './pages/expenses/ExpensesPage';
 import { AccountsPage } from './pages/finance/AccountsPage';
 import { ReportsPage } from './pages/finance/ReportsPage';
-import { GroupAttendancePage } from './pages/groups/GroupAttendancePage';
+import { StudentBalancesPage } from './pages/finance/StudentBalancesPage';
 import { GroupDetailPage } from './pages/groups/GroupDetailPage';
 import { GroupsPage } from './pages/groups/GroupsPage';
 import { GuardianDetailPage } from './pages/guardians/GuardianDetailPage';
@@ -61,13 +60,9 @@ import { ScheduleCalendarPage } from './pages/schedules/ScheduleCalendarPage';
 import { SchedulesPage } from './pages/schedules/SchedulesPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { StudentDetailPage } from './pages/students/StudentDetailPage';
-import { StudentFinancePage } from './pages/students/StudentFinancePage';
-import { StudentGradesPage } from './pages/students/StudentGradesPage';
-import { StudentProgressPage } from './pages/students/StudentProgressPage';
 import { StudentsPage } from './pages/students/StudentsPage';
 import { SupplierDetailPage } from './pages/suppliers/SupplierDetailPage';
 import { SuppliersPage } from './pages/suppliers/SuppliersPage';
-import { TeacherCompensationPage } from './pages/teachers/TeacherCompensationPage';
 import { TeacherDetailPage } from './pages/teachers/TeacherDetailPage';
 import { TeachersPage } from './pages/teachers/TeachersPage';
 import { TuitionDetailPage } from './pages/tuition/TuitionDetailPage';
@@ -85,10 +80,6 @@ export default function App() {
           <Route path="/" element={<DashboardPage />} />
           <Route path="/students" element={<StudentsPage />} />
           <Route path="/students/:id" element={<StudentDetailPage />} />
-          <Route path="/students/:id/attendance" element={<StudentAttendancePage />} />
-          <Route path="/students/:id/finance" element={<StudentFinancePage />} />
-          <Route path="/students/:id/grades" element={<StudentGradesPage />} />
-          <Route path="/students/:id/progress" element={<StudentProgressPage />} />
           <Route path="/tuition" element={<TuitionPage />} />
           <Route path="/tuition/:id" element={<TuitionDetailPage />} />
           <Route path="/discounts" element={<DiscountsPage />} />
@@ -105,7 +96,6 @@ export default function App() {
           <Route path="/classrooms/:id" element={<ClassroomDetailPage />} />
           <Route path="/groups" element={<GroupsPage />} />
           <Route path="/groups/:id" element={<GroupDetailPage />} />
-          <Route path="/groups/:id/attendance" element={<GroupAttendancePage />} />
           <Route path="/enrollments" element={<EnrollmentsPage />} />
           <Route path="/enrollments/:id" element={<EnrollmentDetailPage />} />
           <Route path="/schedules" element={<SchedulesPage />} />
@@ -115,7 +105,6 @@ export default function App() {
           <Route path="/lessons/:id/attendance" element={<LessonAttendancePage />} />
           <Route path="/teachers" element={<TeachersPage />} />
           <Route path="/teachers/:id" element={<TeacherDetailPage />} />
-          <Route path="/teachers/:id/compensation" element={<TeacherCompensationPage />} />
           <Route path="/exams" element={<ExamsPage />} />
           <Route path="/exams/:id" element={<ExamDetailPage />} />
           <Route path="/customers" element={<CustomersPage />} />
@@ -133,6 +122,7 @@ export default function App() {
           <Route path="/purchases/:id" element={<PurchaseOrderDetailPage />} />
           <Route path="/finance/accounts" element={<AccountsPage />} />
           <Route path="/finance/reports" element={<ReportsPage />} />
+          <Route path="/finance/student-balances" element={<StudentBalancesPage />} />
           <Route path="/education-reports" element={<EducationReportsPage />} />
           <Route path="/expenses" element={<ExpensesPage />} />
           <Route path="/departments" element={<DepartmentsPage />} />

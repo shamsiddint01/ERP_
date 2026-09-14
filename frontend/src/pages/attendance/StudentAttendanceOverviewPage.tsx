@@ -176,7 +176,7 @@ export function StudentAttendanceOverviewPage() {
           {
             title: "O'quvchi",
             render: (_, record) => (
-              <Typography.Link onClick={() => navigate(`/students/${record.studentId}/attendance`)}>{record.student.fullName}</Typography.Link>
+              <Typography.Link onClick={() => navigate(`/students/${record.studentId}?tab=attendance`)}>{record.student.fullName}</Typography.Link>
             ),
           },
           { title: "O'qituvchi", render: (_, record) => record.lesson.teacherEmployee?.fullName ?? '—' },

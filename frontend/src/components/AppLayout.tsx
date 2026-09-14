@@ -22,6 +22,7 @@ import {
   FormOutlined,
   GroupOutlined,
   IdcardOutlined,
+  InboxOutlined,
   LogoutOutlined,
   PercentageOutlined,
   PieChartOutlined,
@@ -41,6 +42,7 @@ import {
   WalletOutlined,
 } from '@ant-design/icons';
 import { Avatar, Dropdown, Layout, Menu, Space, Typography } from 'antd';
+import type { ReactNode } from 'react';
 import { useMemo } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { logout } from '../api/auth';
@@ -51,6 +53,20 @@ import { NotificationBell } from './NotificationBell';
 
 const { Header, Sider, Content } = Layout;
 
+interface MenuLeaf {
+  key: string;
+  icon: ReactNode;
+  label: ReactNode;
+  show: boolean;
+}
+
+interface MenuGroup {
+  key: string;
+  icon: ReactNode;
+  label: ReactNode;
+  children: MenuLeaf[];
+}
+
 export function AppLayout() {
   const user = useAuthStore((state) => state.user);
   const hasPermission = useAuthStore((state) => state.hasPermission);
@@ -58,70 +74,133 @@ export function AppLayout() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const menuItems = useMemo(() => {
-    const candidates = [
-      { key: '/', icon: <DashboardOutlined />, label: <Link to="/">Dashboard</Link>, show: true },
-      { key: '/students', icon: <ReadOutlined />, label: <Link to="/students">O'quvchilar</Link>, show: hasPermission('students', 'VIEW') },
-      { key: '/guardians', icon: <ContactsOutlined />, label: <Link to="/guardians">Ota-onalar/Vasiylar</Link>, show: hasPermission('guardians', 'VIEW') },
-      { key: '/leads', icon: <UserAddOutlined />, label: <Link to="/leads">Lidlar</Link>, show: hasPermission('leads', 'VIEW') },
-      { key: '/courses', icon: <BookOutlined />, label: <Link to="/courses">Kurslar</Link>, show: hasPermission('courses', 'VIEW') },
-      { key: '/branches', icon: <ApartmentOutlined />, label: <Link to="/branches">Filiallar</Link>, show: hasPermission('branches', 'VIEW') },
-      { key: '/classrooms', icon: <BorderOutlined />, label: <Link to="/classrooms">Xonalar</Link>, show: hasPermission('classrooms', 'VIEW') },
-      { key: '/groups', icon: <GroupOutlined />, label: <Link to="/groups">Guruhlar</Link>, show: hasPermission('groups', 'VIEW') },
-      { key: '/enrollments', icon: <FileDoneOutlined />, label: <Link to="/enrollments">Yozilishlar</Link>, show: hasPermission('enrollments', 'VIEW') },
-      { key: '/schedules', icon: <ScheduleOutlined />, label: <Link to="/schedules">Dars jadvallari</Link>, show: hasPermission('schedules', 'VIEW') },
-      { key: '/lessons', icon: <CarryOutOutlined />, label: <Link to="/lessons">Darslar</Link>, show: hasPermission('lessons', 'VIEW') },
-      { key: '/exams', icon: <FormOutlined />, label: <Link to="/exams">Imtihonlar</Link>, show: hasPermission('exams', 'VIEW') },
-      { key: '/customers', icon: <UserOutlined />, label: <Link to="/customers">Mijozlar</Link>, show: hasPermission('customers', 'VIEW') },
-      { key: '/orders', icon: <ShoppingOutlined />, label: <Link to="/orders">Sotuvlar</Link>, show: hasPermission('orders', 'VIEW') },
-      { key: '/invoices', icon: <FileTextOutlined />, label: <Link to="/invoices">Hisob-fakturalar</Link>, show: hasPermission('invoices', 'VIEW') },
-      { key: '/tuition', icon: <WalletOutlined />, label: <Link to="/tuition">O'quv to'lovlari</Link>, show: hasPermission('tuition', 'VIEW') },
-      { key: '/discounts', icon: <PercentageOutlined />, label: <Link to="/discounts">Chegirmalar</Link>, show: hasPermission('discounts', 'VIEW') },
-      { key: '/payments', icon: <DollarOutlined />, label: <Link to="/payments">To'lovlar</Link>, show: hasPermission('payments', 'VIEW') },
-      { key: '/products', icon: <AppstoreOutlined />, label: <Link to="/products">Mahsulotlar</Link>, show: hasPermission('products', 'VIEW') },
-      { key: '/inventory', icon: <DatabaseOutlined />, label: <Link to="/inventory">Ombor</Link>, show: hasPermission('inventory', 'VIEW') },
-      { key: '/warehouses', icon: <ShopOutlined />, label: <Link to="/warehouses">Omborlar</Link>, show: hasPermission('inventory', 'VIEW') },
-      { key: '/suppliers', icon: <TruckOutlined />, label: <Link to="/suppliers">Yetkazib beruvchilar</Link>, show: hasPermission('suppliers', 'VIEW') },
-      { key: '/purchases', icon: <ShoppingCartOutlined />, label: <Link to="/purchases">Xaridlar</Link>, show: hasPermission('purchases', 'VIEW') },
-      { key: '/finance/accounts', icon: <BankOutlined />, label: <Link to="/finance/accounts">Hisoblar rejasi</Link>, show: hasPermission('finance', 'VIEW') },
-      { key: '/expenses', icon: <WalletOutlined />, label: <Link to="/expenses">Xarajatlar</Link>, show: hasPermission('expenses', 'VIEW') },
-      { key: '/finance/reports', icon: <PieChartOutlined />, label: <Link to="/finance/reports">Moliyaviy hisobotlar</Link>, show: hasPermission('reports', 'VIEW') },
-      {
-        key: '/education-reports',
-        icon: <BarChartOutlined />,
-        label: <Link to="/education-reports">Ta'lim markazi hisobotlari</Link>,
-        show:
-          hasPermission('students', 'VIEW') ||
-          hasPermission('groups', 'VIEW') ||
-          hasPermission('student_attendance', 'VIEW') ||
-          hasPermission('grades', 'VIEW') ||
-          hasPermission('tuition', 'VIEW') ||
-          hasPermission('teachers', 'VIEW') ||
-          hasPermission('leads', 'VIEW') ||
-          hasPermission('branches', 'VIEW'),
-      },
-      { key: '/employees', icon: <IdcardOutlined />, label: <Link to="/employees">Xodimlar</Link>, show: hasPermission('employees', 'VIEW') },
-      { key: '/teachers', icon: <UserSwitchOutlined />, label: <Link to="/teachers">O'qituvchilar</Link>, show: hasPermission('teachers', 'VIEW') },
-      { key: '/departments', icon: <ClusterOutlined />, label: <Link to="/departments">Bo'limlar</Link>, show: hasPermission('departments', 'VIEW') },
-      { key: '/positions', icon: <SolutionOutlined />, label: <Link to="/positions">Lavozimlar</Link>, show: hasPermission('positions', 'VIEW') },
-      { key: '/attendance', icon: <CalendarOutlined />, label: <Link to="/attendance">Davomat</Link>, show: hasPermission('attendance', 'VIEW') },
-      {
-        key: '/attendance/student',
-        icon: <CheckSquareOutlined />,
-        label: <Link to="/attendance/student">O'quvchilar davomati</Link>,
-        show: hasPermission('student_attendance', 'VIEW'),
-      },
-      { key: '/compensation', icon: <CreditCardOutlined />, label: <Link to="/compensation">Xodimlar maoshi</Link>, show: hasPermission('compensation', 'VIEW') },
-      { key: '/payroll', icon: <AccountBookOutlined />, label: <Link to="/payroll">Ish haqi (Payroll)</Link>, show: hasPermission('payroll', 'VIEW') },
-      { key: '/users', icon: <TeamOutlined />, label: <Link to="/users">Foydalanuvchilar</Link>, show: hasPermission('users', 'VIEW') },
-      { key: '/roles', icon: <SafetyCertificateOutlined />, label: <Link to="/roles">Rollar</Link>, show: hasPermission('roles', 'VIEW') },
-      { key: '/notifications', icon: <BellOutlined />, label: <Link to="/notifications">Bildirishnomalar</Link>, show: true },
-      { key: '/audit-log', icon: <AuditOutlined />, label: <Link to="/audit-log">Audit jurnali</Link>, show: hasPermission('audit_logs', 'VIEW') },
-      { key: '/settings', icon: <SettingOutlined />, label: <Link to="/settings">Sozlamalar</Link>, show: hasPermission('settings', 'VIEW') },
+  const { menuItems, defaultOpenKeys } = useMemo(() => {
+    const dashboard: MenuLeaf = { key: '/', icon: <DashboardOutlined />, label: <Link to="/">Dashboard</Link>, show: true };
+
+    const education: MenuGroup = {
+      key: 'group-education',
+      icon: <ReadOutlined />,
+      label: "TA'LIM",
+      children: [
+        { key: '/students', icon: <UserOutlined />, label: <Link to="/students">O'quvchilar</Link>, show: hasPermission('students', 'VIEW') },
+        { key: '/guardians', icon: <ContactsOutlined />, label: <Link to="/guardians">Ota-onalar/Vasiylar</Link>, show: hasPermission('guardians', 'VIEW') },
+        { key: '/leads', icon: <UserAddOutlined />, label: <Link to="/leads">Lidlar</Link>, show: hasPermission('leads', 'VIEW') },
+        { key: '/courses', icon: <BookOutlined />, label: <Link to="/courses">Kurslar</Link>, show: hasPermission('courses', 'VIEW') },
+        { key: '/branches', icon: <ApartmentOutlined />, label: <Link to="/branches">Filiallar</Link>, show: hasPermission('branches', 'VIEW') },
+        { key: '/classrooms', icon: <BorderOutlined />, label: <Link to="/classrooms">Xonalar</Link>, show: hasPermission('classrooms', 'VIEW') },
+        { key: '/groups', icon: <GroupOutlined />, label: <Link to="/groups">Guruhlar</Link>, show: hasPermission('groups', 'VIEW') },
+        { key: '/enrollments', icon: <FileDoneOutlined />, label: <Link to="/enrollments">Yozilishlar</Link>, show: hasPermission('enrollments', 'VIEW') },
+        { key: '/schedules', icon: <ScheduleOutlined />, label: <Link to="/schedules">Dars jadvallari</Link>, show: hasPermission('schedules', 'VIEW') },
+        { key: '/lessons', icon: <CarryOutOutlined />, label: <Link to="/lessons">Darslar</Link>, show: hasPermission('lessons', 'VIEW') },
+        {
+          key: '/attendance/student',
+          icon: <CheckSquareOutlined />,
+          label: <Link to="/attendance/student">O'quvchilar davomati</Link>,
+          show: hasPermission('student_attendance', 'VIEW'),
+        },
+        { key: '/exams', icon: <FormOutlined />, label: <Link to="/exams">Imtihonlar / Baholar</Link>, show: hasPermission('exams', 'VIEW') },
+        {
+          key: '/education-reports',
+          icon: <BarChartOutlined />,
+          label: <Link to="/education-reports">Ta'lim hisobotlari</Link>,
+          show:
+            hasPermission('students', 'VIEW') ||
+            hasPermission('groups', 'VIEW') ||
+            hasPermission('student_attendance', 'VIEW') ||
+            hasPermission('grades', 'VIEW') ||
+            hasPermission('tuition', 'VIEW') ||
+            hasPermission('teachers', 'VIEW') ||
+            hasPermission('leads', 'VIEW') ||
+            hasPermission('branches', 'VIEW'),
+        },
+      ],
+    };
+
+    const hr: MenuGroup = {
+      key: 'group-hr',
+      icon: <IdcardOutlined />,
+      label: 'HR',
+      children: [
+        { key: '/employees', icon: <IdcardOutlined />, label: <Link to="/employees">Xodimlar</Link>, show: hasPermission('employees', 'VIEW') },
+        { key: '/teachers', icon: <UserSwitchOutlined />, label: <Link to="/teachers">O'qituvchilar</Link>, show: hasPermission('teachers', 'VIEW') },
+        { key: '/departments', icon: <ClusterOutlined />, label: <Link to="/departments">Bo'limlar</Link>, show: hasPermission('departments', 'VIEW') },
+        { key: '/positions', icon: <SolutionOutlined />, label: <Link to="/positions">Lavozimlar</Link>, show: hasPermission('positions', 'VIEW') },
+        { key: '/attendance', icon: <CalendarOutlined />, label: <Link to="/attendance">Xodimlar davomati</Link>, show: hasPermission('attendance', 'VIEW') },
+        { key: '/compensation', icon: <CreditCardOutlined />, label: <Link to="/compensation">Xodimlar maoshi</Link>, show: hasPermission('compensation', 'VIEW') },
+        { key: '/payroll', icon: <AccountBookOutlined />, label: <Link to="/payroll">Ish haqi (Payroll)</Link>, show: hasPermission('payroll', 'VIEW') },
+      ],
+    };
+
+    const finance: MenuGroup = {
+      key: 'group-finance',
+      icon: <WalletOutlined />,
+      label: 'MOLIYA',
+      children: [
+        { key: '/tuition', icon: <WalletOutlined />, label: <Link to="/tuition">O'quv to'lovlari</Link>, show: hasPermission('tuition', 'VIEW') },
+        { key: '/discounts', icon: <PercentageOutlined />, label: <Link to="/discounts">Chegirmalar</Link>, show: hasPermission('discounts', 'VIEW') },
+        { key: '/payments', icon: <DollarOutlined />, label: <Link to="/payments">To'lovlar</Link>, show: hasPermission('payments', 'VIEW') },
+        {
+          key: '/finance/student-balances',
+          icon: <FileTextOutlined />,
+          label: <Link to="/finance/student-balances">O'quvchilar balansi</Link>,
+          show: hasPermission('reports', 'VIEW'),
+        },
+        { key: '/expenses', icon: <WalletOutlined />, label: <Link to="/expenses">Xarajatlar</Link>, show: hasPermission('expenses', 'VIEW') },
+        { key: '/finance/accounts', icon: <BankOutlined />, label: <Link to="/finance/accounts">Hisoblar rejasi</Link>, show: hasPermission('finance', 'VIEW') },
+        { key: '/finance/reports', icon: <PieChartOutlined />, label: <Link to="/finance/reports">Moliyaviy hisobotlar</Link>, show: hasPermission('reports', 'VIEW') },
+      ],
+    };
+
+    const system: MenuGroup = {
+      key: 'group-system',
+      icon: <SettingOutlined />,
+      label: 'TIZIM',
+      children: [
+        { key: '/notifications', icon: <BellOutlined />, label: <Link to="/notifications">Bildirishnomalar</Link>, show: true },
+        { key: '/users', icon: <TeamOutlined />, label: <Link to="/users">Foydalanuvchilar</Link>, show: hasPermission('users', 'VIEW') },
+        { key: '/roles', icon: <SafetyCertificateOutlined />, label: <Link to="/roles">Rollar va ruxsatlar</Link>, show: hasPermission('roles', 'VIEW') },
+        { key: '/audit-log', icon: <AuditOutlined />, label: <Link to="/audit-log">Audit jurnali</Link>, show: hasPermission('audit_logs', 'VIEW') },
+        { key: '/settings', icon: <SettingOutlined />, label: <Link to="/settings">Sozlamalar</Link>, show: hasPermission('settings', 'VIEW') },
+      ],
+    };
+
+    // Phase L — retail-only modules, demoted out of primary navigation but
+    // never deleted. Collapsed by default (see defaultOpenKeys below).
+    const legacy: MenuGroup = {
+      key: 'group-legacy',
+      icon: <InboxOutlined />,
+      label: 'ESKI OPERATSIYALAR',
+      children: [
+        { key: '/customers', icon: <UserOutlined />, label: <Link to="/customers">Mijozlar</Link>, show: hasPermission('customers', 'VIEW') },
+        { key: '/orders', icon: <ShoppingOutlined />, label: <Link to="/orders">Sotuvlar</Link>, show: hasPermission('orders', 'VIEW') },
+        { key: '/invoices', icon: <FileTextOutlined />, label: <Link to="/invoices">Hisob-fakturalar</Link>, show: hasPermission('invoices', 'VIEW') },
+        { key: '/products', icon: <AppstoreOutlined />, label: <Link to="/products">Mahsulotlar</Link>, show: hasPermission('products', 'VIEW') },
+        { key: '/inventory', icon: <DatabaseOutlined />, label: <Link to="/inventory">Ombor</Link>, show: hasPermission('inventory', 'VIEW') },
+        { key: '/warehouses', icon: <ShopOutlined />, label: <Link to="/warehouses">Omborlar</Link>, show: hasPermission('inventory', 'VIEW') },
+        { key: '/suppliers', icon: <TruckOutlined />, label: <Link to="/suppliers">Yetkazib beruvchilar</Link>, show: hasPermission('suppliers', 'VIEW') },
+        { key: '/purchases', icon: <ShoppingCartOutlined />, label: <Link to="/purchases">Xaridlar</Link>, show: hasPermission('purchases', 'VIEW') },
+      ],
+    };
+
+    function visibleChildren(group: MenuGroup) {
+      return group.children.filter((item) => item.show).map(({ key, icon, label }) => ({ key, icon, label }));
+    }
+
+    const groups = [education, hr, finance, system, legacy]
+      .map((group) => ({ ...group, visible: visibleChildren(group) }))
+      .filter((group) => group.visible.length > 0);
+
+    const items = [
+      { key: dashboard.key, icon: dashboard.icon, label: dashboard.label },
+      ...groups.map((group) => ({ key: group.key, icon: group.icon, label: group.label, children: group.visible })),
     ];
-    // antd's Menu spreads unknown item fields onto the DOM, so `show` must
-    // not survive into the array actually passed to <Menu items={...}>.
-    return candidates.filter((item) => item.show).map(({ key, icon, label }) => ({ key, icon, label }));
+
+    // Every group starts expanded except Legacy (Phase L: "Collapse the
+    // section by default" and "Do not show legacy modules as primary
+    // navigation").
+    const openKeys = groups.filter((g) => g.key !== 'group-legacy').map((g) => g.key);
+
+    return { menuItems: items, defaultOpenKeys: openKeys };
   }, [hasPermission]);
 
   // `/finance/*` has two-segment menu keys (e.g. "/finance/accounts"); everything else is one segment.
@@ -143,9 +222,9 @@ export function AppLayout() {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Sider breakpoint="lg" collapsedWidth="0">
-        <div style={{ color: '#fff', textAlign: 'center', padding: '16px 0', fontWeight: 600, fontSize: 18 }}>ERP</div>
-        <Menu theme="dark" mode="inline" selectedKeys={[selectedMenuKey]} items={menuItems} />
+      <Sider breakpoint="lg" collapsedWidth="0" width={240}>
+        <div style={{ color: '#fff', textAlign: 'center', padding: '16px 0', fontWeight: 600, fontSize: 18 }}>Ta'lim Markazi</div>
+        <Menu theme="dark" mode="inline" selectedKeys={[selectedMenuKey]} defaultOpenKeys={defaultOpenKeys} items={menuItems} style={{ overflowY: 'auto', height: 'calc(100vh - 56px)' }} />
       </Sider>
       <Layout>
         <Header style={{ background: '#fff', padding: '0 24px', display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 12 }}>

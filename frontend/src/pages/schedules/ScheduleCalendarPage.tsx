@@ -107,7 +107,7 @@ export function ScheduleCalendarPage() {
                   Darslar yo'q
                 </Typography.Text>
               ) : (
-                <Space direction="vertical" style={{ width: '100%' }} size={8}>
+                <Space orientation="vertical" style={{ width: '100%' }} size={8}>
                   {schedulesByDay[day].map((schedule) => (
                     <div
                       key={schedule.id}

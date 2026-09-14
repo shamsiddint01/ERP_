@@ -503,7 +503,7 @@ export function EducationReportsPage() {
                 </Col>
               </Row>
               <Space style={{ marginBottom: 12 }}>
-                <Link to={`/students/${studentId}/progress`}>To'liq progress sahifasini ochish →</Link>
+                <Link to={`/students/${studentId}?tab=progress`}>To'liq progress sahifasini ochish →</Link>
               </Space>
               <Table
                 rowKey="id"

@@ -1,16 +1,39 @@
-import { ArrowLeftOutlined, CarryOutOutlined, EditOutlined, FormOutlined, LineChartOutlined, LinkOutlined, PauseCircleOutlined, PlayCircleOutlined, StarFilled, StarOutlined, StopOutlined, SwapOutlined, UserAddOutlined, WalletOutlined } from '@ant-design/icons';
+import {
+  ArrowLeftOutlined,
+  DownloadOutlined,
+  EditOutlined,
+  LinkOutlined,
+  PauseCircleOutlined,
+  PlayCircleOutlined,
+  PlusOutlined,
+  StarFilled,
+  StarOutlined,
+  StopOutlined,
+  SwapOutlined,
+  UserAddOutlined,
+} from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Button, Card, Col, Descriptions, Empty, Popconfirm, Row, Space, Spin, Table, Tabs, Tag, Typography } from 'antd';
+import { App, Button, Card, Col, DatePicker, Descriptions, Empty, Popconfirm, Progress, Row, Select, Space, Spin, Statistic, Table, Tabs, Tag, Typography } from 'antd';
 import { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { listAuditLogs, type AuditLogEntry } from '../../api/auditLog';
+import { revokeStudentDiscount } from '../../api/discounts';
 import { activateEnrollment, pauseEnrollment } from '../../api/enrollments';
-import { deactivateStudent, getStudent, removeStudentGuardian, updateStudentGuardianLink } from '../../api/students';
+import { listGroups } from '../../api/groups';
+import { deactivateStudent, getStudent, getStudentGrades, getStudentProgress, removeStudentGuardian, updateStudentGuardianLink } from '../../api/students';
+import { downloadStudentAttendanceCsv, getStudentAttendanceHistory } from '../../api/studentAttendance';
+import { getStudentFinancialSummary } from '../../api/tuition';
+import { CreateTuitionChargeModal } from '../../components/CreateTuitionChargeModal';
 import { EnrollmentFormModal } from '../../components/EnrollmentFormModal';
+import { GrantDiscountModal } from '../../components/GrantDiscountModal';
 import { LinkGuardianModal } from '../../components/LinkGuardianModal';
+import { StatusTag } from '../../components/StatusTag';
 import { StudentFormModal } from '../../components/StudentFormModal';
 import { TransferEnrollmentModal } from '../../components/TransferEnrollmentModal';
 import { useAuthStore } from '../../store/auth.store';
-import type { EnrollmentStatus, StudentEnrollmentItem, StudentStatus } from '../../types';
+import { formatCurrency, formatDate, formatDateTime, formatNumber } from '../../utils/format';
+import { ATTENDANCE_STATUS_COLORS, ATTENDANCE_STATUS_LABELS } from '../../utils/attendanceStatus';
+import type { EnrollmentStatus, ExamType, StudentAttendanceHistoryRecord, StudentEnrollmentItem, StudentStatus, TuitionChargeStatus } from '../../types';
 
 const STATUS_COLORS: Record<StudentStatus, string> = { ACTIVE: 'green', PAUSED: 'gold', GRADUATED: 'blue', INACTIVE: 'default', LEFT: 'red' };
 const STATUS_LABELS: Record<StudentStatus, string> = {
@@ -21,10 +44,20 @@ const STATUS_LABELS: Record<StudentStatus, string> = {
   LEFT: "Chiqib ketgan",
 };
 const ENROLLMENT_STATUS_COLORS: Record<EnrollmentStatus, string> = { ACTIVE: 'green', PAUSED: 'gold', COMPLETED: 'blue', CANCELLED: 'red', TRANSFERRED: 'purple' };
+const TUITION_STATUS_COLORS: Record<TuitionChargeStatus, string> = { PENDING: 'blue', PARTIALLY_PAID: 'orange', PAID: 'green', OVERDUE: 'red', CANCELLED: 'default' };
+const EXAM_TYPE_LABELS: Record<ExamType, string> = {
+  QUIZ: 'Test',
+  MIDTERM: 'Oraliq nazorat',
+  FINAL: 'Yakuniy nazorat',
+  MOCK: 'Sinov imtihoni',
+  PLACEMENT: 'Daraja aniqlash',
+  OTHER: 'Boshqa',
+};
 
 export function StudentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { message } = App.useApp();
   const queryClient = useQueryClient();
   const hasPermission = useAuthStore((state) => state.hasPermission);
@@ -32,8 +65,48 @@ export function StudentDetailPage() {
   const [linkOpen, setLinkOpen] = useState(false);
   const [enrollOpen, setEnrollOpen] = useState(false);
   const [transferTarget, setTransferTarget] = useState<StudentEnrollmentItem | undefined>();
+  const [chargeModalOpen, setChargeModalOpen] = useState(false);
+  const [grantModalOpen, setGrantModalOpen] = useState(false);
+  const [attendanceGroupId, setAttendanceGroupId] = useState<string | undefined>();
+  const [attendanceDateRange, setAttendanceDateRange] = useState<[string, string] | undefined>();
+
+  const activeTab = searchParams.get('tab') ?? 'overview';
+  const setActiveTab = (key: string) => setSearchParams(key === 'overview' ? {} : { tab: key }, { replace: true });
+
+  const canEdit = hasPermission('students', 'EDIT');
+  const canViewAttendance = hasPermission('student_attendance', 'VIEW');
+  const canViewFinance = hasPermission('tuition', 'VIEW');
+  const canViewGrades = hasPermission('grades', 'VIEW');
+  const canViewProgress = hasPermission('exams', 'VIEW');
+  const canViewHistory = hasPermission('audit_logs', 'VIEW');
+  const canGroups = hasPermission('groups', 'VIEW');
 
   const studentQuery = useQuery({ queryKey: ['student', id], queryFn: () => getStudent(id!), enabled: !!id });
+
+  // Every heavier per-tab query is `enabled` only while that tab is active — a
+  // student profile with 8 tabs must not fire 8 requests just to view one.
+  const groupsQuery = useQuery({
+    queryKey: ['groups', { pageSize: 100, forAttendanceFilter: true }],
+    queryFn: () => listGroups({ pageSize: 100 }),
+    enabled: canGroups && activeTab === 'attendance',
+  });
+  const attendanceHistoryQuery = useQuery({
+    queryKey: ['student-attendance-history', id, { attendanceGroupId, attendanceDateRange }],
+    queryFn: () => getStudentAttendanceHistory(id!, { groupId: attendanceGroupId, dateFrom: attendanceDateRange?.[0], dateTo: attendanceDateRange?.[1] }),
+    enabled: !!id && activeTab === 'attendance',
+  });
+  const financeSummaryQuery = useQuery({
+    queryKey: ['student-financial-summary', id],
+    queryFn: () => getStudentFinancialSummary(id!),
+    enabled: !!id && activeTab === 'finance',
+  });
+  const gradesQuery = useQuery({ queryKey: ['student-grades', id], queryFn: () => getStudentGrades(id!), enabled: !!id && activeTab === 'grades' });
+  const progressQuery = useQuery({ queryKey: ['student-progress', id], queryFn: () => getStudentProgress(id!), enabled: !!id && activeTab === 'progress' });
+  const historyQuery = useQuery({
+    queryKey: ['audit-logs', 'Student', id],
+    queryFn: () => listAuditLogs(1, 50, { entityType: 'Student', entityId: id }),
+    enabled: !!id && activeTab === 'history',
+  });
 
   function invalidate() {
     queryClient.invalidateQueries({ queryKey: ['student', id] });
@@ -95,6 +168,22 @@ export function StudentDetailPage() {
     },
   });
 
+  const revokeDiscountMutation = useMutation({
+    mutationFn: (studentDiscountId: string) => revokeStudentDiscount(id!, studentDiscountId),
+    onSuccess: () => {
+      message.success('Chegirma bekor qilindi');
+      queryClient.invalidateQueries({ queryKey: ['student-financial-summary', id] });
+    },
+  });
+
+  async function handleExportAttendance() {
+    try {
+      await downloadStudentAttendanceCsv(id!, { groupId: attendanceGroupId, dateFrom: attendanceDateRange?.[0], dateTo: attendanceDateRange?.[1] });
+    } catch {
+      message.error("Hisobotni yuklab bo'lmadi");
+    }
+  }
+
   if (studentQuery.isLoading) {
     return (
       <div style={{ textAlign: 'center', padding: 48 }}>
@@ -106,11 +195,552 @@ export function StudentDetailPage() {
   const student = studentQuery.data;
   if (!student) return null;
 
-  const canEdit = hasPermission('students', 'EDIT');
-  const canViewAttendance = hasPermission('student_attendance', 'VIEW');
-  const canViewFinance = hasPermission('tuition', 'VIEW');
-  const canViewGrades = hasPermission('grades', 'VIEW');
-  const canViewProgress = hasPermission('exams', 'VIEW');
+  const canManageDiscounts = hasPermission('discounts', 'CREATE');
+  const canRevokeDiscount = hasPermission('discounts', 'DELETE');
+  const canCreateCharge = hasPermission('tuition', 'CREATE');
+
+  const tabs = [
+    {
+      key: 'overview',
+      label: 'Umumiy',
+      children: (
+        <>
+          <Descriptions column={{ xs: 1, sm: 2, md: 3 }} title="Shaxsiy ma'lumotlar">
+            <Descriptions.Item label="Telefon">{student.phone ?? '—'}</Descriptions.Item>
+            <Descriptions.Item label="Email">{student.email ?? '—'}</Descriptions.Item>
+            <Descriptions.Item label="Tug'ilgan sana">{formatDate(student.dateOfBirth)}</Descriptions.Item>
+            <Descriptions.Item label="Jinsi">{student.gender ?? '—'}</Descriptions.Item>
+            <Descriptions.Item label="Favqulodda aloqa">{student.emergencyContact ?? '—'}</Descriptions.Item>
+            <Descriptions.Item label="Manzil">{student.address ?? '—'}</Descriptions.Item>
+          </Descriptions>
+
+          <Descriptions column={{ xs: 1, sm: 2, md: 3 }} style={{ marginTop: 16 }} title="Ro'yxat ma'lumotlari">
+            <Descriptions.Item label="Ro'yxatga olingan sana">{formatDate(student.registrationDate)}</Descriptions.Item>
+            <Descriptions.Item label="Qayerdan bilgan">{student.source ?? '—'}</Descriptions.Item>
+            <Descriptions.Item label="Tizim foydalanuvchisi">{student.user ? `${student.user.username} (${student.user.status})` : "Bog'lanmagan"}</Descriptions.Item>
+            <Descriptions.Item label="Joriy guruh(lar)" span={3}>
+              {student.enrollments.filter((e) => e.status === 'ACTIVE').length ? (
+                <Space wrap>
+                  {student.enrollments
+                    .filter((e) => e.status === 'ACTIVE')
+                    .map((e) => (
+                      <Tag key={e.id} color="green" style={{ cursor: 'pointer' }} onClick={() => navigate(`/groups/${e.group.id}`)}>
+                        {e.group.name} ({e.group.course.name})
+                      </Tag>
+                    ))}
+                </Space>
+              ) : (
+                '—'
+              )}
+            </Descriptions.Item>
+            {student.convertedFromLead && (
+              <Descriptions.Item label="Konvertatsiya qilingan lid" span={3}>
+                {student.convertedFromLead.fullName} ({formatDate(student.convertedFromLead.createdAt)} sanasida lid sifatida yaratilgan)
+              </Descriptions.Item>
+            )}
+            {student.notes && (
+              <Descriptions.Item label="Izoh" span={3}>
+                {student.notes}
+              </Descriptions.Item>
+            )}
+          </Descriptions>
+        </>
+      ),
+    },
+    {
+      key: 'guardians',
+      label: `Vasiylar (${student.guardians.length})`,
+      children: (
+        <>
+          {canEdit && (
+            <Button icon={<LinkOutlined />} style={{ marginBottom: 12 }} onClick={() => setLinkOpen(true)}>
+              Vasiy bog'lash
+            </Button>
+          )}
+          {student.guardians.length ? (
+            <Table
+              rowKey="guardianId"
+              size="small"
+              pagination={false}
+              dataSource={student.guardians}
+              onRow={(record) => ({ onClick: () => navigate(`/guardians/${record.guardianId}`), style: { cursor: 'pointer' } })}
+              columns={[
+                { title: 'F.I.Sh.', render: (_, record) => record.guardian.fullName },
+                { title: 'Telefon', render: (_, record) => record.guardian.phone },
+                { title: "Qarindoshlik", dataIndex: 'relationship' },
+                {
+                  title: 'Asosiymi',
+                  render: (_, record) =>
+                    record.isPrimary ? (
+                      <Tag icon={<StarFilled />} color="gold">
+                        Asosiy
+                      </Tag>
+                    ) : (
+                      canEdit && (
+                        <Button
+                          size="small"
+                          icon={<StarOutlined />}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPrimaryMutation.mutate(record.guardianId);
+                          }}
+                        >
+                          Asosiy qilish
+                        </Button>
+                      )
+                    ),
+                },
+                {
+                  title: 'Amallar',
+                  render: (_, record) =>
+                    canEdit && (
+                      <Popconfirm
+                        title="Bog'lanishni bekor qilish?"
+                        onConfirm={(e) => {
+                          e?.stopPropagation();
+                          unlinkMutation.mutate(record.guardianId);
+                        }}
+                        onCancel={(e) => e?.stopPropagation()}
+                      >
+                        <Button size="small" danger onClick={(e) => e.stopPropagation()}>
+                          Bekor qilish
+                        </Button>
+                      </Popconfirm>
+                    ),
+                },
+              ]}
+            />
+          ) : (
+            <Empty description="Vasiylar bog'lanmagan" />
+          )}
+        </>
+      ),
+    },
+    {
+      key: 'enrollments',
+      label: `Yozilishlar (${student.enrollments.length})`,
+      children: (
+        <>
+          {hasPermission('enrollments', 'CREATE') && (
+            <Button icon={<UserAddOutlined />} style={{ marginBottom: 12 }} onClick={() => setEnrollOpen(true)}>
+              Guruhga yozish
+            </Button>
+          )}
+          {student.enrollments.length ? (
+            <Table
+              rowKey="id"
+              size="small"
+              pagination={false}
+              dataSource={student.enrollments}
+              onRow={(record) => ({ onClick: () => navigate(`/enrollments/${record.id}`), style: { cursor: 'pointer' } })}
+              columns={[
+                { title: 'Kurs', render: (_, record) => record.group.course.name },
+                { title: 'Guruh', render: (_, record) => record.group.name },
+                { title: "O'qituvchi", render: (_, record) => record.group.teacherEmployee?.fullName ?? '—' },
+                { title: 'Filial', render: (_, record) => record.group.branch.name },
+                { title: 'Boshlanish sanasi', dataIndex: 'startDate', render: (v: string) => formatDate(v) },
+                { title: "To'lov summasi", dataIndex: 'agreedTuition', render: (v: string | null) => (v ? formatNumber(v, 2) : '—') },
+                { title: 'Chegirma', dataIndex: 'discountAmount', render: (v: string | null) => (v ? formatNumber(v, 2) : '—') },
+                {
+                  title: 'Status',
+                  dataIndex: 'status',
+                  render: (v: EnrollmentStatus) => <Tag color={ENROLLMENT_STATUS_COLORS[v]}>{v}</Tag>,
+                },
+                {
+                  title: 'Amallar',
+                  render: (_, record) =>
+                    hasPermission('enrollments', 'EDIT') && (
+                      <Space onClick={(e) => e.stopPropagation()}>
+                        {record.status === 'ACTIVE' && (
+                          <Button size="small" icon={<PauseCircleOutlined />} onClick={() => pauseMutation.mutate(record.id)}>
+                            Muzlatish
+                          </Button>
+                        )}
+                        {record.status === 'PAUSED' && (
+                          <Button size="small" icon={<PlayCircleOutlined />} onClick={() => resumeMutation.mutate(record.id)}>
+                            Tiklash
+                          </Button>
+                        )}
+                        {['ACTIVE', 'PAUSED'].includes(record.status) && (
+                          <Button size="small" icon={<SwapOutlined />} onClick={() => setTransferTarget(record)}>
+                            Ko'chirish
+                          </Button>
+                        )}
+                      </Space>
+                    ),
+                },
+              ]}
+            />
+          ) : (
+            <Empty description="Yozilishlar yo'q" />
+          )}
+        </>
+      ),
+    },
+    canViewAttendance && {
+      key: 'attendance',
+      label: 'Davomat',
+      children: attendanceHistoryQuery.isLoading ? (
+        <Spin />
+      ) : (
+        <>
+          <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
+            <Col />
+            <Col>
+              <Button icon={<DownloadOutlined />} onClick={handleExportAttendance}>
+                CSV yuklash
+              </Button>
+            </Col>
+          </Row>
+          {attendanceHistoryQuery.data && (
+            <Row gutter={16} style={{ marginBottom: 16 }}>
+              <Col span={4}>
+                <Statistic title="Jami darslar" value={attendanceHistoryQuery.data.eligibleLessons} />
+              </Col>
+              <Col span={4}>
+                <Statistic title="Keldi" value={attendanceHistoryQuery.data.present} styles={{ content: { color: '#3f8600' } }} />
+              </Col>
+              <Col span={4}>
+                <Statistic title="Kelmadi" value={attendanceHistoryQuery.data.absent} styles={{ content: { color: '#cf1322' } }} />
+              </Col>
+              <Col span={4}>
+                <Statistic title="Kech qoldi" value={attendanceHistoryQuery.data.late} styles={{ content: { color: '#d4b106' } }} />
+              </Col>
+              <Col span={4}>
+                <Statistic title="Sababli" value={attendanceHistoryQuery.data.excused} styles={{ content: { color: '#1677ff' } }} />
+              </Col>
+              <Col span={4}>
+                <Statistic
+                  title="Davomat foizi"
+                  value={attendanceHistoryQuery.data.attendancePercentage}
+                  suffix="%"
+                  styles={{
+                    content: {
+                      color:
+                        attendanceHistoryQuery.data.attendancePercentage >= 80 ? '#3f8600' : attendanceHistoryQuery.data.attendancePercentage >= 50 ? '#d4b106' : '#cf1322',
+                    },
+                  }}
+                />
+              </Col>
+            </Row>
+          )}
+
+          <Space style={{ marginBottom: 16 }} wrap>
+            {canGroups && (
+              <Select
+                placeholder="Guruh bo'yicha"
+                allowClear
+                style={{ width: 200 }}
+                options={groupsQuery.data?.items.map((g) => ({ value: g.id, label: g.name }))}
+                onChange={setAttendanceGroupId}
+              />
+            )}
+            <DatePicker.RangePicker
+              onChange={(range) => setAttendanceDateRange(range && range[0] && range[1] ? [range[0].format('YYYY-MM-DD'), range[1].format('YYYY-MM-DD')] : undefined)}
+            />
+          </Space>
+
+          <Table<StudentAttendanceHistoryRecord>
+            rowKey="lessonId"
+            size="small"
+            dataSource={attendanceHistoryQuery.data?.records}
+            pagination={{ pageSize: 20 }}
+            columns={[
+              { title: 'Sana', dataIndex: 'scheduledStart', render: (v: string) => formatDateTime(v) },
+              { title: 'Guruh', render: (_, record) => record.group.name },
+              { title: 'Mavzu', dataIndex: 'topic', render: (v: string | null) => v ?? '—' },
+              {
+                title: 'Status',
+                dataIndex: 'status',
+                render: (v: StudentAttendanceHistoryRecord['status']) =>
+                  v === 'UNMARKED' ? <Tag>Belgilanmagan</Tag> : <Tag color={ATTENDANCE_STATUS_COLORS[v]}>{ATTENDANCE_STATUS_LABELS[v]}</Tag>,
+              },
+              { title: 'Izoh', dataIndex: 'notes', render: (v: string | null) => v ?? '—' },
+            ]}
+          />
+        </>
+      ),
+    },
+    canViewFinance && {
+      key: 'finance',
+      label: 'Moliya',
+      children: financeSummaryQuery.isLoading ? (
+        <Spin />
+      ) : !financeSummaryQuery.data ? null : (
+        <>
+          <Row justify="end" style={{ marginBottom: 16 }}>
+            <Space>
+              {canManageDiscounts && (
+                <Button icon={<PlusOutlined />} onClick={() => setGrantModalOpen(true)}>
+                  Chegirma biriktirish
+                </Button>
+              )}
+              {canCreateCharge && (
+                <Button type="primary" icon={<PlusOutlined />} onClick={() => setChargeModalOpen(true)}>
+                  Yangi hisob
+                </Button>
+              )}
+            </Space>
+          </Row>
+
+          <Row gutter={16} style={{ marginBottom: 24 }}>
+            <Col span={5}>
+              <Card size="small">
+                <Statistic title="Jami hisoblangan" value={financeSummaryQuery.data.balance.totalBilled} formatter={(v) => formatCurrency(Number(v))} />
+              </Card>
+            </Col>
+            <Col span={5}>
+              <Card size="small">
+                <Statistic title="Chegirmalar" value={financeSummaryQuery.data.balance.discounts} formatter={(v) => formatCurrency(Number(v))} />
+              </Card>
+            </Col>
+            <Col span={5}>
+              <Card size="small">
+                <Statistic title="To'langan" value={financeSummaryQuery.data.balance.paid} formatter={(v) => formatCurrency(Number(v))} valueStyle={{ color: '#3f8600' }} />
+              </Card>
+            </Col>
+            <Col span={5}>
+              <Card size="small">
+                <Statistic title="Qoldiq" value={financeSummaryQuery.data.balance.outstanding} formatter={(v) => formatCurrency(Number(v))} />
+              </Card>
+            </Col>
+            <Col span={4}>
+              <Card size="small">
+                <Statistic
+                  title="Muddati o'tgan"
+                  value={financeSummaryQuery.data.balance.overdue}
+                  formatter={(v) => formatCurrency(Number(v))}
+                  valueStyle={{ color: financeSummaryQuery.data!.balance.overdue > 0 ? '#cf1322' : undefined }}
+                />
+              </Card>
+            </Col>
+          </Row>
+
+          <Tabs
+            items={[
+              {
+                key: 'charges',
+                label: 'Hisoblar',
+                children: (
+                  <Table
+                    size="small"
+                    rowKey="id"
+                    dataSource={financeSummaryQuery.data.charges}
+                    pagination={false}
+                    onRow={(record) => ({ onClick: () => navigate(`/tuition/${record.id}`), style: { cursor: 'pointer' } })}
+                    columns={[
+                      { title: 'Davr', dataIndex: 'billingPeriod' },
+                      { title: 'Guruh', render: (_, record) => record.enrollment.group.name },
+                      { title: 'Sof summa', dataIndex: 'netAmount', render: (v: string) => formatNumber(v, 2) },
+                      { title: "To'langan", dataIndex: 'allocatedAmount', render: (v: number) => formatNumber(v, 2) },
+                      { title: 'Qoldiq', dataIndex: 'outstanding', render: (v: number) => formatNumber(v, 2) },
+                      { title: 'Muddati', dataIndex: 'dueDate', render: (v: string) => formatDate(v) },
+                      { title: 'Status', dataIndex: 'status', render: (v: TuitionChargeStatus) => <Tag color={TUITION_STATUS_COLORS[v]}>{v}</Tag> },
+                    ]}
+                  />
+                ),
+              },
+              {
+                key: 'payments',
+                label: "To'lovlar",
+                children: (
+                  <Table
+                    size="small"
+                    rowKey="id"
+                    dataSource={financeSummaryQuery.data.payments}
+                    pagination={false}
+                    columns={[
+                      { title: 'Raqam', dataIndex: 'paymentNumber' },
+                      { title: 'Summa', dataIndex: 'amount', render: (v: string) => formatNumber(v, 2) },
+                      { title: 'Taqsimlangan', dataIndex: 'allocatedAmount', render: (v: number) => formatNumber(v, 2) },
+                      { title: 'Taqsimlanmagan', dataIndex: 'unallocatedAmount', render: (v: number) => formatNumber(v, 2) },
+                      { title: 'Usul', dataIndex: 'method' },
+                      { title: 'Sana', dataIndex: 'createdAt', render: (v: string) => formatDateTime(v) },
+                    ]}
+                  />
+                ),
+              },
+              {
+                key: 'allocation-history',
+                label: 'Taqsimlash tarixi',
+                children: (
+                  <Table
+                    size="small"
+                    rowKey="id"
+                    dataSource={financeSummaryQuery.data.allocationHistory}
+                    pagination={false}
+                    columns={[
+                      { title: 'Davr', dataIndex: 'billingPeriod' },
+                      { title: "To'lov raqami", dataIndex: ['payment', 'paymentNumber'] },
+                      { title: 'Summa', dataIndex: 'amount', render: (v: string) => formatNumber(v, 2) },
+                      { title: 'Sana', dataIndex: 'createdAt', render: (v: string) => formatDateTime(v) },
+                    ]}
+                  />
+                ),
+              },
+              {
+                key: 'discounts',
+                label: 'Chegirmalar',
+                children: (
+                  <Table
+                    size="small"
+                    rowKey="id"
+                    dataSource={financeSummaryQuery.data.discounts}
+                    pagination={false}
+                    columns={[
+                      { title: 'Chegirma', dataIndex: ['discount', 'name'] },
+                      {
+                        title: 'Qiymati',
+                        render: (_, record) => (record.discount.type === 'PERCENTAGE' ? `${Number(record.discount.value)}%` : formatNumber(record.discount.value)),
+                      },
+                      { title: 'Qamrovi', render: (_, record) => record.enrollment?.group.name ?? 'Barcha yozilishlar' },
+                      { title: 'Boshlanish', dataIndex: 'startDate', render: (v: string) => formatDate(v) },
+                      { title: 'Tugash', dataIndex: 'endDate', render: (v: string | null) => (v ? formatDate(v) : 'Doimiy') },
+                      {
+                        title: 'Amallar',
+                        render: (_, record) =>
+                          canRevokeDiscount && (
+                            <Popconfirm title="Chegirmani bekor qilish?" onConfirm={() => revokeDiscountMutation.mutate(record.id)}>
+                              <Button size="small" danger icon={<StopOutlined />} />
+                            </Popconfirm>
+                          ),
+                      },
+                    ]}
+                  />
+                ),
+              },
+            ]}
+          />
+        </>
+      ),
+    },
+    canViewGrades && {
+      key: 'grades',
+      label: 'Baholar',
+      children: gradesQuery.isLoading ? (
+        <Spin />
+      ) : (
+        <Table
+          rowKey="id"
+          size="small"
+          dataSource={gradesQuery.data?.items}
+          pagination={false}
+          locale={{ emptyText: "Hali baho qo'yilmagan" }}
+          onRow={(record) => ({ onClick: () => navigate(`/exams/${record.examId}`), style: { cursor: 'pointer' } })}
+          columns={[
+            { title: 'Imtihon', dataIndex: 'examTitle' },
+            { title: 'Turi', dataIndex: 'examType', render: (v: ExamType) => EXAM_TYPE_LABELS[v] },
+            { title: 'Kurs', render: (_, record) => record.course.name },
+            { title: 'Guruh', render: (_, record) => record.group.name },
+            { title: 'Sana', dataIndex: 'examDate', render: (v: string) => formatDate(v) },
+            { title: 'Ball', render: (_, record) => `${record.score} / ${record.maxScore}` },
+            { title: 'Foiz', dataIndex: 'percentage', render: (v: number) => `${v}%` },
+            { title: 'Baho', dataIndex: 'grade' },
+            { title: "Natija", render: (_, record) => <Tag color={record.passed ? 'green' : 'red'}>{record.passed ? "O'tdi" : 'Yiqildi'}</Tag> },
+          ]}
+        />
+      ),
+    },
+    canViewProgress && {
+      key: 'progress',
+      label: "O'zlashtirish",
+      children: progressQuery.isLoading ? (
+        <Spin />
+      ) : !progressQuery.data ? null : (
+        <>
+          <Row gutter={16} style={{ marginBottom: 24 }}>
+            <Col span={6}>
+              <Card size="small">
+                <Statistic title="Jami imtihonlar" value={progressQuery.data.totalExams} />
+              </Card>
+            </Col>
+            <Col span={6}>
+              <Card size="small">
+                <Statistic title="O'rtacha ball (%)" value={progressQuery.data.averagePercentage} precision={2} />
+              </Card>
+            </Col>
+            <Col span={6}>
+              <Card size="small">
+                <Statistic title="O'tish darajasi (%)" value={progressQuery.data.passRate} precision={2} />
+              </Card>
+            </Col>
+            <Col span={6}>
+              <Card size="small">
+                <Statistic title="Davomat (%)" value={progressQuery.data.attendancePercentage} precision={2} />
+              </Card>
+            </Col>
+          </Row>
+
+          <Typography.Title level={5}>Kurslar bo'yicha o'zlashtirish (joriy yozilishlar)</Typography.Title>
+          <Table
+            rowKey="enrollmentId"
+            size="small"
+            style={{ marginBottom: 24 }}
+            dataSource={progressQuery.data.courseProgress}
+            pagination={false}
+            locale={{ emptyText: "Faol yozilish yo'q" }}
+            columns={[
+              { title: 'Kurs', dataIndex: 'courseName' },
+              { title: 'Guruh', dataIndex: 'groupName' },
+              { title: 'Darslar', render: (_, record) => `${record.completedLessons} / ${record.totalLessons}` },
+              { title: 'Jarayon', render: (_, record) => <Progress percent={record.progressPercentage} size="small" /> },
+            ]}
+          />
+
+          <Typography.Title level={5}>Yakunlangan kurslar/guruhlar</Typography.Title>
+          <Table
+            rowKey="enrollmentId"
+            size="small"
+            style={{ marginBottom: 24 }}
+            dataSource={progressQuery.data.completedGroups}
+            pagination={false}
+            locale={{ emptyText: "Hali yakunlangan kurs yo'q" }}
+            columns={[
+              { title: 'Kurs', dataIndex: 'courseName' },
+              { title: 'Guruh', dataIndex: 'groupName' },
+              { title: 'Yakunlangan sana', dataIndex: 'endDate', render: (v: string | null) => (v ? formatDate(v) : '—') },
+            ]}
+          />
+
+          <Typography.Title level={5}>So'nggi imtihonlar</Typography.Title>
+          <Table
+            rowKey="id"
+            size="small"
+            dataSource={progressQuery.data.recentExams}
+            pagination={false}
+            locale={{ emptyText: "Hali baho qo'yilmagan" }}
+            onRow={(record) => ({ onClick: () => navigate(`/exams/${record.examId}`), style: { cursor: 'pointer' } })}
+            columns={[
+              { title: 'Imtihon', dataIndex: 'examTitle' },
+              { title: 'Sana', dataIndex: 'examDate', render: (v: string) => formatDate(v) },
+              { title: 'Ball', render: (_, record) => `${record.score} / ${record.maxScore}` },
+              { title: 'Baho', dataIndex: 'grade' },
+            ]}
+          />
+        </>
+      ),
+    },
+    canViewHistory && {
+      key: 'history',
+      label: 'Tarix',
+      children: (
+        <Table<AuditLogEntry>
+          rowKey="id"
+          size="small"
+          loading={historyQuery.isLoading}
+          dataSource={historyQuery.data?.items}
+          pagination={false}
+          locale={{ emptyText: 'Yozuvlar yo\'q' }}
+          columns={[
+            { title: 'Vaqt', dataIndex: 'createdAt', width: 160, render: (v: string) => formatDateTime(v) },
+            { title: 'Kim', dataIndex: ['actor', 'fullName'], render: (v: string) => v ?? 'tizim' },
+            { title: 'Amal', dataIndex: 'action', width: 130, render: (v: string) => <StatusTag value={v} /> },
+            { title: 'Tavsif', dataIndex: 'description' },
+          ]}
+        />
+      ),
+    },
+  ].filter((tab): tab is Exclude<typeof tab, false> => Boolean(tab));
 
   return (
     <div>
@@ -131,26 +761,6 @@ export function StudentDetailPage() {
           <Col>
             <Space>
               <Tag color={STATUS_COLORS[student.status]}>{STATUS_LABELS[student.status]}</Tag>
-              {canViewAttendance && (
-                <Button icon={<CarryOutOutlined />} onClick={() => navigate(`/students/${student.id}/attendance`)}>
-                  Davomat
-                </Button>
-              )}
-              {canViewFinance && (
-                <Button icon={<WalletOutlined />} onClick={() => navigate(`/students/${student.id}/finance`)}>
-                  Moliya
-                </Button>
-              )}
-              {canViewGrades && (
-                <Button icon={<FormOutlined />} onClick={() => navigate(`/students/${student.id}/grades`)}>
-                  Baholar
-                </Button>
-              )}
-              {canViewProgress && (
-                <Button icon={<LineChartOutlined />} onClick={() => navigate(`/students/${student.id}/progress`)}>
-                  O'zlashtirish
-                </Button>
-              )}
               {canEdit && (
                 <Button icon={<EditOutlined />} onClick={() => setEditOpen(true)}>
                   Tahrirlash
@@ -166,183 +776,10 @@ export function StudentDetailPage() {
             </Space>
           </Col>
         </Row>
-
-        <Descriptions column={3} style={{ marginTop: 16 }} title="Shaxsiy ma'lumotlar">
-          <Descriptions.Item label="Telefon">{student.phone ?? '—'}</Descriptions.Item>
-          <Descriptions.Item label="Email">{student.email ?? '—'}</Descriptions.Item>
-          <Descriptions.Item label="Tug'ilgan sana">{student.dateOfBirth ? new Date(student.dateOfBirth).toLocaleDateString('uz-UZ') : '—'}</Descriptions.Item>
-          <Descriptions.Item label="Jinsi">{student.gender ?? '—'}</Descriptions.Item>
-          <Descriptions.Item label="Favqulodda aloqa">{student.emergencyContact ?? '—'}</Descriptions.Item>
-          <Descriptions.Item label="Manzil">{student.address ?? '—'}</Descriptions.Item>
-        </Descriptions>
-
-        <Descriptions column={3} style={{ marginTop: 16 }} title="Ro'yxat ma'lumotlari">
-          <Descriptions.Item label="Ro'yxatga olingan sana">{new Date(student.registrationDate).toLocaleDateString('uz-UZ')}</Descriptions.Item>
-          <Descriptions.Item label="Qayerdan bilgan">{student.source ?? '—'}</Descriptions.Item>
-          <Descriptions.Item label="Tizim foydalanuvchisi">{student.user ? `${student.user.username} (${student.user.status})` : "Bog'lanmagan"}</Descriptions.Item>
-          <Descriptions.Item label="Joriy guruh(lar)" span={3}>
-            {student.enrollments.filter((e) => e.status === 'ACTIVE').length ? (
-              <Space wrap>
-                {student.enrollments
-                  .filter((e) => e.status === 'ACTIVE')
-                  .map((e) => (
-                    <Tag key={e.id} color="green" style={{ cursor: 'pointer' }} onClick={() => navigate(`/groups/${e.group.id}`)}>
-                      {e.group.name} ({e.group.course.name})
-                    </Tag>
-                  ))}
-              </Space>
-            ) : (
-              '—'
-            )}
-          </Descriptions.Item>
-          {student.convertedFromLead && (
-            <Descriptions.Item label="Konvertatsiya qilingan lid" span={3}>
-              {student.convertedFromLead.fullName} ({new Date(student.convertedFromLead.createdAt).toLocaleDateString('uz-UZ')} sanasida lid sifatida yaratilgan)
-            </Descriptions.Item>
-          )}
-          {student.notes && (
-            <Descriptions.Item label="Izoh" span={3}>
-              {student.notes}
-            </Descriptions.Item>
-          )}
-        </Descriptions>
       </Card>
 
       <Card>
-        <Tabs
-          items={[
-            {
-              key: 'guardians',
-              label: `Vasiylar (${student.guardians.length})`,
-              children: (
-                <>
-                  {hasPermission('students', 'EDIT') && (
-                    <Button icon={<LinkOutlined />} style={{ marginBottom: 12 }} onClick={() => setLinkOpen(true)}>
-                      Vasiy bog'lash
-                    </Button>
-                  )}
-                  {student.guardians.length ? (
-                    <Table
-                      rowKey="guardianId"
-                      size="small"
-                      pagination={false}
-                      dataSource={student.guardians}
-                      onRow={(record) => ({ onClick: () => navigate(`/guardians/${record.guardianId}`), style: { cursor: 'pointer' } })}
-                      columns={[
-                        { title: 'F.I.Sh.', render: (_, record) => record.guardian.fullName },
-                        { title: 'Telefon', render: (_, record) => record.guardian.phone },
-                        { title: "Qarindoshlik", dataIndex: 'relationship' },
-                        {
-                          title: 'Asosiymi',
-                          render: (_, record) =>
-                            record.isPrimary ? (
-                              <Tag icon={<StarFilled />} color="gold">
-                                Asosiy
-                              </Tag>
-                            ) : (
-                              canEdit && (
-                                <Button
-                                  size="small"
-                                  icon={<StarOutlined />}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setPrimaryMutation.mutate(record.guardianId);
-                                  }}
-                                >
-                                  Asosiy qilish
-                                </Button>
-                              )
-                            ),
-                        },
-                        {
-                          title: 'Amallar',
-                          render: (_, record) =>
-                            canEdit && (
-                              <Popconfirm
-                                title="Bog'lanishni bekor qilish?"
-                                onConfirm={(e) => {
-                                  e?.stopPropagation();
-                                  unlinkMutation.mutate(record.guardianId);
-                                }}
-                                onCancel={(e) => e?.stopPropagation()}
-                              >
-                                <Button size="small" danger onClick={(e) => e.stopPropagation()}>
-                                  Bekor qilish
-                                </Button>
-                              </Popconfirm>
-                            ),
-                        },
-                      ]}
-                    />
-                  ) : (
-                    <Empty description="Vasiylar bog'lanmagan" />
-                  )}
-                </>
-              ),
-            },
-            {
-              key: 'enrollments',
-              label: `Yozilishlar (${student.enrollments.length})`,
-              children: (
-                <>
-                  {hasPermission('enrollments', 'CREATE') && (
-                    <Button icon={<UserAddOutlined />} style={{ marginBottom: 12 }} onClick={() => setEnrollOpen(true)}>
-                      Guruhga yozish
-                    </Button>
-                  )}
-                  {student.enrollments.length ? (
-                    <Table
-                      rowKey="id"
-                      size="small"
-                      pagination={false}
-                      dataSource={student.enrollments}
-                      onRow={(record) => ({ onClick: () => navigate(`/enrollments/${record.id}`), style: { cursor: 'pointer' } })}
-                      columns={[
-                        { title: 'Kurs', render: (_, record) => record.group.course.name },
-                        { title: 'Guruh', render: (_, record) => record.group.name },
-                        { title: "O'qituvchi", render: (_, record) => record.group.teacherEmployee?.fullName ?? '—' },
-                        { title: 'Filial', render: (_, record) => record.group.branch.name },
-                        { title: 'Boshlanish sanasi', dataIndex: 'startDate', render: (v: string) => new Date(v).toLocaleDateString('uz-UZ') },
-                        { title: "To'lov summasi", dataIndex: 'agreedTuition', render: (v: string | null) => (v ? Number(v).toLocaleString('uz-UZ') : '—') },
-                        { title: 'Chegirma', dataIndex: 'discountAmount', render: (v: string | null) => (v ? Number(v).toLocaleString('uz-UZ') : '—') },
-                        {
-                          title: 'Status',
-                          dataIndex: 'status',
-                          render: (v: EnrollmentStatus) => <Tag color={ENROLLMENT_STATUS_COLORS[v]}>{v}</Tag>,
-                        },
-                        {
-                          title: 'Amallar',
-                          render: (_, record) =>
-                            hasPermission('enrollments', 'EDIT') && (
-                              <Space onClick={(e) => e.stopPropagation()}>
-                                {record.status === 'ACTIVE' && (
-                                  <Button size="small" icon={<PauseCircleOutlined />} onClick={() => pauseMutation.mutate(record.id)}>
-                                    Muzlatish
-                                  </Button>
-                                )}
-                                {record.status === 'PAUSED' && (
-                                  <Button size="small" icon={<PlayCircleOutlined />} onClick={() => resumeMutation.mutate(record.id)}>
-                                    Tiklash
-                                  </Button>
-                                )}
-                                {['ACTIVE', 'PAUSED'].includes(record.status) && (
-                                  <Button size="small" icon={<SwapOutlined />} onClick={() => setTransferTarget(record)}>
-                                    Ko'chirish
-                                  </Button>
-                                )}
-                              </Space>
-                            ),
-                        },
-                      ]}
-                    />
-                  ) : (
-                    <Empty description="Yozilishlar yo'q" />
-                  )}
-                </>
-              ),
-            },
-          ]}
-        />
+        <Tabs activeKey={activeTab} onChange={setActiveTab} items={tabs} />
       </Card>
 
       <StudentFormModal open={editOpen} onClose={() => setEditOpen(false)} student={student} />
@@ -363,6 +800,8 @@ export function StudentDetailPage() {
         studentId={student.id}
         alreadyLinkedGuardianIds={student.guardians.map((g) => g.guardianId)}
       />
+      <CreateTuitionChargeModal open={chargeModalOpen} onClose={() => setChargeModalOpen(false)} fixedStudentId={id} />
+      <GrantDiscountModal open={grantModalOpen} onClose={() => setGrantModalOpen(false)} studentId={id!} />
     </div>
   );
 }

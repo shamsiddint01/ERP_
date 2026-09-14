@@ -216,7 +216,7 @@ export function OrderDetailPage() {
 
           <Card title="Hisob-faktura">
             {invoice ? (
-              <Space direction="vertical" style={{ width: '100%' }}>
+              <Space orientation="vertical" style={{ width: '100%' }}>
                 <div>{invoice.invoiceNumber}</div>
                 <Tag>{invoice.status}</Tag>
                 <Button icon={<FilePdfOutlined />} onClick={() => openInvoicePdf(invoice.id, invoice.invoiceNumber)}>

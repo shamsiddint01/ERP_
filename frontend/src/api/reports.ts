@@ -49,6 +49,30 @@ export async function getApReconciliation() {
   return data;
 }
 
+export interface StudentDebtRow {
+  studentId: string;
+  studentCode: string;
+  fullName: string;
+  totalBilled: number;
+  discounts: number;
+  paid: number;
+  outstanding: number;
+  overdue: number;
+}
+
+export interface StudentDebtReport {
+  rows: StudentDebtRow[];
+  totalBilled: number;
+  paid: number;
+  outstanding: number;
+  overdue: number;
+}
+
+export async function getStudentDebtReport() {
+  const { data } = await apiClient.get<StudentDebtReport>('/reports/student-debt');
+  return data;
+}
+
 /** Fetches a report export as a blob (so the auth header goes along) and triggers a browser download. */
 export async function downloadReportExport(
   reportPath: string,

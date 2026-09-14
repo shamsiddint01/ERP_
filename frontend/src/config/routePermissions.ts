@@ -24,6 +24,7 @@ const ROUTE_PERMISSIONS: RoutePermission[] = [
   { prefix: '/attendance/student', module: 'student_attendance', action: 'VIEW' },
   { prefix: '/finance/accounts', module: 'finance', action: 'VIEW' },
   { prefix: '/finance/reports', module: 'reports', action: 'VIEW' },
+  { prefix: '/finance/student-balances', module: 'reports', action: 'VIEW' },
   { prefix: '/students', module: 'students', action: 'VIEW' },
   { prefix: '/guardians', module: 'guardians', action: 'VIEW' },
   { prefix: '/leads', module: 'leads', action: 'VIEW' },

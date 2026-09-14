@@ -36,7 +36,7 @@ export function LoginPage() {
     <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', background: '#f0f2f5' }}>
       <Card style={{ width: 380 }}>
         <Typography.Title level={3} style={{ textAlign: 'center', marginBottom: 24 }}>
-          ERP Tizimga kirish
+          Ta'lim Markazi tizimiga kirish
         </Typography.Title>
         {error && <Alert type="error" message={error} showIcon style={{ marginBottom: 16 }} />}
         <Form layout="vertical" onFinish={handleSubmit} disabled={loading}>
