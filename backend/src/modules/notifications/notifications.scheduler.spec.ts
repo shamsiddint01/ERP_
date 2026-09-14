@@ -12,6 +12,10 @@ function createPrismaMock(overrides: Record<string, Record<string, unknown>> = {
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
       ...overrides.tuitionCharge,
     },
+    exam: {
+      findMany: vi.fn().mockResolvedValue([]),
+      ...overrides.exam,
+    },
   };
 }
 
@@ -80,5 +84,31 @@ describe('NotificationsScheduler — tuition scans (Phase G)', () => {
       expect(statuses).not.toContain('CANCELLED');
       expect(statuses).not.toContain('PAID');
     }
+  });
+});
+
+describe('NotificationsScheduler — upcoming exam scan (Phase H)', () => {
+  function fakeExam(overrides: Record<string, unknown> = {}) {
+    return { id: 'exam1', title: 'Midterm Test', date: new Date('2026-09-15'), group: { name: 'IELTS Weekend' }, ...overrides };
+  }
+
+  it('scanUpcomingExams notifies for a SCHEDULED exam within the reminder window', async () => {
+    const prisma = createPrismaMock({ exam: { findMany: vi.fn().mockResolvedValue([fakeExam()]) } });
+    const { scheduler, notifications } = createScheduler(prisma);
+
+    const summary = await scheduler.runDailyScans();
+
+    expect(summary.upcomingExams).toBe(1);
+    expect(notifications.notifyByPermission).toHaveBeenCalledWith('exams', 'VIEW', expect.objectContaining({ type: 'EXAM_UPCOMING', referenceId: 'exam1' }));
+  });
+
+  it('only ever queries for SCHEDULED exams (never COMPLETED/CANCELLED)', async () => {
+    const findMany = vi.fn().mockResolvedValue([]);
+    const prisma = createPrismaMock({ exam: { findMany } });
+    const { scheduler } = createScheduler(prisma);
+
+    await scheduler.runDailyScans();
+
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ status: 'SCHEDULED' }) }));
   });
 });

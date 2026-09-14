@@ -13,6 +13,21 @@ export interface CompensationInput {
   overtimeRate: number | null;
 }
 
+/**
+ * Phase H — the teacher-specific figures computeBaseAmount needs for
+ * PER_LESSON/PER_GROUP/MIXED. All four fields are pre-computed by the
+ * caller (PayrollCalculationService) from real DB rows — this stays a pure
+ * function, no DB access here, same rule the rest of this file follows.
+ */
+export interface TeacherCompensationInput {
+  perLessonRate: number | null;
+  perGroupRate: number | null;
+  /** Count of this teacher's Lesson rows with status=COMPLETED in the payroll period — cancelled lessons are never counted (excluded by the caller's query, not here). */
+  completedLessons: number;
+  /** Count of StudentGroup rows this teacher currently teaches whose status=ACTIVE and whose date range overlaps the payroll period. */
+  activeGroups: number;
+}
+
 const STANDARD_MONTHLY_MINUTES = 176 * 60; // 22 working days x 8 hours — a fixed, documented business constant, not per-employee-hidden magic.
 const OVERTIME_MULTIPLIER = 1.5;
 
@@ -72,16 +87,48 @@ export function resolveOvertimeRate(compensation: CompensationInput): number {
   return round2(resolveHourlyRate(compensation) * OVERTIME_MULTIPLIER);
 }
 
-/** Base pay for the period, prorated by unpaid absence for MONTHLY staff, or driven directly by days/hours worked otherwise. */
-export function computeBaseAmount(compensation: CompensationInput, standardWorkingDays: number, summary: AttendanceSummary): number {
+/** MONTHLY's own proration, factored out so MIXED can reuse it verbatim instead of duplicating the formula. */
+function computeMonthlyBase(baseSalary: number, standardWorkingDays: number, unpaidAbsenceDays: number): number {
+  if (standardWorkingDays <= 0) return 0;
+  const payableDays = Math.max(0, standardWorkingDays - unpaidAbsenceDays);
+  return round2(baseSalary * (payableDays / standardWorkingDays));
+}
+
+/**
+ * Base pay for the period. MONTHLY prorates by unpaid absence; DAILY/HOURLY
+ * are driven directly by days/hours worked. The Phase H additions:
+ * PER_LESSON = perLessonRate x completed lessons; PER_GROUP = perGroupRate x
+ * active groups; MIXED = a MONTHLY-style prorated base PLUS both of those —
+ * a teacher on a reduced guaranteed salary who also earns per lesson/group.
+ * `teacher` is only read for those three types; every existing salary type's
+ * behavior is completely unchanged (verified by the pre-Phase-H test suite,
+ * none of which passes a 4th argument).
+ */
+export function computeBaseAmount(
+  compensation: CompensationInput,
+  standardWorkingDays: number,
+  summary: AttendanceSummary,
+  teacher?: TeacherCompensationInput | null,
+): number {
   if (compensation.salaryType === 'MONTHLY') {
-    if (standardWorkingDays <= 0) return 0;
-    const payableDays = Math.max(0, standardWorkingDays - summary.unpaidAbsenceDays);
-    return round2(compensation.baseSalary * (payableDays / standardWorkingDays));
+    return computeMonthlyBase(compensation.baseSalary, standardWorkingDays, summary.unpaidAbsenceDays);
   }
   if (compensation.salaryType === 'DAILY') {
     return round2(compensation.baseSalary * summary.workedDays);
   }
+  if (compensation.salaryType === 'PER_LESSON') {
+    return round2((teacher?.perLessonRate ?? 0) * (teacher?.completedLessons ?? 0));
+  }
+  if (compensation.salaryType === 'PER_GROUP') {
+    return round2((teacher?.perGroupRate ?? 0) * (teacher?.activeGroups ?? 0));
+  }
+  if (compensation.salaryType === 'MIXED') {
+    const base = computeMonthlyBase(compensation.baseSalary, standardWorkingDays, summary.unpaidAbsenceDays);
+    const lessonPart = round2((teacher?.perLessonRate ?? 0) * (teacher?.completedLessons ?? 0));
+    const groupPart = round2((teacher?.perGroupRate ?? 0) * (teacher?.activeGroups ?? 0));
+    return round2(base + lessonPart + groupPart);
+  }
+  // HOURLY
   return round2(compensation.baseSalary * (summary.workedMinutes / 60));
 }
 

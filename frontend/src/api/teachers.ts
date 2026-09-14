@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { PaginatedResult, TeacherDetail, TeacherListItem, TeacherProfileStatus } from '../types';
+import type { PaginatedResult, TeacherCompensationPreview, TeacherDetail, TeacherListItem, TeacherProfileStatus } from '../types';
 
 export interface TeacherQuery {
   page?: number;
@@ -46,5 +46,10 @@ export async function updateTeacher(id: string, payload: UpdateTeacherPayload) {
 
 export async function deactivateTeacher(id: string) {
   const { data } = await apiClient.delete<TeacherDetail>(`/teachers/${id}`);
+  return data;
+}
+
+export async function getTeacherCompensationPreview(id: string, periodId?: string) {
+  const { data } = await apiClient.get<TeacherCompensationPreview>(`/teachers/${id}/compensation`, { params: { periodId } });
   return data;
 }

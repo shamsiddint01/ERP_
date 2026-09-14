@@ -1,4 +1,4 @@
-import { ArrowLeftOutlined, CarryOutOutlined, EditOutlined, LinkOutlined, PauseCircleOutlined, PlayCircleOutlined, StarFilled, StarOutlined, StopOutlined, SwapOutlined, UserAddOutlined, WalletOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, CarryOutOutlined, EditOutlined, FormOutlined, LineChartOutlined, LinkOutlined, PauseCircleOutlined, PlayCircleOutlined, StarFilled, StarOutlined, StopOutlined, SwapOutlined, UserAddOutlined, WalletOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { App, Button, Card, Col, Descriptions, Empty, Popconfirm, Row, Space, Spin, Table, Tabs, Tag, Typography } from 'antd';
 import { useState } from 'react';
@@ -109,6 +109,8 @@ export function StudentDetailPage() {
   const canEdit = hasPermission('students', 'EDIT');
   const canViewAttendance = hasPermission('student_attendance', 'VIEW');
   const canViewFinance = hasPermission('tuition', 'VIEW');
+  const canViewGrades = hasPermission('grades', 'VIEW');
+  const canViewProgress = hasPermission('exams', 'VIEW');
 
   return (
     <div>
@@ -137,6 +139,16 @@ export function StudentDetailPage() {
               {canViewFinance && (
                 <Button icon={<WalletOutlined />} onClick={() => navigate(`/students/${student.id}/finance`)}>
                   Moliya
+                </Button>
+              )}
+              {canViewGrades && (
+                <Button icon={<FormOutlined />} onClick={() => navigate(`/students/${student.id}/grades`)}>
+                  Baholar
+                </Button>
+              )}
+              {canViewProgress && (
+                <Button icon={<LineChartOutlined />} onClick={() => navigate(`/students/${student.id}/progress`)}>
+                  O'zlashtirish
                 </Button>
               )}
               {canEdit && (

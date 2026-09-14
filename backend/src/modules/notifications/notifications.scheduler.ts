@@ -11,10 +11,14 @@ export interface ScanSummary {
   pendingPayrolls: number;
   tuitionDue: number;
   overdueTuition: number;
+  upcomingExams: number;
 }
 
 /** Tuition due within this many days triggers a reminder (once — dedupe keeps it from repeating every day until read). */
 const TUITION_DUE_REMINDER_DAYS = 3;
+
+/** A SCHEDULED exam within this many days triggers one reminder (dedupe keeps it from repeating). */
+const EXAM_UPCOMING_REMINDER_DAYS = 3;
 
 /**
  * Daily backstop for the notifications that aren't tied to a single state
@@ -39,20 +43,22 @@ export class NotificationsScheduler {
     this.logger.log(
       `Daily notification scan: ${summary.lowStock} low-stock, ${summary.overdueInvoices} overdue invoices, ` +
         `${summary.pendingExpenses} pending expenses, ${summary.pendingPayrolls} pending payrolls, ` +
-        `${summary.tuitionDue} tuition due soon, ${summary.overdueTuition} overdue tuition`,
+        `${summary.tuitionDue} tuition due soon, ${summary.overdueTuition} overdue tuition, ` +
+        `${summary.upcomingExams} upcoming exams`,
     );
   }
 
   async runDailyScans(): Promise<ScanSummary> {
-    const [lowStock, overdueInvoices, pendingExpenses, pendingPayrolls, tuitionDue, overdueTuition] = await Promise.all([
+    const [lowStock, overdueInvoices, pendingExpenses, pendingPayrolls, tuitionDue, overdueTuition, upcomingExams] = await Promise.all([
       this.scanLowStock(),
       this.scanOverdueInvoices(),
       this.scanPendingExpenses(),
       this.scanPendingPayrolls(),
       this.scanTuitionDue(),
       this.scanOverdueTuition(),
+      this.scanUpcomingExams(),
     ]);
-    return { lowStock, overdueInvoices, pendingExpenses, pendingPayrolls, tuitionDue, overdueTuition };
+    return { lowStock, overdueInvoices, pendingExpenses, pendingPayrolls, tuitionDue, overdueTuition, upcomingExams };
   }
 
   /** Products at or below their minimum stock level in any warehouse. */
@@ -197,6 +203,29 @@ export class NotificationsScheduler {
         referenceType: 'TuitionCharge',
         referenceId: charge.id,
         actionUrl: '/tuition',
+      });
+    }
+    return notified;
+  }
+
+  /** SCHEDULED exams within EXAM_UPCOMING_REMINDER_DAYS — a one-time-per-exam reminder (dedupe: same recipient/type/referenceId, unread), matching scanTuitionDue's pattern exactly. */
+  private async scanUpcomingExams(): Promise<number> {
+    const now = new Date();
+    const horizon = new Date(now.getTime() + EXAM_UPCOMING_REMINDER_DAYS * 24 * 60 * 60 * 1000);
+    const exams = await this.prisma.exam.findMany({
+      where: { status: 'SCHEDULED', date: { gte: now, lte: horizon } },
+      select: { id: true, title: true, date: true, group: { select: { name: true } } },
+    });
+
+    let notified = 0;
+    for (const exam of exams) {
+      notified += await this.notifications.notifyByPermission('exams', 'VIEW', {
+        type: 'EXAM_UPCOMING',
+        title: 'Yaqinlashib kelayotgan imtihon',
+        message: `${exam.title} — ${exam.group.name} guruhida ${exam.date.toISOString().slice(0, 10)} kuni bo'lib o'tadi.`,
+        referenceType: 'Exam',
+        referenceId: exam.id,
+        actionUrl: `/exams/${exam.id}`,
       });
     }
     return notified;

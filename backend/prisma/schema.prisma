@@ -225,6 +225,14 @@ enum SalaryType {
   HOURLY
   DAILY
   MONTHLY
+  // Phase H — teacher-specific compensation models. See
+  // payroll-calculation.util.ts's computeBaseAmount for exactly how each is
+  // derived (PER_LESSON/PER_GROUP from TeacherProfile rates x
+  // completed-lessons/active-groups counts; MIXED = a MONTHLY-style prorated
+  // base plus both of those).
+  PER_LESSON
+  PER_GROUP
+  MIXED
 }
 
 enum PayrollPeriodStatus {
@@ -311,6 +319,9 @@ enum NotificationType {
   TUITION_DUE
   TUITION_OVERDUE
   TUITION_PAYMENT_RECEIVED
+  // Phase H — academic assessment, distinct from every finance/attendance type above.
+  EXAM_UPCOMING
+  GRADES_PUBLISHED
 }
 
 enum NotificationSeverity {
@@ -510,6 +521,9 @@ model User {
 
   // Phase G
   tuitionAllocationsMade TuitionAllocation[] @relation("TuitionAllocationAllocatedBy")
+
+  // Phase H
+  assessmentsEvaluated Assessment[] @relation("AssessmentEvaluatedBy")
 
   @@map("users")
 }
@@ -1213,6 +1227,8 @@ model Employee {
   teacherProfile  TeacherProfile?
   taughtSchedules Schedule[]      @relation("ScheduleTeacher")
   taughtLessons   Lesson[]        @relation("LessonTeacher")
+  // Phase H
+  examsTeaching   Exam[]          @relation("ExamTeacher")
 
   @@index([departmentId])
   @@index([positionId])
@@ -1623,6 +1639,7 @@ model Course {
 
   studentGroups    StudentGroup[]
   preferredByLeads Lead[]
+  exams            Exam[]
 
   @@index([categoryId])
   @@index([status])
@@ -1654,6 +1671,7 @@ model StudentGroup {
   enrollments Enrollment[]
   schedules   Schedule[]
   lessons     Lesson[]
+  exams       Exam[]
 
   @@index([courseId])
   @@index([branchId])
@@ -1695,6 +1713,7 @@ model Student {
   attendances      StudentAttendance[]
   tuitionCharges   TuitionCharge[]
   studentDiscounts StudentDiscount[]
+  assessments      Assessment[]
 
   @@index([status])
   @@index([branchId])
@@ -2083,4 +2102,86 @@ model StudentDiscount {
   @@index([enrollmentId])
   @@index([isActive])
   @@map("student_discounts")
+}
+
+// =========================================================================
+// 18. EXAMS & ACADEMIC ASSESSMENT (Phase H)
+// =========================================================================
+
+enum ExamType {
+  QUIZ
+  MIDTERM
+  FINAL
+  MOCK
+  PLACEMENT
+  OTHER
+}
+
+enum ExamStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+/// One exam/quiz/test event for a single StudentGroup. `courseId` is stored
+/// alongside `groupId` (rather than derived through group.course) so an
+/// exam's course never silently changes if the group is later reassigned to
+/// a different course — the same "store what was true at the time"
+/// rationale as OrderItem snapshotting its unit price.
+model Exam {
+  id                String       @id @default(uuid())
+  title             String
+  courseId          String       @map("course_id")
+  course            Course       @relation(fields: [courseId], references: [id])
+  groupId           String       @map("group_id")
+  group             StudentGroup @relation(fields: [groupId], references: [id])
+  teacherEmployeeId String?      @map("teacher_employee_id")
+  teacherEmployee   Employee?    @relation("ExamTeacher", fields: [teacherEmployeeId], references: [id])
+  date              DateTime     @map("date")
+  maxScore          Decimal      @map("max_score") @db.Decimal(6, 2)
+  passingScore      Decimal      @map("passing_score") @db.Decimal(6, 2)
+  type              ExamType
+  status            ExamStatus   @default(SCHEDULED)
+  notes             String?
+  createdAt         DateTime     @default(now()) @map("created_at")
+  updatedAt         DateTime     @updatedAt @map("updated_at")
+
+  assessments Assessment[]
+
+  @@index([courseId])
+  @@index([groupId])
+  @@index([teacherEmployeeId])
+  @@index([status])
+  @@index([date])
+  @@map("exams")
+}
+
+/// One student's result for one Exam. `percentage`/`grade` are computed at
+/// evaluation time from `score`/`exam.maxScore` via the configurable grading
+/// scale (shared/grading/grading-scale.ts) and never recomputed
+/// retroactively if the scale changes later — same "freeze at the moment of
+/// the real-world event" rule Phase G's TuitionCharge.discountAmount
+/// follows. @@unique([examId, studentId]) is a genuine hard constraint (no
+/// override, unlike TuitionCharge's duplicate-billing guard) — the spec is
+/// unconditional: one assessment per student per exam.
+model Assessment {
+  id                String   @id @default(uuid())
+  examId            String   @map("exam_id")
+  exam              Exam     @relation(fields: [examId], references: [id])
+  studentId         String   @map("student_id")
+  student           Student  @relation(fields: [studentId], references: [id])
+  score             Decimal  @db.Decimal(6, 2)
+  percentage        Decimal  @db.Decimal(5, 2)
+  grade             String
+  comment           String?
+  evaluatedByUserId String   @map("evaluated_by_user_id")
+  evaluatedBy       User     @relation("AssessmentEvaluatedBy", fields: [evaluatedByUserId], references: [id])
+  evaluatedAt       DateTime @map("evaluated_at")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@unique([examId, studentId])
+  @@index([examId])
+  @@index([studentId])
+  @@map("assessments")
 }

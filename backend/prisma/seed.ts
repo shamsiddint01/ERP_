@@ -4,6 +4,7 @@ import * as bcrypt from 'bcryptjs';
 import { Redis } from 'ioredis';
 import { PERMISSION_MODULES } from '../src/shared/constants/permission-modules.constant.js';
 import { ACCOUNT_CODES } from '../src/shared/finance/account-codes.constant.js';
+import { gradeForPercentage } from '../src/shared/grading/grading-scale.js';
 import { generateDocumentNumber } from '../src/shared/utils/document-number.util.js';
 
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
@@ -50,6 +51,9 @@ const ROLE_DEFINITIONS: Array<{
       // charges, managing the Discount catalog) stays with Accountant.
       tuition: [PermissionAction.VIEW, PermissionAction.APPROVE, PermissionAction.EXPORT],
       discounts: [PermissionAction.VIEW],
+      // Phase H — "Manager: full academic visibility".
+      exams: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE, PermissionAction.EXPORT],
+      grades: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE],
     },
   },
   {
@@ -75,6 +79,10 @@ const ROLE_DEFINITIONS: Array<{
       // Phase G — "Accountant: full" tuition/billing/discount administration.
       tuition: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.APPROVE, PermissionAction.EXPORT],
       discounts: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE],
+      // Phase H — "Accountant: no grade editing": can see exams/grades exist
+      // (relevant to teacher payroll context) but never create/edit/delete one.
+      exams: [PermissionAction.VIEW],
+      grades: [PermissionAction.VIEW],
     },
   },
   {
@@ -122,6 +130,13 @@ const ROLE_DEFINITIONS: Array<{
       enrollments: [PermissionAction.VIEW],
       student_attendance: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT],
       notifications: [PermissionAction.VIEW],
+      // Phase H — "Teacher: own groups, own students, create/edit assessments
+      // for own groups". The actual per-record scoping (their own groups
+      // only) is enforced in ExamsService/AssessmentsService via
+      // resolveTeacherScope, exactly like student_attendance above — these
+      // are just the module-level grants to reach the endpoints at all.
+      exams: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT],
+      grades: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT],
     },
   },
   {
@@ -141,6 +156,9 @@ const ROLE_DEFINITIONS: Array<{
       // Discount catalog.
       tuition: [PermissionAction.VIEW, PermissionAction.EDIT],
       payments: [PermissionAction.VIEW, PermissionAction.CREATE],
+      // Phase H — "Reception: limited view" — can see that an exam exists (to
+      // answer a parent's question), never the grades/scores behind it.
+      exams: [PermissionAction.VIEW],
     },
   },
 ];
@@ -241,6 +259,9 @@ async function main() {
 
   console.log('Seeding tuition billing/payments/discounts demo data (Phase G)...');
   await seedTuitionBillingDemo(accountIdByCode);
+
+  console.log('Seeding exams/grades and teacher compensation demo data (Phase H)...');
+  await seedExamsGradesDemo();
 
   console.log('Invalidating cached role-permissions (RolePermissionsCacheService)...');
   await flushRolePermissionsCache();
@@ -1009,6 +1030,89 @@ async function seedTuitionBillingDemo(accountIdByCode: Map<string, string>): Pro
     prisma.payment.count({ where: { referenceType: 'TUITION_CHARGE' } }),
   ]);
   console.log(`  -> ${chargeCount} tuition charges, ${discountCount} discounts, ${grantCount} discount grants, ${paymentCount} tuition payments ensured`);
+}
+
+/**
+ * Phase H demo data: one Exam against IELTS Weekend (IELTS-02) — the group
+ * the demo Teacher login (teacher.sarvinoz / EMP-TCH-001) actually teaches,
+ * so logging in as that account and opening /exams shows something real —
+ * with Assessments for its enrolled students (deliberately one PASS and one
+ * FAIL, to exercise both branches of the grading scale and pass-rate math).
+ * Also gives each of the 3 seeded teacher employees a DIFFERENT Phase H
+ * salary type (PER_LESSON/PER_GROUP/MIXED), on top of the two pre-existing
+ * generic-employee MONTHLY/HOURLY compensation rows from an earlier phase —
+ * between the two, every SalaryType value has a real, live example.
+ */
+async function seedExamsGradesDemo(): Promise<void> {
+  const admin = await prisma.user.findUniqueOrThrow({ where: { username: 'admin' } });
+  const course = await prisma.course.findUniqueOrThrow({ where: { code: 'IELTS' } });
+  const group = await prisma.studentGroup.findUniqueOrThrow({ where: { code: 'IELTS-02' } });
+  const teacher = await prisma.employee.findUniqueOrThrow({ where: { employeeCode: 'EMP-TCH-001' } });
+
+  const existingExam = await prisma.exam.findFirst({ where: { groupId: group.id, title: 'IELTS Weekend — Midterm' } });
+  let examId = existingExam?.id;
+  if (!existingExam) {
+    const exam = await prisma.exam.create({
+      data: {
+        title: 'IELTS Weekend — Midterm',
+        courseId: course.id,
+        groupId: group.id,
+        teacherEmployeeId: teacher.id,
+        date: new Date('2026-09-20'),
+        maxScore: '100',
+        passingScore: '60',
+        type: 'MIDTERM',
+        status: 'COMPLETED',
+        notes: 'Seeded demo exam.',
+      },
+    });
+    examId = exam.id;
+  }
+
+  const enrollments = await prisma.enrollment.findMany({ where: { groupId: group.id, status: { not: 'CANCELLED' } }, take: 2 });
+  const scores = [82, 45]; // one clear PASS (B), one clear FAIL — exercises both branches of the default grading scale.
+  for (const [index, enrollment] of enrollments.entries()) {
+    const existing = await prisma.assessment.findFirst({ where: { examId, studentId: enrollment.studentId } });
+    if (existing) continue;
+    const score = scores[index] ?? 70;
+    const percentage = score; // maxScore is 100, so percentage === score here.
+    await prisma.assessment.create({
+      data: {
+        examId: examId!,
+        studentId: enrollment.studentId,
+        score,
+        percentage,
+        grade: gradeForPercentage(percentage),
+        evaluatedByUserId: admin.id,
+        evaluatedAt: new Date('2026-09-21'),
+      },
+    });
+  }
+
+  // One compensation record per teacher employee, each a different Phase H
+  // salary type — reuses the September 2026 PayrollPeriod already seeded by
+  // an earlier (pre-education-center) phase, so a real Payroll can be
+  // calculated against these without seeding a whole new period.
+  const compensationDefs = [
+    { employeeCode: 'EMP-TCH-001', salaryType: 'PER_LESSON' as const, baseSalary: '0' },
+    { employeeCode: 'EMP-TCH-002', salaryType: 'PER_GROUP' as const, baseSalary: '0' },
+    { employeeCode: 'EMP-TCH-003', salaryType: 'MIXED' as const, baseSalary: '2000000' },
+  ];
+  for (const c of compensationDefs) {
+    const employee = await prisma.employee.findUniqueOrThrow({ where: { employeeCode: c.employeeCode } });
+    const existing = await prisma.employeeCompensation.findFirst({ where: { employeeId: employee.id } });
+    if (existing) continue;
+    await prisma.employeeCompensation.create({
+      data: { employeeId: employee.id, baseSalary: c.baseSalary, salaryType: c.salaryType, effectiveFrom: new Date('2026-01-01'), createdByUserId: admin.id },
+    });
+  }
+
+  const [examCount, assessmentCount, teacherCompCount] = await Promise.all([
+    prisma.exam.count(),
+    prisma.assessment.count(),
+    prisma.employeeCompensation.count({ where: { salaryType: { in: ['PER_LESSON', 'PER_GROUP', 'MIXED'] } } }),
+  ]);
+  console.log(`  -> ${examCount} exams, ${assessmentCount} assessments, ${teacherCompCount} teacher (per-lesson/per-group/mixed) compensation records ensured`);
 }
 
 /**

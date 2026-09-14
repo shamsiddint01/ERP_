@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { GuardianRelationship, PaginatedResult, StudentDetail, StudentListItem, StudentStatus } from '../types';
+import type { GuardianRelationship, PaginatedResult, StudentDetail, StudentGrades, StudentListItem, StudentProgress, StudentStatus } from '../types';
 
 export interface StudentQuery {
   page?: number;
@@ -77,5 +77,15 @@ export async function updateStudentGuardianLink(studentId: string, guardianId: s
 
 export async function removeStudentGuardian(studentId: string, guardianId: string) {
   const { data } = await apiClient.delete<StudentDetail>(`/students/${studentId}/guardians/${guardianId}`);
+  return data;
+}
+
+export async function getStudentProgress(studentId: string) {
+  const { data } = await apiClient.get<StudentProgress>(`/students/${studentId}/progress`);
+  return data;
+}
+
+export async function getStudentGrades(studentId: string) {
+  const { data } = await apiClient.get<StudentGrades>(`/students/${studentId}/grades`);
   return data;
 }

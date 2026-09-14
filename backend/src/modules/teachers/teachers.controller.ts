@@ -3,6 +3,7 @@ import { PermissionAction } from '@prisma/client';
 import { ApiTags } from '@nestjs/swagger';
 import { Audited } from '../../shared/decorators/audited.decorator.js';
 import { RequirePermission } from '../../shared/decorators/require-permission.decorator.js';
+import { CompensationService } from '../compensation/compensation.service.js';
 import { CreateTeacherDto } from './dto/create-teacher.dto.js';
 import { QueryTeacherDto } from './dto/query-teacher.dto.js';
 import { UpdateTeacherDto } from './dto/update-teacher.dto.js';
@@ -11,7 +12,10 @@ import { TeachersService } from './teachers.service.js';
 @ApiTags('teachers')
 @Controller('teachers')
 export class TeachersController {
-  constructor(private readonly teachersService: TeachersService) {}
+  constructor(
+    private readonly teachersService: TeachersService,
+    private readonly compensationService: CompensationService,
+  ) {}
 
   @Get()
   @RequirePermission('teachers', PermissionAction.VIEW)
@@ -44,5 +48,11 @@ export class TeachersController {
   @Audited('TeacherProfile', 'DEACTIVATE')
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.teachersService.remove(id);
+  }
+
+  @Get(':id/compensation')
+  @RequirePermission('compensation', PermissionAction.VIEW)
+  compensationPreview(@Param('id', ParseUUIDPipe) id: string, @Query('periodId') periodId?: string) {
+    return this.compensationService.getTeacherCompensationPreview(id, periodId);
   }
 }

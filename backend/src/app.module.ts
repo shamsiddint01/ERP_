@@ -53,6 +53,7 @@ import { LessonsModule } from './modules/lessons/lessons.module.js';
 import { StudentAttendanceModule } from './modules/student-attendance/student-attendance.module.js';
 import { TuitionModule } from './modules/tuition/tuition.module.js';
 import { DiscountsModule } from './modules/discounts/discounts.module.js';
+import { ExamsModule } from './modules/exams/exams.module.js';
 
 @Module({
   imports: [
@@ -108,6 +109,7 @@ import { DiscountsModule } from './modules/discounts/discounts.module.js';
     StudentAttendanceModule,
     TuitionModule,
     DiscountsModule,
+    ExamsModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

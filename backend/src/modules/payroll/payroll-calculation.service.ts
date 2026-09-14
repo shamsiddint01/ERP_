@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import type { Payroll, Prisma } from '@prisma/client';
+import type { Payroll, Prisma, SalaryType } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import {
   computeBaseAmount,
@@ -7,6 +7,7 @@ import {
   countStandardWorkingDays,
   round2,
   summarizeAttendance,
+  type TeacherCompensationInput,
 } from '../../shared/payroll/payroll-calculation.util.js';
 
 type TransactionClient = Prisma.TransactionClient;
@@ -14,6 +15,9 @@ type TransactionClient = Prisma.TransactionClient;
 function sumLinesByType(lines: Array<{ type: string; amount: Prisma.Decimal }>, type: string): number {
   return round2(lines.filter((l) => l.type === type).reduce((sum, l) => sum + Number(l.amount), 0));
 }
+
+/** The three Phase H salary types that need TeacherProfile rates + real lesson/group counts instead of AttendanceRecord. */
+const TEACHER_SALARY_TYPES: ReadonlySet<SalaryType> = new Set(['PER_LESSON', 'PER_GROUP', 'MIXED']);
 
 /**
  * The isolated, testable payroll math engine. Deterministic and reproducible:
@@ -60,7 +64,15 @@ export class PayrollCalculationService {
     const standardWorkingDays = countStandardWorkingDays(payroll.period.periodStart, payroll.period.periodEnd);
 
     const compensationInput = { baseSalary: Number(compensation.baseSalary), salaryType: compensation.salaryType, overtimeRate: compensation.overtimeRate ? Number(compensation.overtimeRate) : null };
-    const baseAmount = computeBaseAmount(compensationInput, standardWorkingDays, summary);
+
+    // Phase H: PER_LESSON/PER_GROUP/MIXED are driven by real Lesson/StudentGroup
+    // rows instead of AttendanceRecord — resolved here (DB access), then
+    // handed to the still-pure computeBaseAmount.
+    const teacherInput = TEACHER_SALARY_TYPES.has(compensation.salaryType)
+      ? await this.resolveTeacherCompensationInput(tx, payroll.employeeId, compensation.salaryType, payroll.period.periodStart, payroll.period.periodEnd)
+      : null;
+
+    const baseAmount = computeBaseAmount(compensationInput, standardWorkingDays, summary, teacherInput);
     const overtimeAmount = computeOvertimeAmount(compensationInput, summary.overtimeMinutes);
 
     // Machine-generated lines are fully replaced on every (re)calculation — idempotent and reproducible.
@@ -101,5 +113,58 @@ export class PayrollCalculationService {
         calculatedAt: new Date(),
       },
     });
+  }
+
+  /**
+   * Resolves the real, period-scoped figures PER_LESSON/PER_GROUP/MIXED
+   * compensation is computed from: the TeacherProfile's own rates, how many
+   * of this teacher's lessons were actually COMPLETED in the period
+   * (CANCELLED lessons are excluded by this query, never paid for), and how
+   * many of their groups are currently ACTIVE and overlap the period at all
+   * ("valid active groups", per spec). Throws rather than silently paying 0
+   * when the employee has no TeacherProfile at all, or is missing the
+   * specific rate(s) their salaryType requires — a misconfigured rate should
+   * block calculation, not quietly understate pay.
+   */
+  private async resolveTeacherCompensationInput(
+    tx: TransactionClient,
+    employeeId: string,
+    salaryType: SalaryType,
+    periodStart: Date,
+    periodEnd: Date,
+  ): Promise<TeacherCompensationInput> {
+    const profile = await tx.teacherProfile.findUnique({ where: { employeeId } });
+    if (!profile) {
+      throw new BadRequestException(`This employee has no TeacherProfile — cannot use ${salaryType} compensation`);
+    }
+
+    const perLessonRate = profile.perLessonRate !== null ? Number(profile.perLessonRate) : null;
+    const perGroupRate = profile.perGroupRate !== null ? Number(profile.perGroupRate) : null;
+
+    if (salaryType === 'PER_LESSON' && perLessonRate === null) {
+      throw new BadRequestException('This teacher has no perLessonRate set on their TeacherProfile');
+    }
+    if (salaryType === 'PER_GROUP' && perGroupRate === null) {
+      throw new BadRequestException('This teacher has no perGroupRate set on their TeacherProfile');
+    }
+    if (salaryType === 'MIXED' && perLessonRate === null && perGroupRate === null) {
+      throw new BadRequestException('MIXED compensation requires at least one of perLessonRate/perGroupRate to be set on the TeacherProfile');
+    }
+
+    const [completedLessons, activeGroups] = await Promise.all([
+      tx.lesson.count({
+        where: { teacherEmployeeId: employeeId, status: 'COMPLETED', scheduledStart: { gte: periodStart, lte: periodEnd } },
+      }),
+      tx.studentGroup.count({
+        where: {
+          teacherEmployeeId: employeeId,
+          status: 'ACTIVE',
+          startDate: { lte: periodEnd },
+          OR: [{ endDate: null }, { endDate: { gte: periodStart } }],
+        },
+      }),
+    ]);
+
+    return { perLessonRate, perGroupRate, completedLessons, activeGroups };
   }
 }

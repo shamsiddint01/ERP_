@@ -141,6 +141,66 @@ describe('computeBaseAmount', () => {
   });
 });
 
+describe('computeBaseAmount — Phase H teacher compensation', () => {
+  const emptySummary = { workedDays: 0, workedMinutes: 0, overtimeMinutes: 0, unpaidAbsenceDays: 0 };
+
+  it('PER_LESSON: perLessonRate x completedLessons, ignoring baseSalary/attendance entirely', () => {
+    const amount = computeBaseAmount({ baseSalary: 999_999, salaryType: 'PER_LESSON', overtimeRate: null }, 22, emptySummary, {
+      perLessonRate: 50_000,
+      perGroupRate: null,
+      completedLessons: 12,
+      activeGroups: 0,
+    });
+    expect(amount).toBe(600_000);
+  });
+
+  it('PER_GROUP: perGroupRate x activeGroups', () => {
+    const amount = computeBaseAmount({ baseSalary: 0, salaryType: 'PER_GROUP', overtimeRate: null }, 22, emptySummary, {
+      perLessonRate: null,
+      perGroupRate: 300_000,
+      completedLessons: 0,
+      activeGroups: 3,
+    });
+    expect(amount).toBe(900_000);
+  });
+
+  it('PER_LESSON/PER_GROUP treat a missing teacher context (undefined) as zero, never throwing', () => {
+    expect(computeBaseAmount({ baseSalary: 0, salaryType: 'PER_LESSON', overtimeRate: null }, 22, emptySummary)).toBe(0);
+    expect(computeBaseAmount({ baseSalary: 0, salaryType: 'PER_GROUP', overtimeRate: null }, 22, emptySummary)).toBe(0);
+  });
+
+  it('MIXED: a MONTHLY-style prorated base PLUS both the lesson and group components', () => {
+    const amount = computeBaseAmount({ baseSalary: 5_000_000, salaryType: 'MIXED', overtimeRate: null }, 20, { ...emptySummary, unpaidAbsenceDays: 0 }, {
+      perLessonRate: 20_000,
+      perGroupRate: 100_000,
+      completedLessons: 10,
+      activeGroups: 2,
+    });
+    // base 5,000,000 (no absence) + lessons 200,000 + groups 200,000
+    expect(amount).toBe(5_400_000);
+  });
+
+  it('MIXED still prorates its base component down for unpaid absence, exactly like MONTHLY', () => {
+    const amount = computeBaseAmount({ baseSalary: 2_200_000, salaryType: 'MIXED', overtimeRate: null }, 22, { ...emptySummary, unpaidAbsenceDays: 2 }, {
+      perLessonRate: 0,
+      perGroupRate: null,
+      completedLessons: 0,
+      activeGroups: 0,
+    });
+    // 2,200,000 * 20/22 = 2,000,000, plus 0 lesson/group contribution
+    expect(amount).toBe(2_000_000);
+  });
+
+  it('every existing salary type (MONTHLY/DAILY/HOURLY) is completely unaffected by the optional 4th argument being present or absent', () => {
+    const compensation = { baseSalary: 10_000_000, salaryType: 'MONTHLY' as const, overtimeRate: null };
+    const summary = { workedDays: 22, workedMinutes: 0, overtimeMinutes: 0, unpaidAbsenceDays: 0 };
+    const withoutTeacherArg = computeBaseAmount(compensation, 22, summary);
+    const withIrrelevantTeacherArg = computeBaseAmount(compensation, 22, summary, { perLessonRate: 999, perGroupRate: 999, completedLessons: 999, activeGroups: 999 });
+    expect(withoutTeacherArg).toBe(10_000_000);
+    expect(withIrrelevantTeacherArg).toBe(10_000_000);
+  });
+});
+
 describe('computeOvertimeAmount', () => {
   it('computes overtime pay from minutes at the resolved overtime rate', () => {
     const amount = computeOvertimeAmount({ baseSalary: 10_000_000, salaryType: 'MONTHLY', overtimeRate: 90000 }, 120);

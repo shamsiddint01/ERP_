@@ -1,4 +1,4 @@
-import { ArrowLeftOutlined, EditOutlined, StopOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, CreditCardOutlined, EditOutlined, StopOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { App, Button, Card, Col, Descriptions, Empty, Popconfirm, Row, Space, Spin, Statistic, Table, Tag, Typography } from 'antd';
 import dayjs from 'dayjs';
@@ -48,6 +48,7 @@ export function TeacherDetailPage() {
   if (!teacher) return null;
 
   const canEdit = hasPermission('teachers', 'EDIT');
+  const canViewCompensation = hasPermission('compensation', 'VIEW');
 
   return (
     <div>
@@ -68,6 +69,11 @@ export function TeacherDetailPage() {
           <Col>
             <Space>
               <Tag color={STATUS_COLORS[teacher.status]}>{STATUS_LABELS[teacher.status]}</Tag>
+              {canViewCompensation && (
+                <Button icon={<CreditCardOutlined />} onClick={() => navigate(`/teachers/${teacher.id}/compensation`)}>
+                  Maosh
+                </Button>
+              )}
               {canEdit && (
                 <Button icon={<EditOutlined />} onClick={() => setEditOpen(true)}>
                   Tahrirlash

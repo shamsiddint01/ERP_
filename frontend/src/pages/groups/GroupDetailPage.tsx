@@ -1,4 +1,4 @@
-import { ArrowLeftOutlined, CarryOutOutlined, EditOutlined, PlusOutlined, StopOutlined, ThunderboltOutlined, UserAddOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, CarryOutOutlined, EditOutlined, FormOutlined, PlusOutlined, StopOutlined, ThunderboltOutlined, UserAddOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { App, Button, Card, Col, Descriptions, Empty, Popconfirm, Row, Space, Spin, Statistic, Table, Tabs, Tag, Typography } from 'antd';
 import dayjs from 'dayjs';
@@ -90,6 +90,7 @@ export function GroupDetailPage() {
   const canEditSchedule = hasPermission('schedules', 'EDIT');
   const canDeleteSchedule = hasPermission('schedules', 'DELETE');
   const canViewAttendance = hasPermission('student_attendance', 'VIEW');
+  const canViewResults = hasPermission('grades', 'VIEW');
 
   return (
     <div>
@@ -111,6 +112,11 @@ export function GroupDetailPage() {
               {canViewAttendance && (
                 <Button icon={<CarryOutOutlined />} onClick={() => navigate(`/groups/${group.id}/attendance`)}>
                   Davomat hisobot
+                </Button>
+              )}
+              {canViewResults && (
+                <Button icon={<FormOutlined />} onClick={() => navigate(`/exams?groupId=${group.id}`)}>
+                  Imtihonlar
                 </Button>
               )}
               {canEnroll && group.availableSeats > 0 && (

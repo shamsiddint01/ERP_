@@ -8,7 +8,15 @@ import { CreateCompensationModal } from '../../components/CreateCompensationModa
 import { useAuthStore } from '../../store/auth.store';
 import type { EmployeeCompensation, SalaryType } from '../../types';
 
-const SALARY_TYPE_LABELS: Record<SalaryType, string> = { MONTHLY: 'Oylik', DAILY: 'Kunlik', HOURLY: 'Soatlik' };
+const SALARY_TYPE_LABELS: Record<SalaryType, string> = {
+  MONTHLY: 'Oylik',
+  DAILY: 'Kunlik',
+  HOURLY: 'Soatlik',
+  // Phase H — teacher-specific compensation models.
+  PER_LESSON: 'Dars uchun',
+  PER_GROUP: 'Guruh uchun',
+  MIXED: 'Aralash',
+};
 
 export function CompensationPage() {
   const { message } = App.useApp();

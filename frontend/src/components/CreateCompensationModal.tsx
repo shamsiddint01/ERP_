@@ -24,6 +24,13 @@ const SALARY_TYPE_OPTIONS: Array<{ label: string; value: SalaryType }> = [
   { label: 'Oylik (Monthly)', value: 'MONTHLY' },
   { label: 'Kunlik (Daily)', value: 'DAILY' },
   { label: 'Soatlik (Hourly)', value: 'HOURLY' },
+  // Phase H — teacher-specific compensation models. baseSalary is still
+  // required by the record itself; for a pure PER_LESSON/PER_GROUP teacher
+  // with no guaranteed base, set it to 0 (see TeacherProfile for the actual
+  // per-lesson/per-group rates these read from at calculation time).
+  { label: "Dars uchun (Per lesson) — o'qituvchi uchun", value: 'PER_LESSON' },
+  { label: "Guruh uchun (Per group) — o'qituvchi uchun", value: 'PER_GROUP' },
+  { label: "Aralash (Mixed) — o'qituvchi uchun", value: 'MIXED' },
 ];
 
 export function CreateCompensationModal({ open, onClose, employeeId }: CreateCompensationModalProps) {

@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common';
+import { ExamsModule } from '../exams/exams.module.js';
 import { StudentAttendanceModule } from '../student-attendance/student-attendance.module.js';
 import { GroupsController } from './groups.controller.js';
 import { GroupsService } from './groups.service.js';
 
 @Module({
-  imports: [StudentAttendanceModule],
+  imports: [StudentAttendanceModule, ExamsModule],
   controllers: [GroupsController],
   providers: [GroupsService],
   exports: [GroupsService],

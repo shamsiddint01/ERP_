@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { CourseLevel, GroupDetail, GroupListItem, PaginatedResult, StudentGroupStatus } from '../types';
+import type { CourseLevel, GroupDetail, GroupListItem, GroupResults, PaginatedResult, StudentGroupStatus } from '../types';
 
 export interface GroupQuery {
   page?: number;
@@ -55,5 +55,10 @@ export async function updateGroup(id: string, payload: Partial<GroupPayload>) {
 
 export async function deactivateGroup(id: string) {
   const { data } = await apiClient.delete<GroupDetail>(`/groups/${id}`);
+  return data;
+}
+
+export async function getGroupResults(id: string) {
+  const { data } = await apiClient.get<GroupResults>(`/groups/${id}/results`);
   return data;
 }

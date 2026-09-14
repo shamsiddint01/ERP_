@@ -19,6 +19,10 @@ function dayBefore(date: Date): Date {
   return result;
 }
 
+function round2(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
 @Injectable()
 export class CompensationService {
   constructor(
@@ -112,5 +116,73 @@ export class CompensationService {
     }
     await this.prisma.employeeCompensation.delete({ where: { id } });
     return { id };
+  }
+
+  /**
+   * Phase H — "Teacher compensation" page support: TeacherProfile's own
+   * rates, the currently-effective EmployeeCompensation record, and a
+   * read-only preview of what PER_LESSON/PER_GROUP would actually pay right
+   * now, computed the exact same way PayrollCalculationService.
+   * resolveTeacherCompensationInput does (real COMPLETED lessons, real
+   * ACTIVE groups) — duplicated rather than shared across modules (that
+   * method is private to PayrollCalculationService; this is a preview, not
+   * an actual calculation, so the two are deliberately kept independent —
+   * see PayrollCalculationService for the one that actually posts to
+   * Payroll). Defaults to the most recent PayrollPeriod when none is given,
+   * or the current calendar month if no period exists yet at all.
+   */
+  async getTeacherCompensationPreview(teacherProfileId: string, periodId?: string) {
+    const profile = await this.prisma.teacherProfile.findUnique({
+      where: { id: teacherProfileId },
+      include: { employee: { select: { id: true, fullName: true, employeeCode: true } } },
+    });
+    if (!profile) throw new NotFoundException('Teacher profile not found');
+
+    let periodStart: Date;
+    let periodEnd: Date;
+    let resolvedPeriodId: string | null = null;
+    if (periodId) {
+      const period = await this.prisma.payrollPeriod.findUnique({ where: { id: periodId } });
+      if (!period) throw new NotFoundException('Payroll period not found');
+      periodStart = period.periodStart;
+      periodEnd = period.periodEnd;
+      resolvedPeriodId = period.id;
+    } else {
+      const latestPeriod = await this.prisma.payrollPeriod.findFirst({ orderBy: { periodStart: 'desc' } });
+      if (latestPeriod) {
+        periodStart = latestPeriod.periodStart;
+        periodEnd = latestPeriod.periodEnd;
+        resolvedPeriodId = latestPeriod.id;
+      } else {
+        const now = new Date();
+        periodStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+        periodEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 0));
+      }
+    }
+
+    const [completedLessons, activeGroups, currentCompensation] = await Promise.all([
+      this.prisma.lesson.count({
+        where: { teacherEmployeeId: profile.employeeId, status: 'COMPLETED', scheduledStart: { gte: periodStart, lte: periodEnd } },
+      }),
+      this.prisma.studentGroup.count({
+        where: { teacherEmployeeId: profile.employeeId, status: 'ACTIVE', startDate: { lte: periodEnd }, OR: [{ endDate: null }, { endDate: { gte: periodStart } }] },
+      }),
+      this.findEffectiveForEmployee(profile.employeeId, periodEnd),
+    ]);
+
+    const perLessonRate = profile.perLessonRate !== null ? Number(profile.perLessonRate) : null;
+    const perGroupRate = profile.perGroupRate !== null ? Number(profile.perGroupRate) : null;
+
+    return {
+      teacherProfileId,
+      employee: profile.employee,
+      rates: { hourlyRate: profile.hourlyRate !== null ? Number(profile.hourlyRate) : null, perLessonRate, perGroupRate },
+      currentCompensation,
+      period: { id: resolvedPeriodId, start: periodStart, end: periodEnd },
+      completedLessons,
+      activeGroups,
+      estimatedLessonPay: perLessonRate !== null ? round2(perLessonRate * completedLessons) : null,
+      estimatedGroupPay: perGroupRate !== null ? round2(perGroupRate * activeGroups) : null,
+    };
   }
 }

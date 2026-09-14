@@ -11,6 +11,7 @@ import { AttendanceDateRangeDto } from '../student-attendance/dto/attendance-dat
 import { StudentAttendanceService } from '../student-attendance/student-attendance.service.js';
 import { GrantDiscountDto } from '../discounts/dto/grant-discount.dto.js';
 import { DiscountsService } from '../discounts/discounts.service.js';
+import { AcademicProgressService } from '../exams/academic-progress.service.js';
 import { StudentFinanceService } from '../tuition/student-finance.service.js';
 import { CreateStudentDto } from './dto/create-student.dto.js';
 import { LinkGuardianDto } from './dto/link-guardian.dto.js';
@@ -27,6 +28,7 @@ export class StudentsController {
     private readonly studentAttendanceService: StudentAttendanceService,
     private readonly studentFinanceService: StudentFinanceService,
     private readonly discountsService: DiscountsService,
+    private readonly academicProgressService: AcademicProgressService,
   ) {}
 
   @Get()
@@ -142,5 +144,17 @@ export class StudentsController {
   @Audited('StudentDiscount', 'REVOKE')
   revokeDiscount(@Param('id', ParseUUIDPipe) id: string, @Param('studentDiscountId', ParseUUIDPipe) studentDiscountId: string) {
     return this.discountsService.revokeGrant(id, studentDiscountId);
+  }
+
+  @Get(':id/progress')
+  @RequirePermission('exams', PermissionAction.VIEW)
+  progress(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.academicProgressService.getStudentProgress(id, user.id);
+  }
+
+  @Get(':id/grades')
+  @RequirePermission('grades', PermissionAction.VIEW)
+  grades(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.academicProgressService.getStudentGrades(id, user.id);
   }
 }

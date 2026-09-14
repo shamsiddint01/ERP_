@@ -679,7 +679,7 @@ export interface AttendanceOverview {
 // PAYROLL / ADVANCED HR — Phase 7
 // =========================================================================
 
-export type SalaryType = 'HOURLY' | 'DAILY' | 'MONTHLY';
+export type SalaryType = 'HOURLY' | 'DAILY' | 'MONTHLY' | 'PER_LESSON' | 'PER_GROUP' | 'MIXED';
 export type PayrollPeriodStatus = 'OPEN' | 'CLOSED';
 export type PayrollStatus = 'DRAFT' | 'CALCULATING' | 'CALCULATED' | 'APPROVED' | 'PAID' | 'CANCELLED';
 export type PayrollComponentType = 'BONUS' | 'ALLOWANCE' | 'DEDUCTION';
@@ -1426,4 +1426,134 @@ export interface Discount {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+// =========================================================================
+// EXAMS, GRADES, ACADEMIC PROGRESS & TEACHER COMPENSATION — Phase H
+// =========================================================================
+
+export type ExamType = 'QUIZ' | 'MIDTERM' | 'FINAL' | 'MOCK' | 'PLACEMENT' | 'OTHER';
+export type ExamStatus = 'SCHEDULED' | 'COMPLETED' | 'CANCELLED';
+
+export interface Exam {
+  id: string;
+  title: string;
+  courseId: string;
+  course: { id: string; name: string; code: string };
+  groupId: string;
+  group: { id: string; name: string; code: string; teacherEmployeeId: string | null; branch: { id: string; name: string } };
+  teacherEmployeeId: string | null;
+  teacherEmployee: { id: string; fullName: string } | null;
+  date: string;
+  maxScore: string;
+  passingScore: string;
+  type: ExamType;
+  status: ExamStatus;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+  _count: { assessments: number };
+}
+
+export interface Assessment {
+  id: string;
+  examId: string;
+  studentId: string;
+  student: { id: string; studentCode: string; fullName: string };
+  score: string;
+  percentage: string;
+  grade: string;
+  comment: string | null;
+  evaluatedBy: { id: string; fullName: string };
+  evaluatedAt: string;
+  exam: { id: string; title: string; maxScore: string; passingScore: string; date: string; type: ExamType; status: ExamStatus };
+}
+
+export interface StudentGradeItem {
+  id: string;
+  examId: string;
+  examTitle: string;
+  examType: ExamType;
+  examDate: string;
+  course: { id: string; name: string; code: string };
+  group: { id: string; name: string; code: string };
+  score: number;
+  maxScore: number;
+  passingScore: number;
+  percentage: number;
+  grade: string;
+  passed: boolean;
+  comment: string | null;
+  evaluatedAt: string;
+}
+
+export interface StudentGrades {
+  studentId: string;
+  items: StudentGradeItem[];
+}
+
+export interface StudentCourseProgress {
+  enrollmentId: string;
+  groupId: string;
+  groupName: string;
+  courseId: string;
+  courseName: string;
+  totalLessons: number;
+  completedLessons: number;
+  progressPercentage: number;
+}
+
+export interface StudentCompletedGroup {
+  enrollmentId: string;
+  groupId: string;
+  groupName: string;
+  courseId: string;
+  courseName: string;
+  endDate: string | null;
+}
+
+export interface StudentProgress {
+  studentId: string;
+  totalExams: number;
+  averagePercentage: number;
+  passRate: number;
+  attendancePercentage: number;
+  courseProgress: StudentCourseProgress[];
+  completedGroups: StudentCompletedGroup[];
+  recentExams: StudentGradeItem[];
+}
+
+export interface GroupExamResult {
+  examId: string;
+  title: string;
+  type: ExamType;
+  date: string;
+  status: ExamStatus;
+  maxScore: number;
+  passingScore: number;
+  assessedCount: number;
+  totalEnrolled: number;
+  average: number;
+  passRate: number;
+}
+
+export interface GroupResults {
+  groupId: string;
+  groupName: string;
+  totalEnrolled: number;
+  exams: GroupExamResult[];
+  overallAverage: number;
+  overallPassRate: number;
+}
+
+export interface TeacherCompensationPreview {
+  teacherProfileId: string;
+  employee: { id: string; fullName: string; employeeCode: string };
+  rates: { hourlyRate: number | null; perLessonRate: number | null; perGroupRate: number | null };
+  currentCompensation: { id: string; baseSalary: string; salaryType: SalaryType; overtimeRate: string | null } | null;
+  period: { id: string | null; start: string; end: string };
+  completedLessons: number;
+  activeGroups: number;
+  estimatedLessonPay: number | null;
+  estimatedGroupPay: number | null;
 }

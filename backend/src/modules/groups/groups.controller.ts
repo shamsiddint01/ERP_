@@ -6,6 +6,7 @@ import { Audited } from '../../shared/decorators/audited.decorator.js';
 import { CurrentUser } from '../../shared/decorators/current-user.decorator.js';
 import { RequirePermission } from '../../shared/decorators/require-permission.decorator.js';
 import type { AuthenticatedUser } from '../../shared/types/authenticated-request.js';
+import { AcademicProgressService } from '../exams/academic-progress.service.js';
 import { toCsv } from '../reports/report-export.util.js';
 import { AttendanceDateRangeDto } from '../student-attendance/dto/attendance-date-range.dto.js';
 import { StudentAttendanceService } from '../student-attendance/student-attendance.service.js';
@@ -20,6 +21,7 @@ export class GroupsController {
   constructor(
     private readonly groupsService: GroupsService,
     private readonly studentAttendanceService: StudentAttendanceService,
+    private readonly academicProgressService: AcademicProgressService,
   ) {}
 
   @Get()
@@ -82,5 +84,11 @@ export class GroupsController {
       return res.send(toCsv(rows));
     }
     return res.json(report);
+  }
+
+  @Get(':id/results')
+  @RequirePermission('grades', PermissionAction.VIEW)
+  results(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.academicProgressService.getGroupResults(id, user.id);
   }
 }

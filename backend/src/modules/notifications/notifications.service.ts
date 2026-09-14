@@ -30,6 +30,9 @@ const DEFAULT_SEVERITY: Record<NotificationType, NotificationSeverity> = {
   TUITION_DUE: NotificationSeverity.WARNING,
   TUITION_OVERDUE: NotificationSeverity.CRITICAL,
   TUITION_PAYMENT_RECEIVED: NotificationSeverity.INFO,
+  // Phase H — academic assessment.
+  EXAM_UPCOMING: NotificationSeverity.WARNING,
+  GRADES_PUBLISHED: NotificationSeverity.INFO,
 };
 
 export interface NotifyInput {

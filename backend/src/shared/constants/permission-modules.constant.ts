@@ -56,6 +56,12 @@ export const PERMISSION_MODULES = {
   // workflow actions).
   tuition: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.APPROVE, PermissionAction.EXPORT],
   discounts: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE],
+  // Phase H — `exams` gates the Exam entity itself (schedule/metadata);
+  // `grades` separately gates Assessment create/update/delete, so a role can
+  // see that an exam exists without being able to touch scores (Accountant:
+  // "no grade editing") or the reverse split isn't needed anywhere here.
+  exams: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE, PermissionAction.EXPORT],
+  grades: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE],
 } as const satisfies Record<string, PermissionAction[]>;
 
 export type PermissionModule = keyof typeof PERMISSION_MODULES;
