@@ -11,5 +11,6 @@ import { ReportsService } from './reports.service.js';
   imports: [ExamsModule, CompensationModule],
   controllers: [ReportsController, EducationReportsController],
   providers: [ReportsService, ReportPdfService, EducationReportsService],
+  exports: [ReportsService, EducationReportsService],
 })
 export class ReportsModule {}

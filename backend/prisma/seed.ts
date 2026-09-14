@@ -70,6 +70,11 @@ const ROLE_DEFINITIONS: Array<{
       courses: [PermissionAction.VIEW, PermissionAction.EXPORT],
       leads: [PermissionAction.VIEW, PermissionAction.EXPORT],
       teachers: [PermissionAction.VIEW, PermissionAction.EXPORT],
+      // Phase J — "Manager: full operational dashboard" needs Today's
+      // Lessons/Schedule visibility too; never granted because no earlier
+      // phase's Manager requirement touched the schedules/lessons modules.
+      schedules: [PermissionAction.VIEW],
+      lessons: [PermissionAction.VIEW],
     },
   },
   {
@@ -175,6 +180,9 @@ const ROLE_DEFINITIONS: Array<{
       // Phase H — "Reception: limited view" — can see that an exam exists (to
       // answer a parent's question), never the grades/scores behind it.
       exams: [PermissionAction.VIEW],
+      // Phase J — "Reception: students / leads / schedule / attendance" on
+      // the dashboard; leads was never granted at all in any earlier phase.
+      leads: [PermissionAction.VIEW],
     },
   },
 ];
@@ -272,6 +280,9 @@ async function main() {
 
   console.log('Seeding a demo Teacher login (Phase F)...');
   await seedDemoTeacherUser();
+
+  console.log('Seeding demo Manager/Accountant/Reception logins (Phase J)...');
+  await seedDemoRoleUsers();
 
   console.log('Seeding tuition billing/payments/discounts demo data (Phase G)...');
   await seedTuitionBillingDemo(accountIdByCode);
@@ -877,6 +888,34 @@ async function seedDemoTeacherUser(): Promise<void> {
     update: {},
   });
   console.log(`  -> teacher.sarvinoz / ${password} (Teacher role, linked to EMP-TCH-001)`);
+}
+
+/**
+ * One demo login per remaining non-Admin/non-Teacher role, purely so the
+ * Phase J dashboard's per-role RBAC differences can actually be logged into
+ * and browser-verified (mirrors seedDemoTeacherUser's Phase F precedent).
+ * None of these need an Employee link — Manager/Accountant/Reception scoping
+ * is permission-based only, not teacher-scope-narrowed.
+ */
+async function seedDemoRoleUsers(): Promise<void> {
+  const password = process.env.SEED_DEMO_PASSWORD ?? 'ChangeMe123!';
+  const passwordHash = await bcrypt.hash(password, 10);
+  const demoUsers = [
+    { username: 'manager.aziza', fullName: 'Aziza Karimova', email: 'aziza.karimova@erp.local', roleName: 'Manager' },
+    { username: 'accountant.bekzod', fullName: 'Bekzod Yusupov', email: 'bekzod.yusupov@erp.local', roleName: 'Accountant' },
+    { username: 'reception.gulnora', fullName: 'Gulnora Saidova', email: 'gulnora.saidova@erp.local', roleName: 'Reception' },
+  ];
+
+  for (const demo of demoUsers) {
+    const role = await prisma.role.findUnique({ where: { name: demo.roleName } });
+    if (!role) continue; // defensive — all seeded above in this same run
+    await prisma.user.upsert({
+      where: { username: demo.username },
+      create: { fullName: demo.fullName, email: demo.email, username: demo.username, passwordHash, roleId: role.id, status: 'ACTIVE' },
+      update: {},
+    });
+    console.log(`  -> ${demo.username} / ${password} (${demo.roleName} role)`);
+  }
 }
 
 /**

@@ -16,7 +16,7 @@ const ATTENDANCE_INCLUDE = {
   employee: { select: { id: true, employeeCode: true, fullName: true, department: { select: { id: true, name: true } } } },
 } satisfies Prisma.AttendanceRecordInclude;
 
-/** UTC calendar-day midnight — avoids drift from the server's local timezone (same convention as DashboardService.getRevenueChart). */
+/** UTC calendar-day midnight — avoids drift from the server's local timezone (same convention as DashboardService's UTC-day helpers). */
 function utcMidnight(date: Date): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
 }

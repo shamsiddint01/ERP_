@@ -197,46 +197,58 @@ export interface InventorySummary {
   recentMovements: StockMovement[];
 }
 
-export interface DashboardSummary {
-  customersCount: number;
-  productsCount: number;
-  suppliersCount: number;
-  pendingPurchaseOrdersCount: number;
-  totalStockQuantity: number;
-  lowStockCount: number;
-  outOfStockCount: number;
-  recentMovements: StockMovement[];
-  totalRevenue: number;
-  ordersCount: number;
-  pendingOrdersCount: number;
-  outstandingPaymentsAmount: number;
-  paidInvoicesCount: number;
-  overdueInvoicesCount: number;
-  pendingExpensesCount: number;
-  pendingPayrollCount: number;
-  finance: {
-    cash: number;
-    bank: number;
-    totalCash: number;
-    accountsReceivable: number;
-    accountsPayable: number;
-    totalRevenue: number;
-    totalExpenses: number;
-    netProfit: number;
+/** Phase J — the education-center executive dashboard. Every key is present only when the caller's own permissions cover it (see DashboardService's doc comment on the backend); the frontend hides whatever's missing rather than showing a placeholder. */
+export interface DashboardOverview {
+  kpis: {
+    totalStudents?: number;
+    activeStudents?: number;
+    newStudentsThisMonth?: number;
+    activeGroups?: number;
+    totalTeachers?: number;
+    todaysLessons?: number;
+    todaysAttendancePercentage?: number;
+    absentStudentsToday?: number;
+    overdueTuition?: number;
+    outstandingStudentDebt?: number;
+    tuitionCollectedThisMonth?: number;
+    monthlyExpenses?: number;
+    monthlyProfit?: number;
+    payrollPayable?: number;
+    newLeads?: number;
+    leadConversionRate?: number;
+    upcomingExams?: number;
+    unreadNotifications: number;
   };
-  hr: {
-    activeEmployeeCount: number;
-    currentPeriodName: string | null;
-    currentPayrollTotal: number;
-    unpaidPayrollTotal: number;
-    totalOvertimeMinutes: number;
-    pendingApprovalCount: number;
-  };
+  actionRequired: { key: string; value: number; to: string }[];
 }
 
-export interface RevenueChartPoint {
-  date: string;
-  revenue: number;
+export interface DashboardScheduleRow {
+  id: string;
+  scheduledStart: string;
+  scheduledEnd: string;
+  status: string;
+  group: { id: string; name: string };
+  teacherEmployee: { id: string; fullName: string } | null;
+  classroom: { id: string; name: string } | null;
+  branch: { id: string; name: string };
+}
+
+export interface DashboardToday {
+  schedule: DashboardScheduleRow[];
+  attendance: { present: number; absent: number; late: number; excused: number; total: number; attendancePercentage: number } | null;
+}
+
+export interface DashboardCharts {
+  studentGrowth?: { month: string; count: number }[];
+  studentsByBranch?: { branchId: string | null; branchName: string; count: number }[];
+  enrollmentTrend?: { month: string; count: number }[];
+  groupCapacityUtilization?: { groupId: string; name: string; capacity: number; enrolledCount: number; utilizationPercentage: number }[];
+  studentsByCourse?: { courseId: string; courseName: string; studentCount: number }[];
+  tuitionCollection?: { month: string; amount: number }[];
+  incomeVsExpenses?: { month: string; income: number; expenses: number }[];
+  attendanceTrend?: { date: string; attendancePercentage: number }[];
+  leadConversionFunnel?: { status: string; count: number }[];
+  academicPerformance?: { month: string; averageScore: number }[];
 }
 
 export type SupplierStatus = 'ACTIVE' | 'INACTIVE';

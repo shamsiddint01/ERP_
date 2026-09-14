@@ -28,7 +28,7 @@ export function resolveWorkSchedule(raw: unknown): WorkSchedule {
  * concrete Date. Anchored in UTC (not the server's local timezone) so the
  * result never drifts depending on where this process happens to be
  * deployed — the same convention AttendanceService.utcMidnight() and
- * DashboardService.getRevenueChart() already use for calendar-day bucketing.
+ * DashboardService's own UTC-day helpers already use for calendar-day bucketing.
  */
 function scheduleTimeOnDay(time: string, on: Date): Date {
   const [hours, minutes] = time.split(':').map(Number);
