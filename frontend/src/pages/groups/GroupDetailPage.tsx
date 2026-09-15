@@ -12,6 +12,7 @@ import { GenerateLessonsModal } from '../../components/GenerateLessonsModal';
 import { GroupFormModal } from '../../components/GroupFormModal';
 import { PageErrorState } from '../../components/PageErrorState';
 import { ScheduleFormModal } from '../../components/ScheduleFormModal';
+import { palette } from '../../theme';
 import { useAuthStore } from '../../store/auth.store';
 import { formatCurrency, formatDate, formatDateTime, formatNumber } from '../../utils/format';
 import type { EnrollmentStatus, GroupAttendanceStudentRow, ScheduleDayOfWeek, ScheduleDetail, ScheduleStatus, StudentGroupStatus } from '../../types';
@@ -420,15 +421,19 @@ export function GroupDetailPage() {
       </Button>
 
       <Card style={{ marginBottom: 24 }}>
-        <Row justify="space-between" align="middle">
+        <Row justify="space-between" align="middle" gutter={[16, 16]}>
           <Col>
             <Typography.Title level={3} style={{ margin: 0 }}>
               {group.name} <Tag>{group.code}</Tag>
             </Typography.Title>
-            <Typography.Text type="secondary">{group.course.name}</Typography.Text>
+            <Space size={12} wrap>
+              <Typography.Text type="secondary">{group.course.name}</Typography.Text>
+              <Typography.Text type="secondary">&middot; {group.branch.name}</Typography.Text>
+              {group.teacherEmployee && <Typography.Text type="secondary">&middot; {group.teacherEmployee.fullName}</Typography.Text>}
+            </Space>
           </Col>
           <Col>
-            <Space>
+            <Space wrap>
               <Tag color={STATUS_COLORS[group.status]}>{STATUS_LABELS[group.status]}</Tag>
               {canEnroll && group.availableSeats > 0 && (
                 <Button icon={<UserAddOutlined />} onClick={() => setEnrollOpen(true)}>
@@ -451,18 +456,27 @@ export function GroupDetailPage() {
           </Col>
         </Row>
 
-        <Row gutter={16} style={{ marginTop: 16 }}>
-          <Col span={6}>
-            <Statistic title="Sig'imi" value={group.capacity} />
+        <Row gutter={24} style={{ marginTop: 20 }} align="middle">
+          <Col xs={24} sm={10}>
+            <Typography.Text type="secondary" style={{ fontSize: 13 }}>
+              To'ldirilganlik: {group.enrolledCount} / {group.capacity}
+            </Typography.Text>
+            <Progress
+              percent={group.capacity > 0 ? Math.round((group.enrolledCount / group.capacity) * 100) : 0}
+              status={group.availableSeats === 0 ? 'exception' : 'active'}
+              strokeColor={group.availableSeats === 0 ? palette.error : palette.primary}
+            />
           </Col>
-          <Col span={6}>
-            <Statistic title="Yozilgan" value={group.enrolledCount} />
+          <Col xs={12} sm={5}>
+            <Statistic title="Bo'sh o'rinlar" value={group.availableSeats} styles={{ content: { color: group.availableSeats > 0 ? palette.success : palette.error, fontSize: 20 } }} />
           </Col>
-          <Col span={6}>
-            <Statistic title="Bo'sh o'rinlar" value={group.availableSeats} styles={{ content: { color: group.availableSeats > 0 ? '#3f8600' : '#cf1322' } }} />
-          </Col>
-          <Col span={6}>
-            <Statistic title="To'lov" value={group.tuitionAmount ? Number(group.tuitionAmount) : 0} formatter={(v) => formatCurrency(Number(v))} />
+          <Col xs={12} sm={9}>
+            <Statistic
+              title="To'lov"
+              value={group.tuitionAmount ? Number(group.tuitionAmount) : 0}
+              formatter={(v) => formatCurrency(Number(v))}
+              styles={{ content: { fontSize: 20 } }}
+            />
           </Col>
         </Row>
       </Card>

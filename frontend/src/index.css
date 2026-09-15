@@ -10,5 +10,101 @@ body,
 }
 
 body {
-  font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Subtle modern scrollbar — visible on hover, never intrusive. */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(17, 24, 39, 0.15);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(17, 24, 39, 0.28);
+}
+
+/* Accessible focus ring — only for keyboard users, never for mouse clicks. */
+:focus-visible {
+  outline: 2px solid #4f46e5;
+  outline-offset: 2px;
+}
+
+/* Page-enter transition: fade + small translateY, keyed by route in AppLayout. */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.page-enter {
+  animation: page-enter 200ms ease-out;
+}
+
+/* Shared hover-lift for cards (dashboard stat cards, clickable summary cards). */
+.hover-lift {
+  transition:
+    transform 150ms ease,
+    box-shadow 150ms ease;
+}
+.hover-lift:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 4px 10px rgba(16, 24, 40, 0.08),
+    0 2px 4px rgba(16, 24, 40, 0.08);
+}
+
+/*
+ * A wide table (many columns) must scroll WITHIN itself on narrow screens,
+ * never force the page body wider — most tables in this app don't pass an
+ * explicit `scroll={{ x: ... }}`, so this is the global backstop rather than
+ * a per-table fix repeated 100+ times.
+ */
+.ant-table-wrapper {
+  overflow-x: auto;
+}
+
+/* Fires once when a genuinely new notification arrives — never a looping/continuous pulse. */
+@keyframes notification-pulse {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.35);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.notification-badge-pulse .ant-scroll-number {
+  animation: notification-pulse 500ms ease;
+}
+
+/* Sidebar nav row: background + indicator transition (no layout jump). */
+.ant-menu-dark .ant-menu-item,
+.ant-menu-dark .ant-menu-submenu-title {
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }

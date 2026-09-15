@@ -13,7 +13,7 @@ import {
   UserAddOutlined,
 } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Button, Card, Col, DatePicker, Descriptions, Empty, Popconfirm, Progress, Row, Select, Space, Spin, Statistic, Table, Tabs, Tag, Typography } from 'antd';
+import { App, Avatar, Button, Card, Col, DatePicker, Descriptions, Empty, Popconfirm, Progress, Row, Select, Space, Spin, Statistic, Table, Tabs, Tag, Typography } from 'antd';
 import { useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { listAuditLogs, type AuditLogEntry } from '../../api/auditLog';
@@ -28,6 +28,7 @@ import { EnrollmentFormModal } from '../../components/EnrollmentFormModal';
 import { GrantDiscountModal } from '../../components/GrantDiscountModal';
 import { LinkGuardianModal } from '../../components/LinkGuardianModal';
 import { PageErrorState } from '../../components/PageErrorState';
+import { avatarColor } from '../../utils/avatarColor';
 import { StatusTag } from '../../components/StatusTag';
 import { StudentFormModal } from '../../components/StudentFormModal';
 import { TransferEnrollmentModal } from '../../components/TransferEnrollmentModal';
@@ -760,12 +761,19 @@ export function StudentDetailPage() {
       <Card style={{ marginBottom: 24 }}>
         <Row justify="space-between" align="middle">
           <Col>
-            <Typography.Title level={3} style={{ margin: 0 }}>
-              {student.fullName}
-            </Typography.Title>
-            <Typography.Text type="secondary">
-              {student.studentCode} · {student.branch?.name ?? 'Filialsiz'}
-            </Typography.Text>
+            <Space size={16} align="center">
+              <Avatar size={48} style={{ background: avatarColor(student.fullName), fontSize: 18, flexShrink: 0 }}>
+                {student.fullName.charAt(0)}
+              </Avatar>
+              <div>
+                <Typography.Title level={3} style={{ margin: 0 }}>
+                  {student.fullName}
+                </Typography.Title>
+                <Typography.Text type="secondary">
+                  {student.studentCode} · {student.branch?.name ?? 'Filialsiz'}
+                </Typography.Text>
+              </div>
+            </Space>
           </Col>
           <Col>
             <Space>

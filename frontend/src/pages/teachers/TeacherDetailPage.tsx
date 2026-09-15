@@ -1,6 +1,6 @@
 import { ArrowLeftOutlined, EditOutlined, StopOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Button, Card, Col, Descriptions, Empty, Popconfirm, Row, Space, Spin, Statistic, Table, Tabs, Tag, Typography } from 'antd';
+import { App, Avatar, Button, Card, Col, Descriptions, Empty, Popconfirm, Row, Space, Spin, Statistic, Table, Tabs, Tag, Typography } from 'antd';
 import { useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { listEnrollments } from '../../api/enrollments';
@@ -9,6 +9,7 @@ import { listSchedules } from '../../api/schedules';
 import { getAttendanceSummary } from '../../api/studentAttendance';
 import { deactivateTeacher, getTeacher, getTeacherCompensationPreview } from '../../api/teachers';
 import { PageErrorState } from '../../components/PageErrorState';
+import { avatarColor } from '../../utils/avatarColor';
 import { StatusTag } from '../../components/StatusTag';
 import { TeacherFormModal } from '../../components/TeacherFormModal';
 import { useAuthStore } from '../../store/auth.store';
@@ -345,12 +346,19 @@ export function TeacherDetailPage() {
       <Card style={{ marginBottom: 24 }}>
         <Row justify="space-between" align="middle">
           <Col>
-            <Typography.Title level={3} style={{ margin: 0 }}>
-              {teacher.employee.fullName}
-            </Typography.Title>
-            <Typography.Text type="secondary">
-              {teacher.employee.employeeCode} · {teacher.specialization ?? "Mutaxassisligi ko'rsatilmagan"}
-            </Typography.Text>
+            <Space size={16} align="center">
+              <Avatar size={48} style={{ background: avatarColor(teacher.employee.fullName), fontSize: 18, flexShrink: 0 }}>
+                {teacher.employee.fullName.charAt(0)}
+              </Avatar>
+              <div>
+                <Typography.Title level={3} style={{ margin: 0 }}>
+                  {teacher.employee.fullName}
+                </Typography.Title>
+                <Typography.Text type="secondary">
+                  {teacher.employee.employeeCode} · {teacher.specialization ?? "Mutaxassisligi ko'rsatilmagan"}
+                </Typography.Text>
+              </div>
+            </Space>
           </Col>
           <Col>
             <Space>

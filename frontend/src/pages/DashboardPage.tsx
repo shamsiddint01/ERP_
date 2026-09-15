@@ -1,13 +1,31 @@
+import {
+  AlertOutlined,
+  CalendarOutlined,
+  CheckCircleOutlined,
+  DollarOutlined,
+  ExclamationCircleOutlined,
+  FormOutlined,
+  GroupOutlined,
+  RiseOutlined,
+  TeamOutlined,
+  UserAddOutlined,
+  UserOutlined,
+  WalletOutlined,
+} from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
-import { Card, Col, Empty, Row, Skeleton, Statistic, Table, Tag, Typography } from 'antd';
+import { Card, Col, Row, Skeleton, Table, Tag, Typography } from 'antd';
+import type { ReactElement, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { getDashboardCharts, getDashboardOverview, getDashboardToday } from '../api/dashboard';
+import { EmptyState } from '../components/EmptyState';
 import { PageErrorState } from '../components/PageErrorState';
+import { StatCard } from '../components/StatCard';
+import { palette } from '../theme';
 import { useAuthStore } from '../store/auth.store';
 import { formatNumber } from '../utils/format';
 
-const PIE_COLORS = ['#1677ff', '#52c41a', '#faad14', '#f5222d', '#722ed1', '#13c2c2'];
+const PIE_COLORS = [palette.primary, palette.success, palette.warning, palette.error, '#7C3AED', palette.info];
 
 const LESSON_STATUS_LABELS: Record<string, string> = {
   SCHEDULED: 'Rejalashtirilgan',
@@ -37,8 +55,32 @@ const ACTION_REQUIRED_LABELS: Record<string, string> = {
 
 const money = (value: number) => formatNumber(value, 2);
 
+// `toLocaleDateString('uz-UZ', { weekday: 'long', month: 'long' })` falls
+// back to broken output ("M09 15, Tue") in browsers without full uz-UZ CLDR
+// data — a manual lookup is the only reliable way to get real Uzbek names.
+const WEEKDAYS = ['Yakshanba', 'Dushanba', 'Seshanba', 'Chorshanba', 'Payshanba', 'Juma', 'Shanba'];
+const MONTHS = [
+  'Yanvar', 'Fevral', 'Mart', 'Aprel', 'May', 'Iyun',
+  'Iyul', 'Avgust', 'Sentyabr', 'Oktyabr', 'Noyabr', 'Dekabr',
+];
+function formatLongDate(date: Date): string {
+  return `${WEEKDAYS[date.getDay()]}, ${date.getDate()}-${MONTHS[date.getMonth()]}`;
+}
+
 function time(value: string) {
   return new Date(value).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' });
+}
+
+function ChartCard({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <Col xs={24} md={12}>
+      <Card title={title} className="hover-lift" style={{ height: '100%' }}>
+        <ResponsiveContainer width="100%" height={220}>
+          {children as ReactElement}
+        </ResponsiveContainer>
+      </Card>
+    </Col>
+  );
 }
 
 export function DashboardPage() {
@@ -58,25 +100,35 @@ export function DashboardPage() {
     return <PageErrorState onRetry={() => overviewQuery.refetch()} title="Dashboard yuklanmadi" />;
   }
 
+  const todayLabel = formatLongDate(new Date());
+
   return (
     <div>
-      <Typography.Title level={3}>Xush kelibsiz, {user?.fullName}</Typography.Title>
+      <div style={{ marginBottom: 24 }}>
+        <Typography.Title level={3} style={{ margin: 0 }}>
+          Xush kelibsiz, {user?.fullName}
+        </Typography.Title>
+        <Typography.Text type="secondary">
+          {todayLabel}
+        </Typography.Text>
+      </div>
 
       {/* ACTION REQUIRED */}
-      <Typography.Title level={5} style={{ marginTop: 0 }}>
+      <Typography.Title level={5} style={{ marginTop: 0, marginBottom: 12 }}>
+        <AlertOutlined style={{ color: palette.warning, marginInlineEnd: 8 }} />
         E'tibor talab qiladi
       </Typography.Title>
       {overviewQuery.isLoading ? (
         <Skeleton active paragraph={{ rows: 1 }} style={{ marginBottom: 24 }} />
       ) : actionRequired.length === 0 ? (
-        <Empty description="Hozircha diqqat talab qiladigan narsa yo'q" style={{ marginBottom: 24 }} image={Empty.PRESENTED_IMAGE_SIMPLE} />
+        <Card style={{ marginBottom: 24 }}>
+          <EmptyState title="Diqqat talab qiladigan narsa yo'q" description="Barcha muhim ko'rsatkichlar me'yorida." />
+        </Card>
       ) : (
         <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
           {actionRequired.map((item) => (
             <Col xs={12} sm={8} md={6} lg={4} key={item.key}>
-              <Card hoverable styles={{ body: { padding: 16 } }} onClick={() => navigate(item.to)}>
-                <Statistic title={ACTION_REQUIRED_LABELS[item.key] ?? item.key} value={item.value} styles={{ content: { color: '#f5222d' } }} />
-              </Card>
+              <StatCard icon={<ExclamationCircleOutlined />} color={palette.error} title={ACTION_REQUIRED_LABELS[item.key] ?? item.key} value={item.value} onClick={() => navigate(item.to)} />
             </Col>
           ))}
         </Row>
@@ -89,62 +141,73 @@ export function DashboardPage() {
         kpis && (
           <>
             {(kpis.totalStudents !== undefined || kpis.activeGroups !== undefined || kpis.totalTeachers !== undefined) && (
-              <Card title="O'quvchilar va guruhlar" style={{ marginBottom: 16 }}>
-                <Row gutter={[16, 16]}>
+              <>
+                <Typography.Title level={5} style={{ marginBottom: 12 }}>
+                  O'quvchilar va guruhlar
+                </Typography.Title>
+                <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
                   {kpis.totalStudents !== undefined && (
                     <Col xs={12} sm={8} md={6} lg={4}>
-                      <Statistic title="Jami o'quvchilar" value={kpis.totalStudents} />
+                      <StatCard icon={<UserOutlined />} color={palette.primary} title="Jami o'quvchilar" value={kpis.totalStudents} />
                     </Col>
                   )}
                   {kpis.activeStudents !== undefined && (
                     <Col xs={12} sm={8} md={6} lg={4}>
-                      <Statistic title="Faol o'quvchilar" value={kpis.activeStudents} styles={{ content: { color: '#3f8600' } }} />
+                      <StatCard icon={<CheckCircleOutlined />} color={palette.success} title="Faol o'quvchilar" value={kpis.activeStudents} />
                     </Col>
                   )}
                   {kpis.newStudentsThisMonth !== undefined && (
                     <Col xs={12} sm={8} md={6} lg={4}>
-                      <Statistic title="Bu oy yangi o'quvchilar" value={kpis.newStudentsThisMonth} />
+                      <StatCard icon={<UserAddOutlined />} color={palette.info} title="Bu oy yangi o'quvchilar" value={kpis.newStudentsThisMonth} />
                     </Col>
                   )}
                   {kpis.activeGroups !== undefined && (
                     <Col xs={12} sm={8} md={6} lg={4}>
-                      <Statistic title="Faol guruhlar" value={kpis.activeGroups} />
+                      <StatCard icon={<GroupOutlined />} color={palette.primary} title="Faol guruhlar" value={kpis.activeGroups} />
                     </Col>
                   )}
                   {kpis.totalTeachers !== undefined && (
                     <Col xs={12} sm={8} md={6} lg={4}>
-                      <Statistic title="Jami o'qituvchilar" value={kpis.totalTeachers} />
+                      <StatCard icon={<TeamOutlined />} color={palette.info} title="Jami o'qituvchilar" value={kpis.totalTeachers} />
                     </Col>
                   )}
                 </Row>
-              </Card>
+              </>
             )}
 
             {(kpis.todaysLessons !== undefined || kpis.todaysAttendancePercentage !== undefined || kpis.absentStudentsToday !== undefined || kpis.upcomingExams !== undefined) && (
-              <Card title="Bugungi holat" style={{ marginBottom: 16 }}>
-                <Row gutter={[16, 16]}>
+              <>
+                <Typography.Title level={5} style={{ marginBottom: 12 }}>
+                  Bugungi holat
+                </Typography.Title>
+                <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
                   {kpis.todaysLessons !== undefined && (
                     <Col xs={12} sm={8} md={6} lg={4}>
-                      <Statistic title="Bugungi darslar" value={kpis.todaysLessons} />
+                      <StatCard icon={<CalendarOutlined />} color={palette.primary} title="Bugungi darslar" value={kpis.todaysLessons} />
                     </Col>
                   )}
                   {kpis.todaysAttendancePercentage !== undefined && (
                     <Col xs={12} sm={8} md={6} lg={4}>
-                      <Statistic title="Bugungi davomat" value={kpis.todaysAttendancePercentage} suffix="%" />
+                      <StatCard icon={<CheckCircleOutlined />} color={palette.success} title="Bugungi davomat" value={kpis.todaysAttendancePercentage} suffix="%" />
                     </Col>
                   )}
                   {kpis.absentStudentsToday !== undefined && (
                     <Col xs={12} sm={8} md={6} lg={4}>
-                      <Statistic title="Bugun kelmaganlar" value={kpis.absentStudentsToday} styles={{ content: { color: kpis.absentStudentsToday > 0 ? '#f5222d' : undefined } }} />
+                      <StatCard
+                        icon={<ExclamationCircleOutlined />}
+                        color={kpis.absentStudentsToday > 0 ? palette.error : palette.success}
+                        title="Bugun kelmaganlar"
+                        value={kpis.absentStudentsToday}
+                      />
                     </Col>
                   )}
                   {kpis.upcomingExams !== undefined && (
                     <Col xs={12} sm={8} md={6} lg={4}>
-                      <Statistic title="Kutilayotgan imtihonlar" value={kpis.upcomingExams} />
+                      <StatCard icon={<FormOutlined />} color={palette.info} title="Kutilayotgan imtihonlar" value={kpis.upcomingExams} />
                     </Col>
                   )}
                 </Row>
-              </Card>
+              </>
             )}
 
             {(kpis.overdueTuition !== undefined ||
@@ -153,68 +216,86 @@ export function DashboardPage() {
               kpis.monthlyExpenses !== undefined ||
               kpis.monthlyProfit !== undefined ||
               kpis.payrollPayable !== undefined) && (
-              <Card title="Moliya va to'lovlar" style={{ marginBottom: 16 }}>
-                <Row gutter={[16, 16]}>
+              <>
+                <Typography.Title level={5} style={{ marginBottom: 12 }}>
+                  Moliya va to'lovlar
+                </Typography.Title>
+                <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
                   {kpis.overdueTuition !== undefined && (
                     <Col xs={12} sm={8} md={6} lg={4}>
-                      <Statistic title="Muddati o'tgan to'lov" value={kpis.overdueTuition} formatter={(v) => money(Number(v))} styles={{ content: { color: kpis.overdueTuition! > 0 ? '#f5222d' : undefined } }} />
+                      <StatCard
+                        icon={<WalletOutlined />}
+                        color={kpis.overdueTuition > 0 ? palette.error : palette.success}
+                        title="Muddati o'tgan to'lov"
+                        value={kpis.overdueTuition}
+                        formatter={money}
+                      />
                     </Col>
                   )}
                   {kpis.outstandingStudentDebt !== undefined && (
                     <Col xs={12} sm={8} md={6} lg={4}>
-                      <Statistic title="Qarzdorlik" value={kpis.outstandingStudentDebt} formatter={(v) => money(Number(v))} styles={{ content: { color: '#faad14' } }} />
+                      <StatCard icon={<WalletOutlined />} color={palette.warning} title="Qarzdorlik" value={kpis.outstandingStudentDebt} formatter={money} />
                     </Col>
                   )}
                   {kpis.tuitionCollectedThisMonth !== undefined && (
                     <Col xs={12} sm={8} md={6} lg={4}>
-                      <Statistic title="Bu oy yig'ilgan to'lov" value={kpis.tuitionCollectedThisMonth} formatter={(v) => money(Number(v))} styles={{ content: { color: '#3f8600' } }} />
+                      <StatCard icon={<DollarOutlined />} color={palette.success} title="Bu oy yig'ilgan to'lov" value={kpis.tuitionCollectedThisMonth} formatter={money} />
                     </Col>
                   )}
                   {kpis.monthlyExpenses !== undefined && (
                     <Col xs={12} sm={8} md={6} lg={4}>
-                      <Statistic title="Oylik xarajatlar" value={kpis.monthlyExpenses} formatter={(v) => money(Number(v))} />
+                      <StatCard icon={<DollarOutlined />} color={palette.info} title="Oylik xarajatlar" value={kpis.monthlyExpenses} formatter={money} />
                     </Col>
                   )}
                   {kpis.monthlyProfit !== undefined && (
                     <Col xs={12} sm={8} md={6} lg={4}>
-                      <Statistic title="Oylik foyda" value={kpis.monthlyProfit} formatter={(v) => money(Number(v))} styles={{ content: { color: kpis.monthlyProfit! >= 0 ? '#3f8600' : '#f5222d' } }} />
+                      <StatCard
+                        icon={<RiseOutlined />}
+                        color={kpis.monthlyProfit >= 0 ? palette.success : palette.error}
+                        title="Oylik foyda"
+                        value={kpis.monthlyProfit}
+                        formatter={money}
+                      />
                     </Col>
                   )}
                   {kpis.payrollPayable !== undefined && (
                     <Col xs={12} sm={8} md={6} lg={4}>
-                      <Statistic title="To'lanadigan ish haqi" value={kpis.payrollPayable} formatter={(v) => money(Number(v))} />
+                      <StatCard icon={<WalletOutlined />} color={palette.info} title="To'lanadigan ish haqi" value={kpis.payrollPayable} formatter={money} />
                     </Col>
                   )}
                 </Row>
-              </Card>
+              </>
             )}
 
             {(kpis.newLeads !== undefined || kpis.leadConversionRate !== undefined) && (
-              <Card title="Lidlar" style={{ marginBottom: 16 }}>
-                <Row gutter={[16, 16]}>
+              <>
+                <Typography.Title level={5} style={{ marginBottom: 12 }}>
+                  Lidlar
+                </Typography.Title>
+                <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
                   {kpis.newLeads !== undefined && (
                     <Col xs={12} sm={8} md={6} lg={4}>
-                      <Statistic title="Yangi lidlar (bu oy)" value={kpis.newLeads} />
+                      <StatCard icon={<UserAddOutlined />} color={palette.primary} title="Yangi lidlar (bu oy)" value={kpis.newLeads} />
                     </Col>
                   )}
                   {kpis.leadConversionRate !== undefined && (
                     <Col xs={12} sm={8} md={6} lg={4}>
-                      <Statistic title="Konversiya darajasi" value={kpis.leadConversionRate} suffix="%" />
+                      <StatCard icon={<RiseOutlined />} color={palette.success} title="Konversiya darajasi" value={kpis.leadConversionRate} suffix="%" />
                     </Col>
                   )}
                 </Row>
-              </Card>
+              </>
             )}
           </>
         )
       )}
 
       {/* TODAY'S SCHEDULE */}
-      <Card title="Bugungi dars jadvali" style={{ marginBottom: 16 }}>
+      <Card title="Bugungi dars jadvali" className="hover-lift" style={{ marginBottom: 16 }}>
         {todayQuery.isLoading ? (
           <Skeleton active paragraph={{ rows: 3 }} />
         ) : !today || today.schedule.length === 0 ? (
-          <Empty description="Bugun darslar rejalashtirilmagan" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+          <EmptyState title="Bugun darslar rejalashtirilmagan" />
         ) : (
           <Table
             size="small"
@@ -248,162 +329,124 @@ export function DashboardPage() {
       ) : charts && Object.keys(charts).length > 0 ? (
         <Row gutter={[16, 16]}>
           {charts.studentGrowth && (
-            <Col xs={24} md={12}>
-              <Card title="O'quvchilar o'sishi">
-                <ResponsiveContainer width="100%" height={220}>
-                  <LineChart data={charts.studentGrowth}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="count" stroke="#1677ff" strokeWidth={2} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </Card>
-            </Col>
+            <ChartCard title="O'quvchilar o'sishi">
+              <LineChart data={charts.studentGrowth}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#EEF0F3" />
+                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                <Tooltip />
+                <Line type="monotone" dataKey="count" stroke={palette.primary} strokeWidth={2} />
+              </LineChart>
+            </ChartCard>
           )}
           {charts.enrollmentTrend && (
-            <Col xs={24} md={12}>
-              <Card title="Yozilishlar dinamikasi">
-                <ResponsiveContainer width="100%" height={220}>
-                  <LineChart data={charts.enrollmentTrend}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="count" stroke="#52c41a" strokeWidth={2} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </Card>
-            </Col>
+            <ChartCard title="Yozilishlar dinamikasi">
+              <LineChart data={charts.enrollmentTrend}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#EEF0F3" />
+                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                <Tooltip />
+                <Line type="monotone" dataKey="count" stroke={palette.success} strokeWidth={2} />
+              </LineChart>
+            </ChartCard>
           )}
           {charts.tuitionCollection && (
-            <Col xs={24} md={12}>
-              <Card title="To'lovlar yig'ilishi">
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={charts.tuitionCollection}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} />
-                    <Tooltip formatter={(v) => money(Number(v))} />
-                    <Bar dataKey="amount" fill="#1677ff" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </Card>
-            </Col>
+            <ChartCard title="To'lovlar yig'ilishi">
+              <BarChart data={charts.tuitionCollection}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#EEF0F3" />
+                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} />
+                <Tooltip formatter={(v) => money(Number(v))} />
+                <Bar dataKey="amount" fill={palette.primary} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ChartCard>
           )}
           {charts.incomeVsExpenses && (
-            <Col xs={24} md={12}>
-              <Card title="Daromad va xarajatlar">
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={charts.incomeVsExpenses}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} />
-                    <Tooltip formatter={(v) => money(Number(v))} />
-                    <Legend />
-                    <Bar dataKey="income" name="Daromad" fill="#52c41a" />
-                    <Bar dataKey="expenses" name="Xarajat" fill="#f5222d" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </Card>
-            </Col>
+            <ChartCard title="Daromad va xarajatlar">
+              <BarChart data={charts.incomeVsExpenses}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#EEF0F3" />
+                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} />
+                <Tooltip formatter={(v) => money(Number(v))} />
+                <Legend />
+                <Bar dataKey="income" name="Daromad" fill={palette.success} radius={[4, 4, 0, 0]} />
+                <Bar dataKey="expenses" name="Xarajat" fill={palette.error} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ChartCard>
           )}
           {charts.attendanceTrend && (
-            <Col xs={24} md={12}>
-              <Card title="Davomat dinamikasi (so'nggi 14 kun)">
-                <ResponsiveContainer width="100%" height={220}>
-                  <LineChart data={charts.attendanceTrend}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={(v: string) => v.slice(5)} />
-                    <YAxis tick={{ fontSize: 11 }} />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="attendancePercentage" stroke="#722ed1" strokeWidth={2} dot={false} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </Card>
-            </Col>
+            <ChartCard title="Davomat dinamikasi (so'nggi 14 kun)">
+              <LineChart data={charts.attendanceTrend}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#EEF0F3" />
+                <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={(v: string) => v.slice(5)} />
+                <YAxis tick={{ fontSize: 11 }} />
+                <Tooltip />
+                <Line type="monotone" dataKey="attendancePercentage" stroke="#7C3AED" strokeWidth={2} dot={false} />
+              </LineChart>
+            </ChartCard>
           )}
           {charts.academicPerformance && (
-            <Col xs={24} md={12}>
-              <Card title="Akademik ko'rsatkichlar">
-                <ResponsiveContainer width="100%" height={220}>
-                  <LineChart data={charts.academicPerformance}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="month" tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="averageScore" stroke="#13c2c2" strokeWidth={2} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </Card>
-            </Col>
+            <ChartCard title="Akademik ko'rsatkichlar">
+              <LineChart data={charts.academicPerformance}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#EEF0F3" />
+                <XAxis dataKey="month" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} />
+                <Tooltip />
+                <Line type="monotone" dataKey="averageScore" stroke={palette.info} strokeWidth={2} />
+              </LineChart>
+            </ChartCard>
           )}
           {charts.studentsByCourse && (
-            <Col xs={24} md={12}>
-              <Card title="Kurslar bo'yicha o'quvchilar">
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={charts.studentsByCourse}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="courseName" tick={{ fontSize: 10 }} />
-                    <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                    <Tooltip />
-                    <Bar dataKey="studentCount" fill="#1677ff" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </Card>
-            </Col>
+            <ChartCard title="Kurslar bo'yicha o'quvchilar">
+              <BarChart data={charts.studentsByCourse}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#EEF0F3" />
+                <XAxis dataKey="courseName" tick={{ fontSize: 10 }} />
+                <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                <Tooltip />
+                <Bar dataKey="studentCount" fill={palette.primary} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ChartCard>
           )}
           {charts.studentsByBranch && (
-            <Col xs={24} md={12}>
-              <Card title="Filiallar bo'yicha o'quvchilar">
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={charts.studentsByBranch}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="branchName" tick={{ fontSize: 11 }} />
-                    <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                    <Tooltip />
-                    <Bar dataKey="count" fill="#52c41a" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </Card>
-            </Col>
+            <ChartCard title="Filiallar bo'yicha o'quvchilar">
+              <BarChart data={charts.studentsByBranch}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#EEF0F3" />
+                <XAxis dataKey="branchName" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                <Tooltip />
+                <Bar dataKey="count" fill={palette.success} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ChartCard>
           )}
           {charts.groupCapacityUtilization && (
-            <Col xs={24} md={12}>
-              <Card title="Guruhlar to'ldirilishi (%)">
-                <ResponsiveContainer width="100%" height={220}>
-                  <BarChart data={charts.groupCapacityUtilization}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-                    <YAxis tick={{ fontSize: 11 }} />
-                    <Tooltip />
-                    <Bar dataKey="utilizationPercentage" fill="#faad14" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </Card>
-            </Col>
+            <ChartCard title="Guruhlar to'ldirilishi (%)">
+              <BarChart data={charts.groupCapacityUtilization}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#EEF0F3" />
+                <XAxis dataKey="name" tick={{ fontSize: 10 }} />
+                <YAxis tick={{ fontSize: 11 }} />
+                <Tooltip />
+                <Bar dataKey="utilizationPercentage" fill={palette.warning} radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ChartCard>
           )}
           {charts.leadConversionFunnel && (
-            <Col xs={24} md={12}>
-              <Card title="Lidlar konversiya voronkasi">
-                <ResponsiveContainer width="100%" height={220}>
-                  <PieChart>
-                    <Pie data={charts.leadConversionFunnel} dataKey="count" nameKey="status" outerRadius={80} label>
-                      {charts.leadConversionFunnel.map((entry, i) => (
-                        <Cell key={entry.status} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </Card>
-            </Col>
+            <ChartCard title="Lidlar konversiya voronkasi">
+              <PieChart>
+                <Pie data={charts.leadConversionFunnel} dataKey="count" nameKey="status" outerRadius={80} label>
+                  {charts.leadConversionFunnel.map((entry, i) => (
+                    <Cell key={entry.status} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ChartCard>
           )}
         </Row>
       ) : (
-        <Empty description="Ko'rsatiladigan diagramma yo'q" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+        <Card>
+          <EmptyState title="Ko'rsatiladigan diagramma yo'q" />
+        </Card>
       )}
     </div>
   );

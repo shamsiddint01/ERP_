@@ -1,6 +1,7 @@
 import { BellOutlined, CheckOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { App, Badge, Button, Dropdown, Empty, List, Spin, Tag, Typography } from 'antd';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUnreadCount, listNotifications, markAllNotificationsRead, markNotificationRead } from '../api/notifications';
 import type { NotificationItem, NotificationSeverity } from '../types';
@@ -43,6 +44,19 @@ export function NotificationBell() {
   }
 
   const unreadCount = unreadQuery.data ?? 0;
+
+  // Pulse once when the unread count genuinely goes UP (a real new
+  // notification arrived via polling) — never on load, never on decrease
+  // (marking read), and never a continuous/looping animation.
+  const previousCount = useRef<number | undefined>(undefined);
+  const [pulseKey, setPulseKey] = useState(0);
+  useEffect(() => {
+    if (unreadQuery.data === undefined) return;
+    if (previousCount.current !== undefined && unreadQuery.data > previousCount.current) {
+      setPulseKey((k) => k + 1);
+    }
+    previousCount.current = unreadQuery.data;
+  }, [unreadQuery.data]);
 
   const panel = (
     <div style={{ width: 380, background: '#fff', borderRadius: 8, boxShadow: '0 6px 24px rgba(0,0,0,0.12)', overflow: 'hidden' }}>
@@ -107,7 +121,7 @@ export function NotificationBell() {
 
   return (
     <Dropdown popupRender={() => panel} trigger={['click']} placement="bottomRight">
-      <Badge count={unreadCount} size="small" offset={[-2, 4]}>
+      <Badge key={pulseKey} count={unreadCount} size="small" offset={[-2, 4]} className={pulseKey > 0 ? 'notification-badge-pulse' : undefined}>
         <Button type="text" icon={<BellOutlined style={{ fontSize: 18 }} />} aria-label="Bildirishnomalar" />
       </Badge>
     </Dropdown>
