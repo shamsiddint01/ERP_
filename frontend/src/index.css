@@ -1,3 +1,10 @@
+:root {
+  --motion-fast: 120ms;
+  --motion-normal: 180ms;
+  --motion-slow: 260ms;
+  --motion-ease: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 * {
   box-sizing: border-box;
 }
@@ -48,20 +55,34 @@ body {
   }
 }
 .page-enter {
-  animation: page-enter 200ms ease-out;
+  animation: page-enter var(--motion-slow) var(--motion-ease);
 }
 
-/* Shared hover-lift for cards (dashboard stat cards, clickable summary cards). */
+/*
+ * Shared hover treatment for cards (StatCards, clickable summaries): a small
+ * lift + border emphasis + a slightly stronger shadow — "surface -> border ->
+ * soft shadow -> hover elevation", never a heavy 3D effect.
+ */
 .hover-lift {
   transition:
-    transform 150ms ease,
-    box-shadow 150ms ease;
+    transform var(--motion-normal) var(--motion-ease),
+    box-shadow var(--motion-normal) var(--motion-ease),
+    border-color var(--motion-normal) var(--motion-ease);
 }
 .hover-lift:hover {
-  transform: translateY(-2px);
+  transform: translateY(-1px);
+  border-color: rgba(79, 70, 229, 0.35);
   box-shadow:
     0 4px 10px rgba(16, 24, 40, 0.08),
     0 2px 4px rgba(16, 24, 40, 0.08);
+}
+
+/* Icon badge inside a StatCard: a small reveal on card hover, never on its own. */
+.stat-card-icon {
+  transition: transform var(--motion-normal) var(--motion-ease);
+}
+.stat-card:hover .stat-card-icon {
+  transform: scale(1.08);
 }
 
 /*
@@ -72,6 +93,11 @@ body {
  */
 .ant-table-wrapper {
   overflow-x: auto;
+}
+
+/* Table row hover: smooth color shift, never a position/scale change. */
+.ant-table-tbody > tr > td {
+  transition: background-color var(--motion-fast) var(--motion-ease);
 }
 
 /* Fires once when a genuinely new notification arrives — never a looping/continuous pulse. */
@@ -87,15 +113,15 @@ body {
   }
 }
 .notification-badge-pulse .ant-scroll-number {
-  animation: notification-pulse 500ms ease;
+  animation: notification-pulse 500ms var(--motion-ease);
 }
 
 /* Sidebar nav row: background + indicator transition (no layout jump). */
 .ant-menu-dark .ant-menu-item,
 .ant-menu-dark .ant-menu-submenu-title {
   transition:
-    background-color 120ms ease,
-    color 120ms ease;
+    background-color var(--motion-fast) var(--motion-ease),
+    color var(--motion-fast) var(--motion-ease);
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -1,12 +1,16 @@
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Input, Select, Space, Table, Tag, Typography } from 'antd';
+import { Avatar, Button, Input, Select, Space, Table, Tag } from 'antd';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { listGuardians } from '../../api/guardians';
+import { EmptyState } from '../../components/EmptyState';
+import { FilterBar } from '../../components/FilterBar';
 import { GuardianFormModal } from '../../components/GuardianFormModal';
 import { PageErrorState } from '../../components/PageErrorState';
+import { PageHeader } from '../../components/PageHeader';
 import { useAuthStore } from '../../store/auth.store';
+import { avatarColor } from '../../utils/avatarColor';
 import type { GuardianListItem, GuardianStatus } from '../../types';
 
 const STATUS_COLORS: Record<GuardianStatus, string> = { ACTIVE: 'green', INACTIVE: 'default' };
@@ -39,20 +43,22 @@ export function GuardiansPage() {
     return <PageErrorState onRetry={() => guardiansQuery.refetch()} />;
   }
 
+  const canCreate = hasPermission('guardians', 'CREATE');
+
   return (
     <div>
-      <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
-        <Typography.Title level={4} style={{ margin: 0 }}>
-          Ota-onalar / Vasiylar
-        </Typography.Title>
-        {hasPermission('guardians', 'CREATE') && (
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
-            Yangi ota-ona/vasiy
-          </Button>
-        )}
-      </Space>
+      <PageHeader
+        title="Ota-onalar / Vasiylar"
+        extra={
+          canCreate && (
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
+              Yangi ota-ona/vasiy
+            </Button>
+          )
+        }
+      />
 
-      <Space style={{ marginBottom: 16 }} wrap>
+      <FilterBar>
         <Input
           placeholder="Qidirish: F.I.Sh., telefon"
           prefix={<SearchOutlined />}
@@ -73,7 +79,7 @@ export function GuardiansPage() {
             setPage(1);
           }}
         />
-      </Space>
+      </FilterBar>
 
       <Table<GuardianListItem>
         rowKey="id"
@@ -81,8 +87,35 @@ export function GuardiansPage() {
         dataSource={guardiansQuery.data?.items}
         onRow={(record) => ({ onClick: () => navigate(`/guardians/${record.id}`), style: { cursor: 'pointer' } })}
         pagination={{ current: page, pageSize: 20, total: guardiansQuery.data?.total, onChange: setPage }}
+        scroll={{ x: 'max-content' }}
+        locale={{
+          emptyText: (
+            <EmptyState
+              title="Hali ota-ona/vasiy yo'q"
+              description="O'quvchilarni ota-onalari yoki vasiylari bilan bog'lash uchun birinchi yozuvni qo'shing."
+              action={
+                canCreate && (
+                  <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
+                    Qo'shish
+                  </Button>
+                )
+              }
+            />
+          ),
+        }}
         columns={[
-          { title: 'F.I.Sh.', dataIndex: 'fullName' },
+          {
+            title: 'F.I.Sh.',
+            dataIndex: 'fullName',
+            render: (name: string) => (
+              <Space>
+                <Avatar size={32} style={{ background: avatarColor(name), flexShrink: 0 }}>
+                  {name.charAt(0)}
+                </Avatar>
+                {name}
+              </Space>
+            ),
+          },
           { title: 'Telefon', dataIndex: 'phone' },
           { title: 'Email', dataIndex: 'email', render: (v: string | null) => v ?? '—' },
           { title: 'Qarindoshlik', dataIndex: 'relationshipType', render: (v: string) => RELATIONSHIP_LABELS[v] ?? v },

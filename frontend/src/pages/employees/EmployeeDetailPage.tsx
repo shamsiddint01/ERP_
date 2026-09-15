@@ -1,6 +1,7 @@
 import { ArrowLeftOutlined, StopOutlined, UndoOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Button, Card, Col, Descriptions, Empty, Popconfirm, Row, Spin, Statistic, Table, Tabs, Tag, Typography } from 'antd';
+import { App, Button, Card, Col, Descriptions, Popconfirm, Row, Spin, Statistic, Table, Tabs, Tag, Typography } from 'antd';
+import { EmptyState } from '../../components/EmptyState';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getEmployee, getEmployeeActivity, reactivateEmployee, terminateEmployee } from '../../api/employees';
 import { PageErrorState } from '../../components/PageErrorState';
@@ -184,7 +185,7 @@ export function EmployeeDetailPage() {
                   ]}
                 />
               ) : (
-                <Empty description="Davomat yozuvlari yo'q" />
+                <EmptyState title="Davomat yozuvlari yo'q" />
               ),
             },
             {
@@ -205,7 +206,7 @@ export function EmployeeDetailPage() {
                   ]}
                 />
               ) : (
-                <Empty description="Buyurtmalar yo'q" />
+                <EmptyState title="Buyurtmalar yo'q" />
               ),
             },
             {
@@ -225,7 +226,7 @@ export function EmployeeDetailPage() {
                   ]}
                 />
               ) : (
-                <Empty description="Xarajatlar yo'q" />
+                <EmptyState title="Xarajatlar yo'q" />
               ),
             },
             {
@@ -245,7 +246,7 @@ export function EmployeeDetailPage() {
                   ]}
                 />
               ) : (
-                <Empty description="Activity yo'q" />
+                <EmptyState title="Activity yo'q" />
               ),
             },
           ]}

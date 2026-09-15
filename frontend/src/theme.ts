@@ -1,4 +1,5 @@
 import type { ThemeConfig } from 'antd';
+import type { CSSProperties } from 'react';
 
 /**
  * Central design-token configuration (single source of truth for color,
@@ -8,6 +9,31 @@ import type { ThemeConfig } from 'antd';
  * look. Component-level overrides below exist only where a token alone
  * can't express the desired effect (e.g. Menu's active-item indicator).
  */
+
+/**
+ * Central motion system for our own custom CSS/components (index.css,
+ * StatCard, page transitions, etc.) — deliberately separate from AntD's own
+ * internal `token.motionDuration*`/`motionEase*` seeds, which are left
+ * untouched to avoid destabilizing transitions inside AntD's own components
+ * we haven't individually re-tested (Modal, Drawer, Dropdown, Tooltip...).
+ */
+export const motion = {
+  fast: '120ms',
+  normal: '180ms',
+  slow: '260ms',
+  easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+};
+
+/** Shared Recharts <Tooltip contentStyle=...> so every chart tooltip reads as one system, not a default browser box. */
+export const chartTooltipStyle: CSSProperties = {
+  background: '#ffffff',
+  border: '1px solid #EEF0F3',
+  borderRadius: 8,
+  boxShadow: '0 4px 10px rgba(16,24,40,0.08), 0 2px 4px rgba(16,24,40,0.08)',
+  fontSize: 12,
+  padding: '8px 12px',
+};
+export const chartTooltipLabelStyle: CSSProperties = { fontWeight: 600, marginBottom: 4, color: '#111827' };
 
 export const palette = {
   primary: '#4F46E5',

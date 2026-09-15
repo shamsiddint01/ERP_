@@ -1,9 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, DatePicker, Form, Input, Modal, Select } from 'antd';
+import { App, Col, DatePicker, Divider, Form, Input, Modal, Row, Select } from 'antd';
 import dayjs from 'dayjs';
 import { useEffect } from 'react';
 import { listBranches } from '../api/branches';
 import { createStudent, updateStudent, type StudentPayload } from '../api/students';
+import { FormSection } from './FormSection';
 import type { StudentDetail, StudentStatus } from '../types';
 
 interface StudentFormModalProps {
@@ -105,59 +106,99 @@ export function StudentFormModal({ open, onClose, student, onSaved }: StudentFor
       width={640}
     >
       <Form form={form} layout="vertical" onFinish={(values) => mutation.mutate(values)}>
-        {isEdit && (
-          <Form.Item name="studentCode" label="O'quvchi kodi">
-            <Input disabled />
+        <FormSection title="Asosiy ma'lumotlar">
+          {isEdit && (
+            <Form.Item name="studentCode" label="O'quvchi kodi">
+              <Input disabled />
+            </Form.Item>
+          )}
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="firstName" label="Ism" rules={[{ required: true }]}>
+                <Input />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="lastName" label="Familiya" rules={[{ required: true }]}>
+                <Input />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="dateOfBirth" label="Tug'ilgan sana">
+                <DatePicker style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="gender" label="Jinsi">
+                <Select
+                  allowClear
+                  options={[
+                    { value: 'MALE', label: 'Erkak' },
+                    { value: 'FEMALE', label: 'Ayol' },
+                  ]}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+        </FormSection>
+
+        <Divider style={{ margin: '0 0 16px' }} />
+
+        <FormSection title="Aloqa va filial">
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="phone" label="Telefon">
+                <Input placeholder="+998901234567" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="email" label="Email">
+                <Input />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="address" label="Manzil">
+                <Input />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="branchId" label="Filial">
+                <Select
+                  allowClear
+                  loading={branchesQuery.isLoading}
+                  options={branchesQuery.data?.items.map((b) => ({ value: b.id, label: b.name }))}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="emergencyContact" label="Favqulodda aloqa">
+                <Input />
+              </Form.Item>
+            </Col>
+          </Row>
+        </FormSection>
+
+        <Divider style={{ margin: '0 0 16px' }} />
+
+        <FormSection title="Qo'shimcha">
+          <Row gutter={16}>
+            {isEdit && (
+              <Col span={12}>
+                <Form.Item name="status" label="Status">
+                  <Select options={STATUS_OPTIONS} />
+                </Form.Item>
+              </Col>
+            )}
+            <Col span={isEdit ? 12 : 24}>
+              <Form.Item name="source" label="Qayerdan bilgan">
+                <Input placeholder="Masalan: Instagram, tavsiya, sayt" />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Form.Item name="notes" label="Izoh" style={{ marginBottom: 0 }}>
+            <Input.TextArea rows={2} />
           </Form.Item>
-        )}
-        <Form.Item name="firstName" label="Ism" rules={[{ required: true }]}>
-          <Input />
-        </Form.Item>
-        <Form.Item name="lastName" label="Familiya" rules={[{ required: true }]}>
-          <Input />
-        </Form.Item>
-        <Form.Item name="dateOfBirth" label="Tug'ilgan sana">
-          <DatePicker style={{ width: '100%' }} />
-        </Form.Item>
-        <Form.Item name="gender" label="Jinsi">
-          <Select
-            allowClear
-            options={[
-              { value: 'MALE', label: 'Erkak' },
-              { value: 'FEMALE', label: 'Ayol' },
-            ]}
-          />
-        </Form.Item>
-        <Form.Item name="phone" label="Telefon">
-          <Input placeholder="+998901234567" />
-        </Form.Item>
-        <Form.Item name="email" label="Email">
-          <Input />
-        </Form.Item>
-        <Form.Item name="address" label="Manzil">
-          <Input />
-        </Form.Item>
-        <Form.Item name="branchId" label="Filial">
-          <Select
-            allowClear
-            loading={branchesQuery.isLoading}
-            options={branchesQuery.data?.items.map((b) => ({ value: b.id, label: b.name }))}
-          />
-        </Form.Item>
-        {isEdit && (
-          <Form.Item name="status" label="Status">
-            <Select options={STATUS_OPTIONS} />
-          </Form.Item>
-        )}
-        <Form.Item name="source" label="Qayerdan bilgan">
-          <Input placeholder="Masalan: Instagram, tavsiya, sayt" />
-        </Form.Item>
-        <Form.Item name="emergencyContact" label="Favqulodda aloqa">
-          <Input />
-        </Form.Item>
-        <Form.Item name="notes" label="Izoh">
-          <Input.TextArea />
-        </Form.Item>
+        </FormSection>
       </Form>
     </Modal>
   );

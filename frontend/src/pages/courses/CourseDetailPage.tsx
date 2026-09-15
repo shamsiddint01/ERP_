@@ -1,11 +1,13 @@
-import { ArrowLeftOutlined, EditOutlined, StopOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined, EditOutlined, GroupOutlined, StopOutlined, WalletOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Button, Card, Col, Descriptions, Popconfirm, Row, Space, Spin, Statistic, Tag, Typography } from 'antd';
+import { App, Button, Card, Col, Descriptions, Popconfirm, Row, Space, Spin, Tag, Typography } from 'antd';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { deactivateCourse, getCourse } from '../../api/courses';
 import { CourseFormModal } from '../../components/CourseFormModal';
 import { PageErrorState } from '../../components/PageErrorState';
+import { StatCard } from '../../components/StatCard';
+import { palette } from '../../theme';
 import { useAuthStore } from '../../store/auth.store';
 import type { CourseLevel, CourseStatus } from '../../types';
 
@@ -106,15 +108,17 @@ export function CourseDetailPage() {
       </Card>
 
       <Row gutter={16}>
-        <Col span={8}>
-          <Card>
-            <Statistic title="Standart to'lov summasi" value={Number(course.defaultTuition)} suffix="so'm" formatter={(v) => Number(v).toLocaleString('uz-UZ')} />
-          </Card>
+        <Col xs={12} sm={8}>
+          <StatCard
+            icon={<WalletOutlined />}
+            color={palette.primary}
+            title="Standart to'lov summasi"
+            value={Number(course.defaultTuition)}
+            formatter={(v) => `${v.toLocaleString('uz-UZ')} so'm`}
+          />
         </Col>
-        <Col span={8}>
-          <Card>
-            <Statistic title="Guruhlar soni" value={course._count.studentGroups} />
-          </Card>
+        <Col xs={12} sm={8}>
+          <StatCard icon={<GroupOutlined />} color={palette.info} title="Guruhlar soni" value={course._count.studentGroups} />
         </Col>
       </Row>
 

@@ -1,6 +1,7 @@
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Button, Drawer, Empty, Form, Input, List, Popconfirm, Space } from 'antd';
+import { App, Button, Drawer, Form, Input, List, Popconfirm, Space } from 'antd';
+import { EmptyState } from './EmptyState';
 import { createCategory, deleteCategory, listCategories } from '../api/categories';
 
 interface CategoryManagerDrawerProps {
@@ -51,7 +52,7 @@ export function CategoryManagerDrawer({ open, onClose }: CategoryManagerDrawerPr
       <List
         loading={categoriesQuery.isLoading}
         dataSource={categoriesQuery.data}
-        locale={{ emptyText: <Empty description="Kategoriyalar yo'q" /> }}
+        locale={{ emptyText: <EmptyState title="Kategoriyalar yo'q" /> }}
         renderItem={(category) => (
           <List.Item
             actions={[

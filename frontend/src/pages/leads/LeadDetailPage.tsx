@@ -1,11 +1,12 @@
 import { ArrowLeftOutlined, DeleteOutlined, EditOutlined, PlusOutlined, SwapRightOutlined, UserAddOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Button, Card, Col, Descriptions, Empty, Form, Input, Popconfirm, Row, Select, Space, Spin, Tag, Timeline, Typography } from 'antd';
+import { App, Button, Card, Col, Descriptions, Form, Input, Popconfirm, Row, Select, Space, Spin, Tag, Timeline, Typography } from 'antd';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { addLeadActivity, changeLeadStatus, deleteLead, getLead, type CreateLeadActivityPayload } from '../../api/leads';
 import { ConvertLeadModal } from '../../components/ConvertLeadModal';
 import { LeadFormModal } from '../../components/LeadFormModal';
+import { EmptyState } from '../../components/EmptyState';
 import { PageErrorState } from '../../components/PageErrorState';
 import { useAuthStore } from '../../store/auth.store';
 import type { LeadActivityType, LeadStatus } from '../../types';
@@ -237,7 +238,7 @@ export function LeadDetailPage() {
             }))}
           />
         ) : (
-          <Empty description="Faoliyatlar hali qayd etilmagan" />
+          <EmptyState title="Faoliyatlar hali qayd etilmagan" />
         )}
       </Card>
 

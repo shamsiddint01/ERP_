@@ -1,6 +1,7 @@
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Button, Drawer, Empty, Form, Input, InputNumber, List, Popconfirm, Select, Space, Tag } from 'antd';
+import { App, Button, Drawer, Form, Input, InputNumber, List, Popconfirm, Select, Space, Tag } from 'antd';
+import { EmptyState } from './EmptyState';
 import { createPayrollComponent, deletePayrollComponent, listPayrollComponents } from '../api/payroll';
 import type { PayrollComponentType } from '../types';
 
@@ -63,7 +64,7 @@ export function PayrollComponentsDrawer({ open, onClose }: PayrollComponentsDraw
       <List
         loading={componentsQuery.isLoading}
         dataSource={componentsQuery.data}
-        locale={{ emptyText: <Empty description="Hali yaratilmagan" /> }}
+        locale={{ emptyText: <EmptyState title="Hali yaratilmagan" /> }}
         renderItem={(component) => (
           <List.Item
             actions={[

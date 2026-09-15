@@ -1,11 +1,12 @@
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
-import { Avatar, Button, Card, Input, Select, Space, Table, Tag, Typography } from 'antd';
+import { Avatar, Button, Input, Select, Space, Table, Tag, Typography } from 'antd';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { listBranches } from '../../api/branches';
 import { listStudents } from '../../api/students';
 import { EmptyState } from '../../components/EmptyState';
+import { FilterBar } from '../../components/FilterBar';
 import { PageErrorState } from '../../components/PageErrorState';
 import { PageHeader } from '../../components/PageHeader';
 import { StudentFormModal } from '../../components/StudentFormModal';
@@ -57,42 +58,40 @@ export function StudentsPage() {
         }
       />
 
-      <Card size="small" style={{ marginBottom: 16 }} styles={{ body: { padding: 12 } }}>
-        <Space wrap>
-          <Input
-            placeholder="Qidirish: F.I.Sh., kod, telefon"
-            prefix={<SearchOutlined />}
-            style={{ width: 260 }}
-            allowClear
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setPage(1);
-            }}
-          />
+      <FilterBar>
+        <Input
+          placeholder="Qidirish: F.I.Sh., kod, telefon"
+          prefix={<SearchOutlined />}
+          style={{ width: 260 }}
+          allowClear
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setPage(1);
+          }}
+        />
+        <Select
+          placeholder="Status"
+          allowClear
+          style={{ width: 180 }}
+          options={Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label }))}
+          onChange={(value) => {
+            setStatus(value);
+            setPage(1);
+          }}
+        />
+        {canBranches && (
           <Select
-            placeholder="Status"
+            placeholder="Filial"
             allowClear
-            style={{ width: 180 }}
-            options={Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label }))}
+            style={{ width: 200 }}
+            options={branchesQuery.data?.items.map((b) => ({ value: b.id, label: b.name }))}
             onChange={(value) => {
-              setStatus(value);
+              setBranchId(value);
               setPage(1);
             }}
           />
-          {canBranches && (
-            <Select
-              placeholder="Filial"
-              allowClear
-              style={{ width: 200 }}
-              options={branchesQuery.data?.items.map((b) => ({ value: b.id, label: b.name }))}
-              onChange={(value) => {
-                setBranchId(value);
-                setPage(1);
-              }}
-            />
-          )}
-        </Space>
-      </Card>
+        )}
+      </FilterBar>
 
       <Table<StudentListItem>
         rowKey="id"

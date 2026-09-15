@@ -1,6 +1,7 @@
 import { PlusOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Button, Drawer, Empty, Form, Input, List, Select } from 'antd';
+import { App, Button, Drawer, Form, Input, List, Select } from 'antd';
+import { EmptyState } from './EmptyState';
 import { listAccounts } from '../api/accounts';
 import { createExpenseCategory, listExpenseCategories } from '../api/expenses';
 
@@ -56,7 +57,7 @@ export function ExpenseCategoriesDrawer({ open, onClose }: ExpenseCategoriesDraw
       <List
         loading={categoriesQuery.isLoading}
         dataSource={categoriesQuery.data}
-        locale={{ emptyText: <Empty description="Kategoriyalar yo'q" /> }}
+        locale={{ emptyText: <EmptyState title="Kategoriyalar yo'q" /> }}
         renderItem={(category) => (
           <List.Item>
             <div>

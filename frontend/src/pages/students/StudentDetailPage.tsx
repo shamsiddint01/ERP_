@@ -13,7 +13,8 @@ import {
   UserAddOutlined,
 } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Avatar, Button, Card, Col, DatePicker, Descriptions, Empty, Popconfirm, Progress, Row, Select, Space, Spin, Statistic, Table, Tabs, Tag, Typography } from 'antd';
+import { App, Avatar, Button, Card, Col, DatePicker, Descriptions, Popconfirm, Progress, Row, Select, Space, Spin, Statistic, Table, Tabs, Tag, Typography } from 'antd';
+import { EmptyState } from '../../components/EmptyState';
 import { useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { listAuditLogs, type AuditLogEntry } from '../../api/auditLog';
@@ -317,7 +318,7 @@ export function StudentDetailPage() {
               ]}
             />
           ) : (
-            <Empty description="Vasiylar bog'lanmagan" />
+            <EmptyState title="Vasiylar bog'lanmagan" />
           )}
         </>
       ),
@@ -378,7 +379,7 @@ export function StudentDetailPage() {
               ]}
             />
           ) : (
-            <Empty description="Yozilishlar yo'q" />
+            <EmptyState title="Yozilishlar yo'q" />
           )}
         </>
       ),

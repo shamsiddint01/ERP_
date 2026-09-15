@@ -1,6 +1,7 @@
 import { ArrowLeftOutlined, EditOutlined, PlusOutlined, StopOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Button, Card, Col, Descriptions, Empty, Popconfirm, Row, Space, Spin, Statistic, Table, Tag, Typography } from 'antd';
+import { App, Button, Card, Col, Descriptions, Popconfirm, Row, Space, Spin, Statistic, Table, Tag, Typography } from 'antd';
+import { EmptyState } from '../../components/EmptyState';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { deactivateBranch, getBranch } from '../../api/branches';
@@ -144,7 +145,7 @@ export function BranchDetailPage() {
             ]}
           />
         ) : (
-          <Empty description="Xonalar hali qo'shilmagan" />
+          <EmptyState title="Xonalar hali qo'shilmagan" />
         )}
       </Card>
 

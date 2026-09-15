@@ -1,14 +1,18 @@
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Input, Select, Space, Table, Tag, Typography } from 'antd';
+import { Button, Input, Select, Table, Tag } from 'antd';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { listBranches } from '../../api/branches';
 import { listCourses } from '../../api/courses';
 import { listLeads } from '../../api/leads';
+import { EmptyState } from '../../components/EmptyState';
+import { FilterBar } from '../../components/FilterBar';
 import { LeadFormModal } from '../../components/LeadFormModal';
 import { PageErrorState } from '../../components/PageErrorState';
+import { PageHeader } from '../../components/PageHeader';
 import { useAuthStore } from '../../store/auth.store';
+import { formatDateTime } from '../../utils/format';
 import type { LeadListItem, LeadStatus } from '../../types';
 
 const STATUS_COLORS: Record<LeadStatus, string> = {
@@ -52,20 +56,22 @@ export function LeadsPage() {
     return <PageErrorState onRetry={() => leadsQuery.refetch()} />;
   }
 
+  const canCreate = hasPermission('leads', 'CREATE');
+
   return (
     <div>
-      <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
-        <Typography.Title level={4} style={{ margin: 0 }}>
-          Lidlar / Qabul CRM
-        </Typography.Title>
-        {hasPermission('leads', 'CREATE') && (
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
-            Yangi lid
-          </Button>
-        )}
-      </Space>
+      <PageHeader
+        title="Lidlar / Qabul CRM"
+        extra={
+          canCreate && (
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
+              Yangi lid
+            </Button>
+          )
+        }
+      />
 
-      <Space style={{ marginBottom: 16 }} wrap>
+      <FilterBar>
         <Input
           placeholder="Qidirish: F.I.Sh., telefon"
           prefix={<SearchOutlined />}
@@ -110,7 +116,7 @@ export function LeadsPage() {
             }}
           />
         )}
-      </Space>
+      </FilterBar>
 
       <Table<LeadListItem>
         rowKey="id"
@@ -118,6 +124,22 @@ export function LeadsPage() {
         dataSource={leadsQuery.data?.items}
         onRow={(record) => ({ onClick: () => navigate(`/leads/${record.id}`), style: { cursor: 'pointer' } })}
         pagination={{ current: page, pageSize: 20, total: leadsQuery.data?.total, onChange: setPage }}
+        scroll={{ x: 'max-content' }}
+        locale={{
+          emptyText: (
+            <EmptyState
+              title="Hali lid yo'q"
+              description="Yangi mijozlar bilan ishlashni boshlash uchun birinchi lidni qo'shing."
+              action={
+                canCreate && (
+                  <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
+                    Lid qo'shish
+                  </Button>
+                )
+              }
+            />
+          ),
+        }}
         columns={[
           { title: 'F.I.Sh.', dataIndex: 'fullName' },
           { title: 'Telefon', dataIndex: 'phone' },
@@ -128,7 +150,7 @@ export function LeadsPage() {
           {
             title: 'Keyingi aloqa',
             dataIndex: 'nextFollowUpAt',
-            render: (v: string | null) => (v ? new Date(v).toLocaleString('uz-UZ') : '—'),
+            render: (v: string | null) => (v ? formatDateTime(v) : '—'),
           },
           { title: 'Status', dataIndex: 'status', render: (v: LeadStatus) => <Tag color={STATUS_COLORS[v]}>{STATUS_LABELS[v]}</Tag> },
         ]}

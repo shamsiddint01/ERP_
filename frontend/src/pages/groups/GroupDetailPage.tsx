@@ -1,6 +1,7 @@
 import { ArrowLeftOutlined, DownloadOutlined, EditOutlined, PlusOutlined, StopOutlined, ThunderboltOutlined, UserAddOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Button, Card, Col, DatePicker, Descriptions, Empty, Popconfirm, Progress, Row, Space, Spin, Statistic, Table, Tabs, Tag, Typography } from 'antd';
+import { App, Button, Card, Col, DatePicker, Descriptions, Popconfirm, Progress, Row, Space, Spin, Statistic, Table, Tabs, Tag, Typography } from 'antd';
+import { EmptyState } from '../../components/EmptyState';
 import { useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { deactivateGroup, getGroup, getGroupResults } from '../../api/groups';
@@ -205,7 +206,7 @@ export function GroupDetailPage() {
           ]}
         />
       ) : (
-        <Empty description="Hali hech kim yozilmagan" />
+        <EmptyState title="Hali hech kim yozilmagan" />
       ),
     },
     {
@@ -220,7 +221,7 @@ export function GroupDetailPage() {
           </Descriptions.Item>
         </Descriptions>
       ) : (
-        <Empty description="O'qituvchi tayinlanmagan" />
+        <EmptyState title="O'qituvchi tayinlanmagan" />
       ),
     },
     {
@@ -290,7 +291,7 @@ export function GroupDetailPage() {
               ]}
             />
           ) : (
-            <Empty description="Hali dars jadvali belgilanmagan" />
+            <EmptyState title="Hali dars jadvali belgilanmagan" />
           )}
         </div>
       ),
@@ -409,7 +410,7 @@ export function GroupDetailPage() {
           />
         </>
       ) : (
-        <Empty description="Hali imtihon natijalari yo'q" />
+        <EmptyState title="Hali imtihon natijalari yo'q" />
       ),
     },
   ].filter((tab): tab is Exclude<typeof tab, false> => Boolean(tab));

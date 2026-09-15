@@ -1,6 +1,7 @@
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Card, DatePicker, Empty, List, Segmented, Select, Space, Tag, Typography } from 'antd';
+import { Button, Card, DatePicker, List, Segmented, Select, Space, Tag, Typography } from 'antd';
+import { EmptyState } from '../../components/EmptyState';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -136,7 +137,7 @@ export function ScheduleCalendarPage() {
       ) : (
         <Card loading={lessonsQuery.isLoading}>
           {sortedLessons.length === 0 ? (
-            <Empty description="Bu kunga darslar rejalashtirilmagan" />
+            <EmptyState title="Bu kunga darslar rejalashtirilmagan" />
           ) : (
             <List
               dataSource={sortedLessons}

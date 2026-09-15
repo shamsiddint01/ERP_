@@ -1,6 +1,7 @@
 import { ArrowLeftOutlined, EditOutlined, StopOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Button, Card, Col, Descriptions, Empty, Popconfirm, Row, Space, Spin, Table, Tag, Typography } from 'antd';
+import { App, Button, Card, Col, Descriptions, Popconfirm, Row, Space, Spin, Table, Tag, Typography } from 'antd';
+import { EmptyState } from '../../components/EmptyState';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { deactivateGuardian, getGuardian } from '../../api/guardians';
@@ -164,7 +165,7 @@ export function GuardianDetailPage() {
             ]}
           />
         ) : (
-          <Empty description="Bog'langan o'quvchilar yo'q" />
+          <EmptyState title="Bog'langan o'quvchilar yo'q" />
         )}
       </Card>
 

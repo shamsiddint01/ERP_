@@ -1,6 +1,7 @@
 import { ArrowLeftOutlined, EditOutlined, StopOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Avatar, Button, Card, Col, Descriptions, Empty, Popconfirm, Row, Space, Spin, Statistic, Table, Tabs, Tag, Typography } from 'antd';
+import { App, Avatar, Button, Card, Col, Descriptions, Popconfirm, Row, Space, Spin, Statistic, Table, Tabs, Tag, Typography } from 'antd';
+import { EmptyState } from '../../components/EmptyState';
 import { useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { listEnrollments } from '../../api/enrollments';
@@ -176,7 +177,7 @@ export function TeacherDetailPage() {
           ]}
         />
       ) : (
-        <Empty description="Hali guruh tayinlanmagan" />
+        <EmptyState title="Hali guruh tayinlanmagan" />
       ),
     },
     canViewStudents && {

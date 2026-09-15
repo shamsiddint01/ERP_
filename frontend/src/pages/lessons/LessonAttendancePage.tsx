@@ -1,6 +1,7 @@
 import { ArrowLeftOutlined, SaveOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Button, Card, Empty, Form, Input, Select, Space, Spin, Statistic, Table, Typography } from 'antd';
+import { App, Button, Card, Form, Input, Select, Space, Spin, Statistic, Table, Typography } from 'antd';
+import { EmptyState } from '../../components/EmptyState';
 import dayjs from 'dayjs';
 import { useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -133,9 +134,9 @@ export function LessonAttendancePage() {
 
       <Card>
         {lesson.status === 'CANCELLED' ? (
-          <Empty description="Bekor qilingan darsga davomat belgilab bo'lmaydi" />
+          <EmptyState title="Bekor qilingan darsga davomat belgilab bo'lmaydi" />
         ) : roster.length === 0 ? (
-          <Empty description="Ushbu darsga yozilgan o'quvchilar topilmadi" />
+          <EmptyState title="Ushbu darsga yozilgan o'quvchilar topilmadi" />
         ) : (
           <Form form={form} onFinish={(values) => bulkMutation.mutate(values)}>
             <Table

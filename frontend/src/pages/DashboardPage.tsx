@@ -13,7 +13,7 @@ import {
   WalletOutlined,
 } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
-import { Card, Col, Row, Skeleton, Table, Tag, Typography } from 'antd';
+import { Button, Card, Col, Row, Skeleton, Space, Table, Tag, Typography } from 'antd';
 import type { ReactElement, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
@@ -21,7 +21,7 @@ import { getDashboardCharts, getDashboardOverview, getDashboardToday } from '../
 import { EmptyState } from '../components/EmptyState';
 import { PageErrorState } from '../components/PageErrorState';
 import { StatCard } from '../components/StatCard';
-import { palette } from '../theme';
+import { chartTooltipLabelStyle, chartTooltipStyle, palette } from '../theme';
 import { useAuthStore } from '../store/auth.store';
 import { formatNumber } from '../utils/format';
 
@@ -83,9 +83,29 @@ function ChartCard({ title, children }: { title: string; children: ReactNode }) 
   );
 }
 
+const HOUR_GREETINGS: [number, string][] = [
+  [5, 'Xayrli tong'],
+  [12, 'Xayrli kun'],
+  [18, 'Xayrli kech'],
+  [24, 'Xayrli tun'],
+];
+function greeting(): string {
+  const hour = new Date().getHours();
+  return HOUR_GREETINGS.find(([upTo]) => hour < upTo)?.[1] ?? 'Xayrli kun';
+}
+
 export function DashboardPage() {
   const user = useAuthStore((state) => state.user);
+  const hasPermission = useAuthStore((state) => state.hasPermission);
   const navigate = useNavigate();
+
+  const quickActions = [
+    { key: 'student', label: "O'quvchi qo'shish", icon: <UserAddOutlined />, to: '/students', show: hasPermission('students', 'CREATE') },
+    { key: 'group', label: 'Guruh yaratish', icon: <GroupOutlined />, to: '/groups', show: hasPermission('groups', 'CREATE') },
+    { key: 'payment', label: "To'lov qabul qilish", icon: <DollarOutlined />, to: '/payments', show: hasPermission('payments', 'CREATE') },
+    { key: 'attendance', label: 'Davomat belgilash', icon: <CheckCircleOutlined />, to: '/attendance/student', show: hasPermission('student_attendance', 'CREATE') },
+    { key: 'lead', label: "Lid qo'shish", icon: <UserOutlined />, to: '/leads', show: hasPermission('leads', 'CREATE') },
+  ].filter((action) => action.show);
 
   const overviewQuery = useQuery({ queryKey: ['dashboard', 'overview'], queryFn: getDashboardOverview, staleTime: 30_000 });
   const todayQuery = useQuery({ queryKey: ['dashboard', 'today'], queryFn: getDashboardToday, staleTime: 30_000 });
@@ -104,13 +124,33 @@ export function DashboardPage() {
 
   return (
     <div>
-      <div style={{ marginBottom: 24 }}>
-        <Typography.Title level={3} style={{ margin: 0 }}>
-          Xush kelibsiz, {user?.fullName}
-        </Typography.Title>
-        <Typography.Text type="secondary">
-          {todayLabel}
-        </Typography.Text>
+      <div
+        style={{
+          marginBottom: 24,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-end',
+          flexWrap: 'wrap',
+          gap: 16,
+        }}
+      >
+        <div>
+          <Typography.Title level={3} style={{ margin: 0 }}>
+            {greeting()}, {user?.fullName}
+          </Typography.Title>
+          <Typography.Text type="secondary">
+            {todayLabel} &middot; Ta'lim markazingizning bugungi holati quyida keltirilgan.
+          </Typography.Text>
+        </div>
+        {quickActions.length > 0 && (
+          <Space wrap size={8}>
+            {quickActions.map((action) => (
+              <Button key={action.key} icon={action.icon} onClick={() => navigate(action.to)}>
+                {action.label}
+              </Button>
+            ))}
+          </Space>
+        )}
       </div>
 
       {/* ACTION REQUIRED */}
@@ -334,7 +374,7 @@ export function DashboardPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#EEF0F3" />
                 <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                <Tooltip />
+                <Tooltip contentStyle={chartTooltipStyle} labelStyle={chartTooltipLabelStyle} />
                 <Line type="monotone" dataKey="count" stroke={palette.primary} strokeWidth={2} />
               </LineChart>
             </ChartCard>
@@ -345,7 +385,7 @@ export function DashboardPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#EEF0F3" />
                 <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                <Tooltip />
+                <Tooltip contentStyle={chartTooltipStyle} labelStyle={chartTooltipLabelStyle} />
                 <Line type="monotone" dataKey="count" stroke={palette.success} strokeWidth={2} />
               </LineChart>
             </ChartCard>
@@ -356,7 +396,7 @@ export function DashboardPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#EEF0F3" />
                 <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip formatter={(v) => money(Number(v))} />
+                <Tooltip contentStyle={chartTooltipStyle} labelStyle={chartTooltipLabelStyle} formatter={(v) => money(Number(v))} />
                 <Bar dataKey="amount" fill={palette.primary} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ChartCard>
@@ -367,7 +407,7 @@ export function DashboardPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#EEF0F3" />
                 <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip formatter={(v) => money(Number(v))} />
+                <Tooltip contentStyle={chartTooltipStyle} labelStyle={chartTooltipLabelStyle} formatter={(v) => money(Number(v))} />
                 <Legend />
                 <Bar dataKey="income" name="Daromad" fill={palette.success} radius={[4, 4, 0, 0]} />
                 <Bar dataKey="expenses" name="Xarajat" fill={palette.error} radius={[4, 4, 0, 0]} />
@@ -380,7 +420,7 @@ export function DashboardPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#EEF0F3" />
                 <XAxis dataKey="date" tick={{ fontSize: 10 }} tickFormatter={(v: string) => v.slice(5)} />
                 <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip />
+                <Tooltip contentStyle={chartTooltipStyle} labelStyle={chartTooltipLabelStyle} />
                 <Line type="monotone" dataKey="attendancePercentage" stroke="#7C3AED" strokeWidth={2} dot={false} />
               </LineChart>
             </ChartCard>
@@ -391,7 +431,7 @@ export function DashboardPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#EEF0F3" />
                 <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip />
+                <Tooltip contentStyle={chartTooltipStyle} labelStyle={chartTooltipLabelStyle} />
                 <Line type="monotone" dataKey="averageScore" stroke={palette.info} strokeWidth={2} />
               </LineChart>
             </ChartCard>
@@ -402,7 +442,7 @@ export function DashboardPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#EEF0F3" />
                 <XAxis dataKey="courseName" tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                <Tooltip />
+                <Tooltip contentStyle={chartTooltipStyle} labelStyle={chartTooltipLabelStyle} />
                 <Bar dataKey="studentCount" fill={palette.primary} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ChartCard>
@@ -413,7 +453,7 @@ export function DashboardPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#EEF0F3" />
                 <XAxis dataKey="branchName" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                <Tooltip />
+                <Tooltip contentStyle={chartTooltipStyle} labelStyle={chartTooltipLabelStyle} />
                 <Bar dataKey="count" fill={palette.success} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ChartCard>
@@ -424,7 +464,7 @@ export function DashboardPage() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#EEF0F3" />
                 <XAxis dataKey="name" tick={{ fontSize: 10 }} />
                 <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip />
+                <Tooltip contentStyle={chartTooltipStyle} labelStyle={chartTooltipLabelStyle} />
                 <Bar dataKey="utilizationPercentage" fill={palette.warning} radius={[4, 4, 0, 0]} />
               </BarChart>
             </ChartCard>
@@ -437,7 +477,7 @@ export function DashboardPage() {
                     <Cell key={entry.status} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip contentStyle={chartTooltipStyle} labelStyle={chartTooltipLabelStyle} />
                 <Legend />
               </PieChart>
             </ChartCard>
