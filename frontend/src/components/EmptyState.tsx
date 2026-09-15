@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 export function EmptyState({ title, description, action }: { title: string; description?: string; action?: ReactNode }) {
   return (
     <Empty
+      className="state-enter"
       image={Empty.PRESENTED_IMAGE_SIMPLE}
       style={{ padding: '32px 0' }}
       description={

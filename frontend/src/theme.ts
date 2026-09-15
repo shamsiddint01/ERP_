@@ -22,6 +22,12 @@ export const motion = {
   normal: '180ms',
   slow: '260ms',
   easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+  /** Entrance stagger step between sibling sections (dashboard, etc.) — never per-row/per-card. */
+  staggerStep: 30,
+  /** Small translateY used by every fade-in-and-lift entrance (page-enter, stagger, state-enter). */
+  distance: 6,
+  /** Shared hover scale for icon badges / small reveal accents — never applied to whole cards. */
+  scaleHover: 1.08,
 };
 
 /** Shared Recharts <Tooltip contentStyle=...> so every chart tooltip reads as one system, not a default browser box. */

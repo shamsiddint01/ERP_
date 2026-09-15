@@ -21,7 +21,7 @@ interface StatCardProps {
 
 /** Dashboard KPI tile: icon badge + count-up value + title. One real number per card — never a fake trend. */
 export function StatCard({ icon, title, value, loading, color = palette.primary, suffix, description, trend, formatter, onClick }: StatCardProps) {
-  const animated = useCountUp(value);
+  const { value: animated, ref: countRef } = useCountUp(value);
 
   return (
     <Card size="small" className="hover-lift stat-card" onClick={onClick} style={{ cursor: onClick ? 'pointer' : undefined, height: '100%' }} styles={{ body: { padding: 16 } }}>
@@ -57,6 +57,7 @@ export function StatCard({ icon, title, value, loading, color = palette.primary,
             <>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
                 <div
+                  ref={countRef}
                   title={`${formatter ? formatter(animated) : animated.toLocaleString('uz-UZ')}${suffix ?? ''}`}
                   style={{ fontSize: 20, fontWeight: 600, lineHeight: 1.3, color: '#111827', overflowWrap: 'anywhere' }}
                 >

@@ -3,6 +3,11 @@
   --motion-normal: 180ms;
   --motion-slow: 260ms;
   --motion-ease: cubic-bezier(0.4, 0, 0.2, 1);
+  /* Shared entrance distance/scale/stagger — same values theme.ts's `motion` object exports for JS-driven timing. */
+  --motion-distance: 6px;
+  --motion-scale-hover: 1.08;
+  --motion-scale-press: 0.97;
+  --motion-stagger-step: 30ms;
 }
 
 * {
@@ -47,7 +52,7 @@ body {
 @keyframes page-enter {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(var(--motion-distance));
   }
   to {
     opacity: 1;
@@ -56,6 +61,16 @@ body {
 }
 .page-enter {
   animation: page-enter var(--motion-slow) var(--motion-ease);
+}
+
+/*
+ * Shared entrance for EmptyState/PageErrorState — the same fade+lift as
+ * page-enter, so a query settling into "empty" or "error" never just pops
+ * into existence. Uses `normal` (not `slow`) since it's a smaller, more
+ * local reveal than a full page.
+ */
+.state-enter {
+  animation: page-enter var(--motion-normal) var(--motion-ease);
 }
 
 /*
@@ -82,7 +97,35 @@ body {
   transition: transform var(--motion-normal) var(--motion-ease);
 }
 .stat-card:hover .stat-card-icon {
-  transform: scale(1.08);
+  transform: scale(var(--motion-scale-hover));
+}
+
+/*
+ * Buttons: a small press feedback on click (AntD has none by default) —
+ * never on disabled/loading buttons, since those can't really be "pressed".
+ */
+.ant-btn:not(.ant-btn-loading):not(:disabled) {
+  transition: transform var(--motion-fast) var(--motion-ease);
+}
+.ant-btn:not(.ant-btn-loading):not(:disabled):active {
+  transform: scale(var(--motion-scale-press));
+}
+
+/*
+ * Table row action buttons: a subtle "elegant reveal" — dimmed at rest,
+ * full-strength on row hover (opacity only, never a position/scale change
+ * inside a fixed-height row). Gated to hover-capable pointers only, so
+ * touch/keyboard users always see actions at full strength — never hidden,
+ * never dependent on hover to be usable.
+ */
+@media (hover: hover) and (pointer: fine) {
+  .ant-table-tbody > tr > td:last-child .ant-btn {
+    opacity: 0.82;
+    transition: opacity var(--motion-fast) var(--motion-ease);
+  }
+  .ant-table-tbody > tr:hover > td:last-child .ant-btn {
+    opacity: 1;
+  }
 }
 
 /*
@@ -124,6 +167,14 @@ body {
     color var(--motion-fast) var(--motion-ease);
 }
 
+/* Notification dropdown rows: same table-row philosophy — a smooth background shift, never a position change. */
+.notification-panel .ant-list-item {
+  transition: background-color var(--motion-fast) var(--motion-ease);
+}
+.notification-panel .ant-list-item:hover {
+  background-color: rgba(79, 70, 229, 0.06);
+}
+
 /*
  * Dashboard entrance: each top-level section fades/lifts in with a short,
  * bounded stagger — only the first few sections get a real delay, everything
@@ -132,7 +183,7 @@ body {
 @keyframes stagger-fade-in {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(var(--motion-distance));
   }
   to {
     opacity: 1;
@@ -147,19 +198,19 @@ body {
   animation-delay: 0ms;
 }
 .dashboard-stagger > *:nth-child(2) {
-  animation-delay: 30ms;
+  animation-delay: var(--motion-stagger-step);
 }
 .dashboard-stagger > *:nth-child(3) {
-  animation-delay: 60ms;
+  animation-delay: calc(var(--motion-stagger-step) * 2);
 }
 .dashboard-stagger > *:nth-child(4) {
-  animation-delay: 90ms;
+  animation-delay: calc(var(--motion-stagger-step) * 3);
 }
 .dashboard-stagger > *:nth-child(5) {
-  animation-delay: 120ms;
+  animation-delay: calc(var(--motion-stagger-step) * 4);
 }
 .dashboard-stagger > *:nth-child(n + 6) {
-  animation-delay: 150ms;
+  animation-delay: calc(var(--motion-stagger-step) * 5);
 }
 
 @media (prefers-reduced-motion: reduce) {

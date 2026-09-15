@@ -8,6 +8,7 @@ import { Button, Result } from 'antd';
 export function PageErrorState({ onRetry, title, description }: { onRetry?: () => void; title?: string; description?: string }) {
   return (
     <Result
+      className="state-enter"
       status="error"
       title={title ?? "Ma'lumotlarni yuklashda xatolik yuz berdi"}
       subTitle={description ?? "Internet aloqasi yoki serverda muammo bo'lishi mumkin. Qayta urinib ko'ring."}
