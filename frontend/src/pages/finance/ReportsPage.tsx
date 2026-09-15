@@ -13,12 +13,11 @@ import {
   getProfitAndLoss,
   getTrialBalance,
 } from '../../api/reports';
+import { formatNumber } from '../../utils/format';
 
 const { RangePicker } = DatePicker;
 
-function money(value: number) {
-  return value.toLocaleString('uz-UZ', { minimumFractionDigits: 2 });
-}
+const money = (value: number) => formatNumber(value, 2);
 
 export function ReportsPage() {
   const { message } = App.useApp();

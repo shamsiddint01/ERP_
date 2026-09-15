@@ -129,7 +129,7 @@ export function TuitionDetailPage() {
       </Card>
 
       <Card style={{ marginBottom: 24 }}>
-        <Descriptions column={2} bordered size="small">
+        <Descriptions column={{ xs: 1, sm: 2 }} bordered size="small">
           <Descriptions.Item label="Summa">{Number(charge.amount).toLocaleString('uz-UZ')}</Descriptions.Item>
           <Descriptions.Item label="Chegirma">{Number(charge.discountAmount).toLocaleString('uz-UZ')}</Descriptions.Item>
           <Descriptions.Item label="Sof summa">{Number(charge.netAmount).toLocaleString('uz-UZ')}</Descriptions.Item>

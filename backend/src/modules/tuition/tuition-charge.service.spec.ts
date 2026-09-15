@@ -130,6 +130,14 @@ describe('TuitionChargeService.create', () => {
     expect(charge).toMatchObject({ discountAmount: 100, netAmount: 400 });
   });
 
+  it('rounds a PERCENTAGE discount to 2 decimal places instead of leaving a sub-cent remainder', async () => {
+    const tx = createTx({ studentDiscount: { findMany: vi.fn().mockResolvedValue([{ discount: { isActive: true, type: 'PERCENTAGE', value: '33.33' } }]) } });
+    const { service } = createService({ tx });
+    // 333333 * 33.33 / 100 = 111099.8889 unrounded — must come out as 111099.89, and netAmount must be the exact 2dp complement.
+    const charge = await service.create({ ...baseDto, amount: 333333 } as never, 'user1');
+    expect(charge).toMatchObject({ discountAmount: 111099.89, netAmount: 222233.11 });
+  });
+
   it('clamps a stack of discounts so netAmount can never go negative', async () => {
     const tx = createTx({
       studentDiscount: {

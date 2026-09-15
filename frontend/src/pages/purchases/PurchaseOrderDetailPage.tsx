@@ -188,7 +188,7 @@ export function PurchaseOrderDetailPage() {
             </Space>
           </Col>
         </Row>
-        <Descriptions column={3} style={{ marginTop: 16 }}>
+        <Descriptions column={{ xs: 1, sm: 2, md: 3 }} style={{ marginTop: 16 }}>
           <Descriptions.Item label="Ombor">{po.warehouse.name}</Descriptions.Item>
           <Descriptions.Item label="Sana">{new Date(po.orderDate).toLocaleDateString('uz-UZ')}</Descriptions.Item>
           <Descriptions.Item label="Yaratdi">{po.createdBy?.fullName ?? '—'}</Descriptions.Item>

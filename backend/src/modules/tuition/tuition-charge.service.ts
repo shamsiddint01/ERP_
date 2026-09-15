@@ -10,6 +10,11 @@ import type { UpdateTuitionChargeDto } from './dto/update-tuition-charge.dto.js'
 
 type TransactionClient = Prisma.TransactionClient;
 
+/** Rounds to 2 decimal places so PERCENTAGE-discount math never produces a sub-cent amount (mirrors payroll-calculation.util.ts's round2). */
+function round2(value: number): number {
+  return Math.round(value * 100) / 100;
+}
+
 const TUITION_CHARGE_INCLUDE = {
   student: { select: { id: true, studentCode: true, fullName: true } },
   enrollment: {
@@ -129,7 +134,7 @@ export class TuitionChargeService {
       }
 
       const discountAmount = await this.computeActiveDiscount(tx, dto.studentId, dto.enrollmentId, amount, dueDate);
-      const netAmount = amount - discountAmount;
+      const netAmount = round2(amount - discountAmount);
 
       const charge = await tx.tuitionCharge.create({
         data: {
@@ -223,9 +228,9 @@ export class TuitionChargeService {
     let total = 0;
     for (const grant of grants) {
       if (!grant.discount.isActive) continue;
-      total += grant.discount.type === 'PERCENTAGE' ? (amount * Number(grant.discount.value)) / 100 : Number(grant.discount.value);
+      total += grant.discount.type === 'PERCENTAGE' ? round2((amount * Number(grant.discount.value)) / 100) : Number(grant.discount.value);
     }
-    return Math.min(Math.max(total, 0), amount);
+    return Math.min(Math.max(round2(total), 0), amount);
   }
 
   private async applyOverdueCheck<T extends { id: string; status: TuitionChargeStatus; dueDate: Date }>(charge: T): Promise<T> {

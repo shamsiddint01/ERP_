@@ -290,6 +290,9 @@ export class LessonsService {
   private async assertActiveTeacher(tx: Prisma.TransactionClient, employeeId: string): Promise<void> {
     const employee = await tx.employee.findUnique({ where: { id: employeeId } });
     if (!employee || employee.deletedAt) throw new NotFoundException('Teacher employee not found');
+    if (employee.status !== 'ACTIVE') {
+      throw new ConflictException('Selected employee is not an active employee (on leave, suspended, or terminated)');
+    }
 
     const rows = await tx.$queryRaw<Array<{ status: string }>>`
       SELECT status FROM teacher_profiles WHERE employee_id = ${employeeId} FOR UPDATE

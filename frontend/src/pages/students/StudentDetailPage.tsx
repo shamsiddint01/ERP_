@@ -496,7 +496,7 @@ export function StudentDetailPage() {
             </Col>
             <Col span={5}>
               <Card size="small">
-                <Statistic title="To'langan" value={financeSummaryQuery.data.balance.paid} formatter={(v) => formatCurrency(Number(v))} valueStyle={{ color: '#3f8600' }} />
+                <Statistic title="To'langan" value={financeSummaryQuery.data.balance.paid} formatter={(v) => formatCurrency(Number(v))} styles={{ content: { color: '#3f8600' } }} />
               </Card>
             </Col>
             <Col span={5}>
@@ -510,7 +510,7 @@ export function StudentDetailPage() {
                   title="Muddati o'tgan"
                   value={financeSummaryQuery.data.balance.overdue}
                   formatter={(v) => formatCurrency(Number(v))}
-                  valueStyle={{ color: financeSummaryQuery.data!.balance.overdue > 0 ? '#cf1322' : undefined }}
+                  styles={{ content: { color: financeSummaryQuery.data!.balance.overdue > 0 ? '#cf1322' : undefined } }}
                 />
               </Card>
             </Col>

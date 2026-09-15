@@ -27,7 +27,7 @@ function fakeLesson(overrides: Record<string, unknown> = {}) {
 function createPrismaMock(overrides: Record<string, unknown> = {}) {
   const txOverrides = (overrides.tx ?? {}) as { lesson?: Record<string, unknown>; employee?: Record<string, unknown>; $queryRaw?: unknown; $executeRaw?: unknown };
   const txStub = {
-    employee: { findUnique: vi.fn().mockResolvedValue({ id: 'emp1', deletedAt: null }), ...txOverrides.employee },
+    employee: { findUnique: vi.fn().mockResolvedValue({ id: 'emp1', deletedAt: null, status: 'ACTIVE' }), ...txOverrides.employee },
     $queryRaw: txOverrides.$queryRaw ?? vi.fn().mockResolvedValue([{ status: 'ACTIVE' }]),
     $executeRaw: txOverrides.$executeRaw ?? vi.fn().mockResolvedValue(undefined),
     lesson: {

@@ -88,7 +88,7 @@ export function CourseDetailPage() {
           </Col>
         </Row>
 
-        <Descriptions column={3} style={{ marginTop: 16 }}>
+        <Descriptions column={{ xs: 1, sm: 2, md: 3 }} style={{ marginTop: 16 }}>
           <Descriptions.Item label="Daraja">{course.level ? LEVEL_LABELS[course.level] : '—'}</Descriptions.Item>
           <Descriptions.Item label="Davomiyligi">{course.durationWeeks ? `${course.durationWeeks} hafta` : '—'}</Descriptions.Item>
           <Descriptions.Item label="Dars davomiyligi">{course.lessonDurationMinutes} daqiqa</Descriptions.Item>

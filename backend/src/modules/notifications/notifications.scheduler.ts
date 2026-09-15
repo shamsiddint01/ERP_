@@ -187,7 +187,15 @@ export class NotificationsScheduler {
     const now = new Date();
     const charges = await this.prisma.tuitionCharge.findMany({
       where: { dueDate: { lt: now }, status: { in: ['PENDING', 'PARTIALLY_PAID', 'OVERDUE'] } },
-      select: { id: true, billingPeriod: true, netAmount: true, dueDate: true, status: true, student: { select: { fullName: true } } },
+      select: {
+        id: true,
+        billingPeriod: true,
+        netAmount: true,
+        dueDate: true,
+        status: true,
+        student: { select: { fullName: true } },
+        allocations: { select: { amount: true } },
+      },
     });
 
     let notified = 0;
@@ -195,11 +203,13 @@ export class NotificationsScheduler {
       if (charge.status !== 'OVERDUE') {
         await this.prisma.tuitionCharge.updateMany({ where: { id: charge.id, status: charge.status }, data: { status: 'OVERDUE' } });
       }
+      const allocated = charge.allocations.reduce((sum, a) => sum + Number(a.amount), 0);
+      const outstanding = Number(charge.netAmount) - allocated;
       notified += await this.notifications.notifyByPermission('tuition', 'VIEW', {
         type: 'TUITION_OVERDUE',
         severity: 'CRITICAL',
         title: "Muddati o'tgan to'lov",
-        message: `${charge.student.fullName} — ${charge.billingPeriod} uchun ${Number(charge.netAmount).toLocaleString('en-US', { minimumFractionDigits: 2 })}, muddati ${charge.dueDate.toISOString().slice(0, 10)} edi.`,
+        message: `${charge.student.fullName} — ${charge.billingPeriod} uchun ${outstanding.toLocaleString('en-US', { minimumFractionDigits: 2 })}, muddati ${charge.dueDate.toISOString().slice(0, 10)} edi.`,
         referenceType: 'TuitionCharge',
         referenceId: charge.id,
         actionUrl: '/tuition',

@@ -83,7 +83,7 @@ export function BranchDetailPage() {
           </Col>
         </Row>
 
-        <Descriptions column={3} style={{ marginTop: 16 }}>
+        <Descriptions column={{ xs: 1, sm: 2, md: 3 }} style={{ marginTop: 16 }}>
           <Descriptions.Item label="Telefon">{branch.phone ?? '—'}</Descriptions.Item>
           <Descriptions.Item label="Email">{branch.email ?? '—'}</Descriptions.Item>
           <Descriptions.Item label="Ish vaqti">{branch.workingHours ?? '—'}</Descriptions.Item>

@@ -100,7 +100,7 @@ export function GuardianDetailPage() {
           </Col>
         </Row>
 
-        <Descriptions column={3} style={{ marginTop: 16 }}>
+        <Descriptions column={{ xs: 1, sm: 2, md: 3 }} style={{ marginTop: 16 }}>
           <Descriptions.Item label="Telefon">{guardian.phone}</Descriptions.Item>
           <Descriptions.Item label="Email">{guardian.email ?? '—'}</Descriptions.Item>
           <Descriptions.Item label="Manzil">{guardian.address ?? '—'}</Descriptions.Item>

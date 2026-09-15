@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { getDashboardCharts, getDashboardOverview, getDashboardToday } from '../api/dashboard';
 import { useAuthStore } from '../store/auth.store';
+import { formatNumber } from '../utils/format';
 
 const PIE_COLORS = ['#1677ff', '#52c41a', '#faad14', '#f5222d', '#722ed1', '#13c2c2'];
 
@@ -33,9 +34,7 @@ const ACTION_REQUIRED_LABELS: Record<string, string> = {
   unreadNotifications: "O'qilmagan bildirishnomalar",
 };
 
-function money(value: number) {
-  return value.toLocaleString('uz-UZ', { minimumFractionDigits: 2 });
-}
+const money = (value: number) => formatNumber(value, 2);
 
 function time(value: string) {
   return new Date(value).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' });
@@ -55,7 +54,7 @@ export function DashboardPage() {
   const today = todayQuery.data;
 
   if (overviewQuery.isError) {
-    return <Alert type="error" showIcon message="Dashboard yuklanmadi" description="Iltimos, sahifani qayta yuklang yoki birozdan so'ng urinib ko'ring." />;
+    return <Alert type="error" showIcon title="Dashboard yuklanmadi" description="Iltimos, sahifani qayta yuklang yoki birozdan so'ng urinib ko'ring." />;
   }
 
   return (

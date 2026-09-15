@@ -38,7 +38,7 @@ export function LoginPage() {
         <Typography.Title level={3} style={{ textAlign: 'center', marginBottom: 24 }}>
           Ta'lim Markazi tizimiga kirish
         </Typography.Title>
-        {error && <Alert type="error" message={error} showIcon style={{ marginBottom: 16 }} />}
+        {error && <Alert type="error" title={error} showIcon style={{ marginBottom: 16 }} />}
         <Form layout="vertical" onFinish={handleSubmit} disabled={loading}>
           <Form.Item name="username" label="Login" rules={[{ required: true, message: 'Login kiriting' }]}>
             <Input prefix={<UserOutlined />} autoFocus />

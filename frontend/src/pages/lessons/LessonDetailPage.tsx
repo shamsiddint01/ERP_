@@ -154,7 +154,7 @@ export function LessonDetailPage() {
           </Col>
         </Row>
 
-        <Descriptions column={3} style={{ marginTop: 16 }}>
+        <Descriptions column={{ xs: 1, sm: 2, md: 3 }} style={{ marginTop: 16 }}>
           <Descriptions.Item label="O'qituvchi">{lesson.teacherEmployee?.fullName ?? '—'}</Descriptions.Item>
           <Descriptions.Item label="Xona">{lesson.classroom ? `${lesson.classroom.name} (${lesson.classroom.roomNumber})` : '—'}</Descriptions.Item>
           <Descriptions.Item label="Filial">{lesson.branch.name}</Descriptions.Item>

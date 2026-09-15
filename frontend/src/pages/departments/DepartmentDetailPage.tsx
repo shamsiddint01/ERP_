@@ -37,7 +37,7 @@ export function DepartmentDetailPage() {
           {department.name} <Tag>{department.code}</Tag>
         </Typography.Title>
         {department.description && <Typography.Text type="secondary">{department.description}</Typography.Text>}
-        <Descriptions column={3} style={{ marginTop: 16 }}>
+        <Descriptions column={{ xs: 1, sm: 2, md: 3 }} style={{ marginTop: 16 }}>
           <Descriptions.Item label="Rahbar">{department.managerEmployee?.fullName ?? '—'}</Descriptions.Item>
           <Descriptions.Item label="Status">{department.status}</Descriptions.Item>
         </Descriptions>

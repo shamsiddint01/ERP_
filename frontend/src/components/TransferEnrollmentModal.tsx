@@ -80,7 +80,7 @@ export function TransferEnrollmentModal({ open, onClose, enrollment }: TransferE
         </Form.Item>
         {targetGroup && (
           <Card size="small" loading={targetGroupQuery.isLoading}>
-            <Descriptions size="small" column={2}>
+            <Descriptions size="small" column={{ xs: 1, sm: 2 }}>
               <Descriptions.Item label="Kurs">{targetGroup.course.name}</Descriptions.Item>
               <Descriptions.Item label="O'qituvchi">{targetGroup.teacherEmployee?.fullName ?? '—'}</Descriptions.Item>
               <Descriptions.Item label="Filial">{targetGroup.branch.name}</Descriptions.Item>

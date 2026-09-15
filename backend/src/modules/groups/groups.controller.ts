@@ -46,15 +46,15 @@ export class GroupsController {
   @Patch(':id')
   @RequirePermission('groups', PermissionAction.EDIT)
   @Audited('StudentGroup')
-  update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateGroupDto) {
-    return this.groupsService.update(id, dto);
+  update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateGroupDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.groupsService.update(id, dto, user.id);
   }
 
   @Delete(':id')
   @RequirePermission('groups', PermissionAction.DELETE)
   @Audited('StudentGroup', 'CANCEL')
-  remove(@Param('id', ParseUUIDPipe) id: string) {
-    return this.groupsService.remove(id);
+  remove(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.groupsService.remove(id, user.id);
   }
 
   @Get(':id/attendance')

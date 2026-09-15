@@ -157,8 +157,37 @@ export class EnrollmentsService {
     return this.cancel(id);
   }
 
+  /**
+   * Unlike pause/complete/cancel (which only ever leave ACTIVE), reactivating
+   * a PAUSED enrollment re-enters the group's capacity pool — so it needs the
+   * exact same advisory-lock + capacity/duplicate-active guard as create()
+   * and transfer(), not the bare CAS that transitionTo() uses for the other
+   * three transitions.
+   */
   async activate(id: string) {
-    return this.transitionTo(id, ['PAUSED'], 'ACTIVE');
+    const enrollment = await this.findOne(id);
+    if (enrollment.status !== 'PAUSED') {
+      throw new ConflictException(`Cannot move an enrollment from ${enrollment.status} to ACTIVE`);
+    }
+    const group = await this.prisma.studentGroup.findUnique({ where: { id: enrollment.groupId } });
+    if (!group) throw new NotFoundException('Group not found');
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext('enrollment_group:' || ${enrollment.groupId}))`;
+
+      const existingActive = await tx.enrollment.findFirst({
+        where: { studentId: enrollment.studentId, groupId: enrollment.groupId, status: 'ACTIVE' },
+      });
+      if (existingActive) throw new ConflictException('This student already has another active enrollment in this group');
+
+      const activeCount = await tx.enrollment.count({ where: { groupId: enrollment.groupId, status: 'ACTIVE' } });
+      if (activeCount >= group.capacity) throw new ConflictException('This group is at full capacity');
+
+      const result = await tx.enrollment.updateMany({ where: { id, status: 'PAUSED' }, data: { status: 'ACTIVE' } });
+      if (result.count === 0) throw new ConflictException('This enrollment was changed concurrently — please retry');
+    });
+
+    return this.findOne(id);
   }
 
   async pause(id: string) {

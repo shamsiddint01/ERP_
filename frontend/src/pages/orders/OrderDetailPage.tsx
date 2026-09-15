@@ -146,7 +146,7 @@ export function OrderDetailPage() {
             </Space>
           </Col>
         </Row>
-        <Descriptions column={3} style={{ marginTop: 16 }}>
+        <Descriptions column={{ xs: 1, sm: 2, md: 3 }} style={{ marginTop: 16 }}>
           <Descriptions.Item label="Ombor">{order.warehouse.name}</Descriptions.Item>
           <Descriptions.Item label="Sana">{new Date(order.orderDate).toLocaleDateString('uz-UZ')}</Descriptions.Item>
           <Descriptions.Item label="Mas'ul xodim">{order.responsibleEmployee?.fullName ?? '—'}</Descriptions.Item>
@@ -185,7 +185,7 @@ export function OrderDetailPage() {
           <Card title="Activity">
             <Timeline
               items={activityQuery.data?.items.map((entry) => ({
-                children: (
+                content: (
                   <div>
                     <Typography.Text strong>{entry.action}</Typography.Text> — {entry.description}
                     <div>

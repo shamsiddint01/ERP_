@@ -4,10 +4,9 @@ import { App, Button, Card, Col, Row, Select, Space, Statistic, Table, Tabs, Typ
 import { useState } from 'react';
 import { listDepartments } from '../../api/departments';
 import { downloadPayrollReport, getPayrollReport, listPayrollPeriods } from '../../api/payroll';
+import { formatNumber } from '../../utils/format';
 
-function money(value: number) {
-  return value.toLocaleString('uz-UZ', { minimumFractionDigits: 2 });
-}
+const money = (value: number) => formatNumber(value, 2);
 
 export function PayrollReportsPage() {
   const { message } = App.useApp();

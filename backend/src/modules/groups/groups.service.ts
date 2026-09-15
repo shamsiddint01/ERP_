@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AuditEntityRegistryService } from '../../shared/audit/audit-entity-registry.service.js';
@@ -120,8 +120,9 @@ export class GroupsService {
     });
   }
 
-  async update(id: string, dto: UpdateGroupDto) {
+  async update(id: string, dto: UpdateGroupDto, actorUserId: string) {
     const group = await this.findOne(id);
+    await this.assertTeacherScopeAllows(actorUserId, group.teacherEmployeeId);
     const effectiveBranchId = dto.branchId ?? group.branchId;
     await this.assertReferencesValid({ ...dto, branchId: effectiveBranchId });
     this.assertDatesValid(
@@ -168,8 +169,8 @@ export class GroupsService {
   }
 
   /** No hard delete — mirrors every other lookup entity in this system: "removing" a group cancels it, guarded against active enrollments. */
-  async remove(id: string) {
-    return this.update(id, { status: 'CANCELLED' });
+  async remove(id: string, actorUserId: string) {
+    return this.update(id, { status: 'CANCELLED' }, actorUserId);
   }
 
   private withSeatInfo<T extends { capacity: number; _count: { enrollments: number } }>(group: T) {
@@ -215,6 +216,9 @@ export class GroupsService {
   private async assertActiveTeacher(tx: Prisma.TransactionClient, employeeId: string): Promise<void> {
     const employee = await tx.employee.findUnique({ where: { id: employeeId } });
     if (!employee || employee.deletedAt) throw new NotFoundException('Teacher employee not found');
+    if (employee.status !== 'ACTIVE') {
+      throw new ConflictException('Selected employee is not an active employee (on leave, suspended, or terminated)');
+    }
 
     // employee_id is a plain TEXT column (Prisma models String @id as text,
     // not a native Postgres uuid type) — no ::uuid cast, or Postgres refuses
@@ -235,5 +239,14 @@ export class GroupsService {
     const profile = await this.prisma.teacherProfile.findUnique({ where: { employeeId: user.employeeId }, select: { status: true } });
     if (!profile || profile.status !== 'ACTIVE') return null;
     return user.employeeId;
+  }
+
+  /** A teacher may only edit/cancel their OWN group — a specific-record action rejects a foreign one outright (mirrors LessonsService/StudentAttendanceService/ExamsService, never silently narrows like the findAll list view does). */
+  private async assertTeacherScopeAllows(userId: string, groupTeacherEmployeeId: string | null): Promise<void> {
+    const teacherScope = await this.resolveTeacherScope(userId);
+    if (!teacherScope) return;
+    if (groupTeacherEmployeeId !== teacherScope) {
+      throw new ForbiddenException('You can only manage your own groups');
+    }
   }
 }

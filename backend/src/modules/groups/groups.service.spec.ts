@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 import { AuditEntityRegistryService } from '../../shared/audit/audit-entity-registry.service.js';
 import { GroupsService } from './groups.service.js';
@@ -23,7 +23,7 @@ function fakeGroup(overrides: Record<string, unknown> = {}) {
 
 function createPrismaMock(overrides: Record<string, unknown> = {}) {
   const txStub = {
-    employee: { findUnique: vi.fn().mockResolvedValue({ id: 'emp1', deletedAt: null }) },
+    employee: { findUnique: vi.fn().mockResolvedValue({ id: 'emp1', deletedAt: null, status: 'ACTIVE' }) },
     $queryRaw: vi.fn().mockResolvedValue([{ status: 'ACTIVE' }]),
     studentGroup: {
       create: vi.fn().mockImplementation(({ data }: { data: Record<string, unknown> }) => Promise.resolve(fakeGroup(data))),
@@ -123,6 +123,15 @@ describe('GroupsService', () => {
       const result = await service.create({ ...validDto, teacherEmployeeId: 'emp1' });
       expect(result).toMatchObject({ code: 'ENG-A1-02' });
     });
+
+    it('rejects assigning an employee who is SUSPENDED/ON_LEAVE, even with an ACTIVE TeacherProfile', async () => {
+      const prisma = createPrismaMock({
+        tx: { employee: { findUnique: vi.fn().mockResolvedValue({ id: 'emp1', deletedAt: null, status: 'SUSPENDED' }) } },
+      });
+      const service = createService(prisma);
+
+      await expect(service.create({ ...validDto, teacherEmployeeId: 'emp1' })).rejects.toThrow(ConflictException);
+    });
   });
 
   describe('update', () => {
@@ -133,15 +142,36 @@ describe('GroupsService', () => {
       });
       const service = createService(prisma);
 
-      await expect(service.update('group1', { status: 'CANCELLED' })).rejects.toThrow(ConflictException);
+      await expect(service.update('group1', { status: 'CANCELLED' }, 'admin-user')).rejects.toThrow(ConflictException);
     });
 
     it('allows cancelling a group with no active enrollments', async () => {
       const prisma = createPrismaMock({ studentGroup: { findUnique: vi.fn().mockResolvedValue(fakeGroup()) } });
       const service = createService(prisma);
 
-      const result = await service.update('group1', { status: 'CANCELLED' });
+      const result = await service.update('group1', { status: 'CANCELLED' }, 'admin-user');
       expect(result).toMatchObject({ status: 'CANCELLED' });
+    });
+
+    it('rejects a teacher editing a group they do not own', async () => {
+      const prisma = createPrismaMock({
+        studentGroup: { findUnique: vi.fn().mockResolvedValue(fakeGroup({ teacherEmployeeId: 'teacherA-emp' })) },
+        user: { findUnique: vi.fn().mockResolvedValue({ employeeId: 'teacherB-emp' }) },
+      });
+      const service = createService(prisma);
+
+      await expect(service.update('group1', { name: 'Renamed' }, 'teacherB-user')).rejects.toThrow(ForbiddenException);
+    });
+
+    it('allows a teacher to edit their own group', async () => {
+      const prisma = createPrismaMock({
+        studentGroup: { findUnique: vi.fn().mockResolvedValue(fakeGroup({ teacherEmployeeId: 'teacherA-emp' })) },
+        user: { findUnique: vi.fn().mockResolvedValue({ employeeId: 'teacherA-emp' }) },
+      });
+      const service = createService(prisma);
+
+      const result = await service.update('group1', { name: 'Renamed' }, 'teacherA-user');
+      expect(result).toMatchObject({ name: 'Renamed' });
     });
   });
 
@@ -150,7 +180,7 @@ describe('GroupsService', () => {
       const prisma = createPrismaMock({ studentGroup: { findUnique: vi.fn().mockResolvedValue(fakeGroup()) } });
       const service = createService(prisma);
 
-      const result = await service.remove('group1');
+      const result = await service.remove('group1', 'admin-user');
       expect(result).toMatchObject({ status: 'CANCELLED' });
     });
   });

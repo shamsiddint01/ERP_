@@ -140,7 +140,7 @@ export function EnrollmentDetailPage() {
           </Col>
         </Row>
 
-        <Descriptions column={3} style={{ marginTop: 16 }}>
+        <Descriptions column={{ xs: 1, sm: 2, md: 3 }} style={{ marginTop: 16 }}>
           <Descriptions.Item label="O'quvchi kodi">{enrollment.student.studentCode}</Descriptions.Item>
           <Descriptions.Item label="O'qituvchi">{enrollment.group.teacherEmployee?.fullName ?? '—'}</Descriptions.Item>
           <Descriptions.Item label="Guruh kodi">{enrollment.group.code}</Descriptions.Item>

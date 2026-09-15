@@ -218,7 +218,7 @@ export function PayrollDetailPage() {
           </Col>
         </Row>
 
-        <Descriptions column={3} style={{ marginTop: 16 }}>
+        <Descriptions column={{ xs: 1, sm: 2, md: 3 }} style={{ marginTop: 16 }}>
           <Descriptions.Item label="Ishlagan kunlar">{payroll.workedDays ?? '—'}</Descriptions.Item>
           <Descriptions.Item label="Qo'shimcha ish (daq)">{payroll.overtimeMinutes}</Descriptions.Item>
           <Descriptions.Item label="Ta'tilsiz kelmagan kunlar">{payroll.unpaidAbsenceDays}</Descriptions.Item>

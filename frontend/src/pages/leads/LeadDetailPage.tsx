@@ -177,7 +177,7 @@ export function LeadDetailPage() {
           )
         )}
 
-        <Descriptions column={3} style={{ marginTop: 16 }}>
+        <Descriptions column={{ xs: 1, sm: 2, md: 3 }} style={{ marginTop: 16 }}>
           <Descriptions.Item label="Email">{lead.email ?? '—'}</Descriptions.Item>
           <Descriptions.Item label="Qiziqqan kurs">{lead.preferredCourse?.name ?? '—'}</Descriptions.Item>
           <Descriptions.Item label="Qiziqqan filial">{lead.preferredBranch?.name ?? '—'}</Descriptions.Item>

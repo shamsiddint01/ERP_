@@ -187,6 +187,36 @@ describe('EnrollmentsService', () => {
       await expect(service.activate('enr1')).rejects.toThrow(ConflictException);
     });
 
+    it('activate: rejects re-entering a group that has since filled to capacity', async () => {
+      const prisma = createPrismaMock({
+        enrollment: { findUnique: vi.fn().mockResolvedValue(fakeEnrollment({ status: 'PAUSED' })) },
+        studentGroup: { findUnique: vi.fn().mockResolvedValue(fakeGroup({ capacity: 1 })) },
+        tx: { enrollment: { count: vi.fn().mockResolvedValue(1) } },
+      });
+      const service = createService(prisma);
+
+      await expect(service.activate('enr1')).rejects.toThrow(ConflictException);
+    });
+
+    it('activate: rejects when the student already has another active enrollment in the same group', async () => {
+      const prisma = createPrismaMock({
+        enrollment: { findUnique: vi.fn().mockResolvedValue(fakeEnrollment({ status: 'PAUSED' })) },
+        tx: { enrollment: { findFirst: vi.fn().mockResolvedValue(fakeEnrollment({ id: 'other-enr', status: 'ACTIVE' })) } },
+      });
+      const service = createService(prisma);
+
+      await expect(service.activate('enr1')).rejects.toThrow(ConflictException);
+    });
+
+    it('activate: takes the same per-group advisory lock as create()/transfer()', async () => {
+      const prisma = createPrismaMock({ enrollment: { findUnique: vi.fn().mockResolvedValue(fakeEnrollment({ status: 'PAUSED', groupId: 'group1' })) } });
+      const service = createService(prisma);
+
+      await service.activate('enr1');
+
+      expect(prisma.__tx.$executeRaw).toHaveBeenCalled();
+    });
+
     it('complete: allows ACTIVE -> COMPLETED', async () => {
       const prisma = createPrismaMock({ enrollment: { findUnique: vi.fn().mockResolvedValue(fakeEnrollment({ status: 'ACTIVE' })) } });
       const service = createService(prisma);

@@ -225,6 +225,9 @@ export class SchedulesService {
   private async assertActiveTeacher(tx: Prisma.TransactionClient, employeeId: string): Promise<void> {
     const employee = await tx.employee.findUnique({ where: { id: employeeId } });
     if (!employee || employee.deletedAt) throw new NotFoundException('Teacher employee not found');
+    if (employee.status !== 'ACTIVE') {
+      throw new ConflictException('Selected employee is not an active employee (on leave, suspended, or terminated)');
+    }
 
     // employee_id is a plain TEXT column (Prisma models String @id as text,
     // not a native Postgres uuid type) — no ::uuid cast, or Postgres refuses

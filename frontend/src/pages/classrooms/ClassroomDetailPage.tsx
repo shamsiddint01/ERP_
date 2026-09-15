@@ -86,7 +86,7 @@ export function ClassroomDetailPage() {
           </Col>
         </Row>
 
-        <Descriptions column={2} style={{ marginTop: 16 }}>
+        <Descriptions column={{ xs: 1, sm: 2 }} style={{ marginTop: 16 }}>
           <Descriptions.Item label="Jihozlar">{classroom.equipment ?? '—'}</Descriptions.Item>
           <Descriptions.Item label="Sig'imi">{classroom.capacity}</Descriptions.Item>
           {classroom.notes && (

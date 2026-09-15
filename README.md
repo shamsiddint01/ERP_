@@ -1,16 +1,21 @@
-# ERP System
+# Education Center Management System
 
-A full-stack, single-company ERP built as a modular monolith. It covers the
-end-to-end operational chain — sales, purchasing, inventory, invoicing,
-payments, double-entry finance, expenses, HR, payroll, reporting and
-notifications — with role-based access control and an append-only audit log
-across every module.
+A full-stack, single-company **education center management system** (student
+admissions, courses, groups, teachers, enrollments, scheduling, attendance,
+tuition/billing and academic progress), built as a modular monolith on top of
+a shared double-entry finance/payroll/RBAC/notifications/audit core. It also
+retains its original legacy retail modules (customers, products, inventory,
+suppliers, purchases, sales/orders, invoices) for historical data and any
+still-open retail activity — see *Modules* below for which is which.
 
 The design goal was a system where a business event flows through every
-affected module in one consistent transaction: e.g. **completing a sale**
-fulfils the stock reservation, posts revenue to the general ledger, updates the
-customer balance, auto-issues an invoice and writes an audit entry — all or
-nothing.
+affected module in one consistent transaction: e.g. **completing an
+enrollment's tuition payment** allocates it against the right charge(s),
+posts the revenue to the general ledger, updates the student's balance and
+writes an audit entry — all or nothing. The legacy retail chain (**completing
+a sale** fulfils the stock reservation, posts revenue, updates the customer
+balance, auto-issues an invoice) still works the same way for any retail data
+still in use.
 
 ---
 
@@ -443,6 +448,31 @@ cd backend && npx prisma migrate status
 | Company Settings | `settings` | `/settings` | `settings` |
 | Dashboard | `dashboard` | `/` | (any authenticated user) |
 | Audit Log | `audit-log` | `/audit-log` | `audit_logs` |
+| **— Education (primary domain) —** | | | |
+| Students & Guardians | `students`, `guardians` | `/students`, `/guardians` | `students`, `guardians` |
+| Leads / Admissions | `leads` | `/leads` | `leads` |
+| Courses, Categories, Branches, Classrooms | `courses`, `course-categories`, `branches`, `classrooms` | `/courses`, `/course-categories`, `/branches`, `/classrooms` | `courses`, `branches`, `classrooms` |
+| Groups & Teachers | `groups`, `teachers` | `/groups`, `/teachers` | `groups`, `teachers` |
+| Enrollments | `enrollments` | `/enrollments` | `enrollments` |
+| Schedules & Lessons | `schedules`, `lessons` | `/schedules`, `/lessons` | `schedules`, `lessons` |
+| Student Attendance | `student-attendance` | `/attendance/student` | `student_attendance` |
+| Exams, Grades & Academic Progress | `exams`, `assessments` | `/exams` | `exams`, `grades` |
+| Tuition, Discounts & Student Balances | `tuition`, `discounts` | `/tuition`, `/discounts`, `/finance/student-balances` | `tuition`, `discounts` |
+| Education Reports & Dashboard | `reports/education-*`, `dashboard` | `/education-reports`, `/` | `reports` |
+| **— HR / Payroll —** | | | |
+| Employees | `employees` | `/employees` | `employees` |
+| Departments | `departments` | `/departments` | `departments` |
+| Positions | `positions` | `/positions` | `positions` |
+| Attendance (employee) | `attendance` | `/attendance` | `attendance` |
+| Compensation | `compensation` | `/compensation` | `compensation` |
+| Payroll | `payroll` | `/payroll` | `payroll` |
+| **— Finance (shared) —** | | | |
+| Payments | `payments` | `/payments` | `payments` |
+| Finance (chart of accounts, ledger) | `accounts`, `shared/finance` | `/finance/accounts` | `finance` |
+| Expenses | `expenses` | `/expenses` | `expenses` |
+| Reports | `reports`, `payroll` (payroll reports) | `/finance/reports`, `/payroll/reports` | `reports` |
+| Notifications | `notifications` | `/notifications` | (self-scoped; scan is `settings:EDIT`) |
+| **— Operations (legacy retail, kept for historical data) —** | | | |
 | Customers | `customers` | `/customers` | `customers` |
 | Suppliers | `suppliers` | `/suppliers` | `suppliers` |
 | Products & Categories | `products` | `/products` | `products` |
@@ -451,17 +481,6 @@ cd backend && npx prisma migrate status
 | Purchases | `purchases` | `/purchases` | `purchases` |
 | Sales / Orders | `orders` | `/orders` | `orders` |
 | Invoices | `invoices` | `/invoices` | `invoices` |
-| Payments | `payments` | `/payments` | `payments` |
-| Finance (chart of accounts, ledger) | `accounts`, `shared/finance` | `/finance/accounts` | `finance` |
-| Expenses | `expenses` | `/expenses` | `expenses` |
-| Employees | `employees` | `/employees` | `employees` |
-| Departments | `departments` | `/departments` | `departments` |
-| Positions | `positions` | `/positions` | `positions` |
-| Attendance | `attendance` | `/attendance` | `attendance` |
-| Compensation | `compensation` | `/compensation` | `compensation` |
-| Payroll | `payroll` | `/payroll` | `payroll` |
-| Reports | `reports`, `payroll` (payroll reports) | `/finance/reports`, `/payroll/reports` | `reports` |
-| Notifications | `notifications` | `/notifications` | (self-scoped; scan is `settings:EDIT`) |
 
 ### Core workflows
 
@@ -488,8 +507,13 @@ cd backend && npx prisma migrate status
 
 ## RBAC overview
 
-- 5 seeded roles: **Admin** (all 99 permissions), **Manager**, **Accountant**,
-  **Sales Rep**, **Warehouse Staff**.
+- 5 seeded roles: **Admin** (all permissions), **Manager**, **Accountant**,
+  **Teacher** (object-level ownership enforced server-side: can only manage
+  their own groups/lessons/attendance/exams, never another teacher's — no
+  finance/payroll/user/role access at all), **Receptionist**
+  (students/guardians/leads/enrollment/operational scheduling). Manager and
+  Accountant additionally retain the legacy retail permission set for
+  historical/ongoing retail use.
 - Permissions are `module:ACTION` where `ACTION ∈ {VIEW, CREATE, EDIT, DELETE,
   APPROVE, EXPORT}`; the exact matrix per role lives in `backend/prisma/seed.ts`
   and the module list in `backend/src/shared/constants/permission-modules.constant.ts`.
@@ -504,9 +528,12 @@ cd backend && npx prisma migrate status
 
 ## Important limitations
 
-- **Single company / single currency.** No multi-tenant, multi-branch or
-  multi-currency support. Amounts are stored as `Decimal(18,2)`; the display
-  currency is a Company Settings string only.
+- **Single company / single currency, but multi-branch.** No multi-tenant or
+  multi-currency support (amounts are stored as `Decimal(18,2)`; the display
+  currency is a Company Settings string only). Branches/classrooms *are*
+  modeled and used throughout the education domain (students, groups,
+  schedules, reports can all be filtered or scoped by branch) — this is a
+  single company operating across branches, not a single-location system.
 - **No return / credit-note workflow.** A `COMPLETED` order cannot be reversed
   through the UI; corrections require a manual compensating entry.
 - **Reverse charge / tax filing not implemented.** `TaxRate` and per-line tax

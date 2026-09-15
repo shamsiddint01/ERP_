@@ -40,7 +40,7 @@ export function CustomerDetailPage() {
             <Tag color={customer.status === 'ACTIVE' ? 'green' : 'default'}>{customer.status === 'ACTIVE' ? 'Faol' : 'Nofaol'}</Tag>
           </Col>
         </Row>
-        <Descriptions column={3} style={{ marginTop: 16 }}>
+        <Descriptions column={{ xs: 1, sm: 2, md: 3 }} style={{ marginTop: 16 }}>
           <Descriptions.Item label="Telefon">{customer.phone}</Descriptions.Item>
           <Descriptions.Item label="Email">{customer.email ?? '—'}</Descriptions.Item>
           <Descriptions.Item label="Manzil">{customer.address ?? '—'}</Descriptions.Item>

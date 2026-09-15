@@ -121,7 +121,7 @@ export function EnrollmentFormModal({ open, onClose, defaultGroupId, defaultStud
 
         {groupInfo && (
           <Card size="small" style={{ marginBottom: 16 }} loading={selectedGroupQuery.isLoading}>
-            <Descriptions size="small" column={2}>
+            <Descriptions size="small" column={{ xs: 1, sm: 2 }}>
               <Descriptions.Item label="Kurs">{groupInfo.course.name}</Descriptions.Item>
               <Descriptions.Item label="O'qituvchi">{groupInfo.teacherEmployee?.fullName ?? '—'}</Descriptions.Item>
               <Descriptions.Item label="Filial">{groupInfo.branch.name}</Descriptions.Item>

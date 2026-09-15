@@ -100,7 +100,7 @@ export function EmployeeDetailPage() {
           </Col>
         </Row>
 
-        <Descriptions column={3} style={{ marginTop: 16 }} title="Shaxsiy ma'lumotlar">
+        <Descriptions column={{ xs: 1, sm: 2, md: 3 }} style={{ marginTop: 16 }} title="Shaxsiy ma'lumotlar">
           <Descriptions.Item label="Telefon">{employee.phone}</Descriptions.Item>
           <Descriptions.Item label="Email">{employee.email ?? '—'}</Descriptions.Item>
           <Descriptions.Item label="Tug'ilgan sana">{employee.dateOfBirth ? new Date(employee.dateOfBirth).toLocaleDateString('uz-UZ') : '—'}</Descriptions.Item>
@@ -109,7 +109,7 @@ export function EmployeeDetailPage() {
           </Descriptions.Item>
         </Descriptions>
 
-        <Descriptions column={3} style={{ marginTop: 16 }} title="Ish ma'lumotlari">
+        <Descriptions column={{ xs: 1, sm: 2, md: 3 }} style={{ marginTop: 16 }} title="Ish ma'lumotlari">
           <Descriptions.Item label="Bo'lim">{employee.department?.name ?? '—'}</Descriptions.Item>
           <Descriptions.Item label="Lavozim">{employee.position?.title ?? '—'}</Descriptions.Item>
           <Descriptions.Item label="Rahbar">{employee.manager?.fullName ?? '—'}</Descriptions.Item>

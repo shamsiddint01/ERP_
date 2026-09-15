@@ -24,6 +24,7 @@ import { listStudents } from '../../api/students';
 import { listTeachers } from '../../api/teachers';
 import { useAuthStore } from '../../store/auth.store';
 import type { LeadStatus, StudentGroupStatus, StudentStatus } from '../../types';
+import { formatNumber } from '../../utils/format';
 
 const { RangePicker } = DatePicker;
 const PIE_COLORS = ['#1677ff', '#f5222d', '#faad14', '#52c41a', '#722ed1', '#13c2c2'];
@@ -53,9 +54,7 @@ const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
   LOST: "Yo'qotildi",
 };
 
-function money(value: number) {
-  return value.toLocaleString('uz-UZ', { minimumFractionDigits: 2 });
-}
+const money = (value: number) => formatNumber(value, 2);
 
 function pct(value: number) {
   return `${value}%`;

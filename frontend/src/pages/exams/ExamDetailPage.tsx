@@ -122,7 +122,7 @@ export function ExamDetailPage() {
             </Space>
           </Col>
         </Row>
-        <Descriptions column={3} style={{ marginTop: 16 }} size="small">
+        <Descriptions column={{ xs: 1, sm: 2, md: 3 }} style={{ marginTop: 16 }} size="small">
           <Descriptions.Item label="Maksimal ball">{Number(exam.maxScore)}</Descriptions.Item>
           <Descriptions.Item label="O'tish balli">{Number(exam.passingScore)}</Descriptions.Item>
           <Descriptions.Item label="O'qituvchi">{exam.teacherEmployee?.fullName ?? '—'}</Descriptions.Item>
@@ -142,7 +142,7 @@ export function ExamDetailPage() {
         </Col>
         <Col span={6}>
           <Card>
-            <Statistic title="O'tish darajasi (%)" value={stats.passRate} precision={2} valueStyle={{ color: stats.passRate >= 60 ? '#3f8600' : '#cf1322' }} />
+            <Statistic title="O'tish darajasi (%)" value={stats.passRate} precision={2} styles={{ content: { color: stats.passRate >= 60 ? '#3f8600' : '#cf1322' } }} />
           </Card>
         </Col>
       </Row>

@@ -32,6 +32,7 @@ function fakeCharge(overrides: Record<string, unknown> = {}) {
     dueDate: new Date('2026-09-15'),
     status: 'PENDING',
     student: { fullName: 'Test Student' },
+    allocations: [],
     ...overrides,
   };
 }
@@ -58,6 +59,24 @@ describe('NotificationsScheduler — tuition scans (Phase G)', () => {
     expect(updateMany).toHaveBeenCalledWith({ where: { id: 'charge1', status: 'PENDING' }, data: { status: 'OVERDUE' } });
     expect(summary.overdueTuition).toBe(1);
     expect(notifications.notifyByPermission).toHaveBeenCalledWith('tuition', 'VIEW', expect.objectContaining({ type: 'TUITION_OVERDUE', severity: 'CRITICAL' }));
+  });
+
+  it('scanOverdueTuition reports the outstanding balance, not the full netAmount, for a partially-paid overdue charge', async () => {
+    const findMany = vi
+      .fn()
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([fakeCharge({ status: 'PARTIALLY_PAID', netAmount: '500000', allocations: [{ amount: '300000' }] })]);
+    const prisma = createPrismaMock({ tuitionCharge: { findMany } });
+    const { scheduler, notifications } = createScheduler(prisma);
+
+    await scheduler.runDailyScans();
+
+    expect(notifications.notifyByPermission).toHaveBeenCalledWith(
+      'tuition',
+      'VIEW',
+      expect.objectContaining({ message: expect.stringContaining('200,000.00') }),
+    );
+    expect(notifications.notifyByPermission).not.toHaveBeenCalledWith('tuition', 'VIEW', expect.objectContaining({ message: expect.stringContaining('500,000.00') }));
   });
 
   it('does not re-flip a charge that is already OVERDUE, but still notifies (dedup handled by NotificationsService itself)', async () => {
