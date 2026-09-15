@@ -41,6 +41,25 @@ export const chartTooltipStyle: CSSProperties = {
 };
 export const chartTooltipLabelStyle: CSSProperties = { fontWeight: 600, marginBottom: 4, color: '#111827' };
 
+/**
+ * Elevation system — a clear depth hierarchy instead of one shadow reused
+ * everywhere. Level 0 (page background) has no shadow at all — separation
+ * there comes from the page/card tonal difference alone.
+ *
+ *   level1 — resting cards, list rows, FormSection, ActionBar: barely-there,
+ *            "gently resting on the page" (paired with a light border).
+ *   level2 — hover/elevated state of a level1 surface (StatCard hover, etc).
+ *   level3 — floating popups anchored to a trigger: Select/Dropdown menus,
+ *            Popconfirm/Popover/Tooltip, the notification panel.
+ *   level4 — surfaces that float above a dimming mask: Modal, Drawer.
+ */
+export const elevation = {
+  level1: '0 1px 2px rgba(16,24,40,0.04), 0 1px 3px rgba(16,24,40,0.05)',
+  level2: '0 4px 10px rgba(16,24,40,0.08), 0 2px 4px rgba(16,24,40,0.08)',
+  level3: '0 8px 24px rgba(16,24,40,0.12), 0 3px 6px rgba(16,24,40,0.08)',
+  level4: '0 24px 48px rgba(16,24,40,0.18), 0 8px 16px rgba(16,24,40,0.10)',
+};
+
 export const palette = {
   primary: '#4F46E5',
   primaryHover: '#6366F1',
@@ -55,8 +74,11 @@ export const palette = {
   sidebarText: 'rgba(255,255,255,0.65)',
   sidebarTextActive: '#ffffff',
   layoutBg: '#F7F8FA',
-  cardShadow: '0 1px 2px rgba(16,24,40,0.06), 0 1px 3px rgba(16,24,40,0.08)',
-  cardShadowHover: '0 4px 10px rgba(16,24,40,0.08), 0 2px 4px rgba(16,24,40,0.08)',
+  /** @deprecated use `elevation.level1` / `elevation.level2` directly — kept as aliases so existing call sites keep working. */
+  cardShadow: elevation.level1,
+  cardShadowHover: elevation.level2,
+  /** Soft indigo-tinted band for the dashboard hero — the one place a gradient earns its keep. */
+  heroGradient: 'linear-gradient(135deg, rgba(79,70,229,0.06) 0%, rgba(79,70,229,0.02) 50%, rgba(2,132,199,0.03) 100%)',
 };
 
 export const themeConfig: ThemeConfig = {
@@ -77,8 +99,11 @@ export const themeConfig: ThemeConfig = {
     fontSizeHeading3: 20,
     fontSizeHeading4: 16,
     fontSizeHeading5: 14,
-    boxShadow: palette.cardShadow,
-    boxShadowSecondary: palette.cardShadow,
+    // AntD's seed shadow tokens, previously all collapsed onto the same flat
+    // card-level value — now mapped onto the real elevation levels above.
+    boxShadow: elevation.level1,
+    boxShadowSecondary: elevation.level4,
+    boxShadowTertiary: elevation.level3,
     wireframe: false,
   },
   components: {
@@ -100,7 +125,9 @@ export const themeConfig: ThemeConfig = {
       itemMarginInline: 8,
     },
     Card: {
-      boxShadowTertiary: palette.cardShadow,
+      // Explicit — Card must always read as `level1`, regardless of what the
+      // global tertiary token elsewhere means for Select/Dropdown/Popconfirm.
+      boxShadowTertiary: elevation.level1,
       borderRadiusLG: 10,
     },
     Table: {
@@ -117,11 +144,26 @@ export const themeConfig: ThemeConfig = {
     Statistic: {
       titleFontSize: 13,
     },
+    Select: {
+      boxShadowSecondary: elevation.level3,
+    },
+    Dropdown: {
+      boxShadowSecondary: elevation.level3,
+    },
     Modal: {
       borderRadiusLG: 12,
+      boxShadow: elevation.level4,
     },
     Drawer: {
       paddingLG: 20,
+      boxShadow: elevation.level4,
     },
+    // Popover/Popconfirm/Tooltip already ship their own well-designed
+    // 3-layer `filter: drop-shadow(...)` (needed since a plain box-shadow
+    // can't follow the arrow-pointer shape) — confirmed via direct
+    // getComputedStyle inspection that it's untouched by boxShadowSecondary
+    // and already reads as a properly elevated floating layer, so
+    // deliberately left alone rather than fighting it with a token that
+    // has no effect.
   },
 };

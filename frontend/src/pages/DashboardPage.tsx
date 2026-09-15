@@ -127,6 +127,10 @@ export function DashboardPage() {
       <div
         style={{
           marginBottom: 24,
+          padding: '20px 24px',
+          borderRadius: 12,
+          border: '1px solid rgba(79,70,229,0.08)',
+          background: palette.heroGradient,
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'flex-end',

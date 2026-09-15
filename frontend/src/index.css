@@ -8,6 +8,18 @@
   --motion-scale-hover: 1.08;
   --motion-scale-press: 0.97;
   --motion-stagger-step: 30ms;
+
+  /*
+   * Elevation system — mirrors theme.ts's `elevation` export (kept as
+   * literal duplicates, same as the --motion-* / `motion` split above, since
+   * CSS and AntD's ConfigProvider tokens can't share one source at runtime).
+   * Level 0 (page background) has no shadow — see theme.ts's own doc comment
+   * for the full level1-4 breakdown.
+   */
+  --elevation-1: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.05);
+  --elevation-2: 0 4px 10px rgba(16, 24, 40, 0.08), 0 2px 4px rgba(16, 24, 40, 0.08);
+  --elevation-3: 0 8px 24px rgba(16, 24, 40, 0.12), 0 3px 6px rgba(16, 24, 40, 0.08);
+  --elevation-4: 0 24px 48px rgba(16, 24, 40, 0.18), 0 8px 16px rgba(16, 24, 40, 0.1);
 }
 
 * {
@@ -48,6 +60,20 @@ body {
   outline-offset: 2px;
 }
 
+/*
+ * Sidebar/header depth separation — both currently sit flush against the
+ * content with only a 1px border (sidebar had no separation at all). A
+ * directional shadow, bleeding only toward the content they sit above/beside,
+ * reads as "layered" without the heavy all-around look a plain box-shadow
+ * would give a full-height/full-width bar.
+ */
+.ant-layout-sider {
+  box-shadow: 2px 0 8px rgba(16, 24, 40, 0.08);
+}
+.ant-layout-header {
+  box-shadow: 0 2px 6px rgba(16, 24, 40, 0.04);
+}
+
 /* Page-enter transition: fade + small translateY, keyed by route in AppLayout. */
 @keyframes page-enter {
   from {
@@ -74,9 +100,22 @@ body {
 }
 
 /*
+ * Every plain AntD Card reads as elevation level 1 at rest — the
+ * `Card.boxShadowTertiary` ConfigProvider token only ever applies to
+ * `hoverable` cards' hover state, never a resting non-hoverable Card, so
+ * without this rule most cards in the app render with NO shadow at all
+ * (border only), confirmed via direct getComputedStyle inspection.
+ */
+.ant-card {
+  box-shadow: var(--elevation-1);
+}
+
+/*
  * Shared hover treatment for cards (StatCards, clickable summaries): a small
- * lift + border emphasis + a slightly stronger shadow — "surface -> border ->
- * soft shadow -> hover elevation", never a heavy 3D effect.
+ * lift + border emphasis + a stronger shadow — "surface -> border -> soft
+ * shadow -> hover elevation", never a heavy 3D effect. The resting shadow
+ * above is a real value (not `none`), so this transition actually
+ * interpolates instead of snapping.
  */
 .hover-lift {
   transition:
@@ -87,9 +126,7 @@ body {
 .hover-lift:hover {
   transform: translateY(-1px);
   border-color: rgba(79, 70, 229, 0.35);
-  box-shadow:
-    0 4px 10px rgba(16, 24, 40, 0.08),
-    0 2px 4px rgba(16, 24, 40, 0.08);
+  box-shadow: var(--elevation-2);
 }
 
 /* Icon badge inside a StatCard: a small reveal on card hover, never on its own. */
@@ -165,6 +202,11 @@ body {
   transition:
     background-color var(--motion-fast) var(--motion-ease),
     color var(--motion-fast) var(--motion-ease);
+}
+
+/* Same elevation level as every other trigger-anchored popup (Select/Dropdown/Popover) — was a bespoke one-off value before. */
+.notification-panel {
+  box-shadow: var(--elevation-3);
 }
 
 /* Notification dropdown rows: same table-row philosophy — a smooth background shift, never a position change. */
