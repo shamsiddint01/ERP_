@@ -17,6 +17,7 @@ import {
 import { PageErrorState } from '../../components/PageErrorState';
 import { useAuthStore } from '../../store/auth.store';
 import type { PayrollListItem, PayrollStatus } from '../../types';
+import { palette } from '../../theme';
 
 const STATUS_COLORS: Record<PayrollStatus, string> = {
   DRAFT: 'default',
@@ -171,12 +172,12 @@ export function PayrollPeriodDetailPage() {
         </Col>
         <Col span={6}>
           <Card size="small">
-            <Statistic title="Ushlab qolinganlar" value={summaryQuery.data?.deductionsTotal ?? 0} styles={{ content: { color: '#f5222d' } }} />
+            <Statistic title="Ushlab qolinganlar" value={summaryQuery.data?.deductionsTotal ?? 0} styles={{ content: { color: palette.error } }} />
           </Card>
         </Col>
         <Col span={6}>
           <Card size="small">
-            <Statistic title="Sof (Net)" value={summaryQuery.data?.netTotal ?? 0} styles={{ content: { color: '#3f8600' } }} />
+            <Statistic title="Sof (Net)" value={summaryQuery.data?.netTotal ?? 0} styles={{ content: { color: palette.success } }} />
           </Card>
         </Col>
       </Row>

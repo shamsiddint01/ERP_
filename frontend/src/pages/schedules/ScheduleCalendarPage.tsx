@@ -9,6 +9,7 @@ import { listBranches } from '../../api/branches';
 import { listLessons } from '../../api/lessons';
 import { listSchedules } from '../../api/schedules';
 import { PageErrorState } from '../../components/PageErrorState';
+import { palette } from '../../theme';
 import { useAuthStore } from '../../store/auth.store';
 import type { LessonStatus, ScheduleDayOfWeek, ScheduleListItem } from '../../types';
 
@@ -118,7 +119,7 @@ export function ScheduleCalendarPage() {
                     <div
                       key={schedule.id}
                       onClick={() => navigate('/schedules')}
-                      style={{ cursor: 'pointer', padding: 8, borderRadius: 6, background: 'rgba(22,119,255,0.08)', borderLeft: '3px solid #1677ff' }}
+                      style={{ cursor: 'pointer', padding: 8, borderRadius: 6, background: 'rgba(2,132,199,0.08)', borderLeft: `3px solid ${palette.info}` }}
                     >
                       <Typography.Text strong style={{ fontSize: 12 }}>
                         {schedule.startTime}–{schedule.endTime}

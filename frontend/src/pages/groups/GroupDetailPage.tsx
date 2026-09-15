@@ -1,6 +1,6 @@
-import { ArrowLeftOutlined, DownloadOutlined, EditOutlined, PlusOutlined, StopOutlined, ThunderboltOutlined, UserAddOutlined } from '@ant-design/icons';
+import { DownloadOutlined, EditOutlined, FormOutlined, PlusOutlined, StopOutlined, ThunderboltOutlined, TrophyOutlined, UserAddOutlined, UserOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Button, Card, Col, DatePicker, Descriptions, Popconfirm, Progress, Row, Space, Spin, Statistic, Table, Tabs, Tag, Typography } from 'antd';
+import { App, Button, Card, Col, DatePicker, Descriptions, Popconfirm, Progress, Row, Space, Spin, Table, Tabs, Tag, Typography } from 'antd';
 import { EmptyState } from '../../components/EmptyState';
 import { useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -8,11 +8,14 @@ import { deactivateGroup, getGroup, getGroupResults } from '../../api/groups';
 import { listLessons } from '../../api/lessons';
 import { cancelSchedule, listSchedules } from '../../api/schedules';
 import { downloadGroupAttendanceCsv, getGroupAttendanceSummary } from '../../api/studentAttendance';
+import { ActionBar } from '../../components/ActionBar';
+import { DetailHeader } from '../../components/DetailHeader';
 import { EnrollmentFormModal } from '../../components/EnrollmentFormModal';
 import { GenerateLessonsModal } from '../../components/GenerateLessonsModal';
 import { GroupFormModal } from '../../components/GroupFormModal';
 import { PageErrorState } from '../../components/PageErrorState';
 import { ScheduleFormModal } from '../../components/ScheduleFormModal';
+import { SummaryCard } from '../../components/SummaryCard';
 import { palette } from '../../theme';
 import { useAuthStore } from '../../store/auth.store';
 import { formatCurrency, formatDate, formatDateTime, formatNumber } from '../../utils/format';
@@ -338,17 +341,19 @@ export function GroupDetailPage() {
               </Button>
             </Col>
           </Row>
-          <Row gutter={16} style={{ marginBottom: 16 }}>
-            <Col span={8}>
-              <Statistic title="Jami darslar" value={attendanceSummaryQuery.data.totalLessons} />
-            </Col>
-            <Col span={8}>
-              <Statistic title="O'quvchilar soni" value={attendanceSummaryQuery.data.students.length} />
-            </Col>
-            <Col span={8}>
-              <Statistic title="O'rtacha davomat" value={groupAverageAttendance} suffix="%" />
-            </Col>
-          </Row>
+          <SummaryCard
+            items={[
+              { icon: <FormOutlined />, label: 'Jami darslar', value: attendanceSummaryQuery.data.totalLessons, color: palette.info },
+              { icon: <UserOutlined />, label: "O'quvchilar soni", value: attendanceSummaryQuery.data.students.length, color: palette.primary },
+              {
+                icon: <TrophyOutlined />,
+                label: "O'rtacha davomat",
+                value: groupAverageAttendance,
+                suffix: '%',
+                color: groupAverageAttendance >= 80 ? palette.success : groupAverageAttendance >= 50 ? palette.warning : palette.error,
+              },
+            ]}
+          />
           <Table<GroupAttendanceStudentRow>
             size="small"
             rowKey={(record) => record.student.id}
@@ -383,17 +388,19 @@ export function GroupDetailPage() {
         <PageErrorState onRetry={() => resultsQuery.refetch()} />
       ) : !resultsQuery.data ? null : resultsQuery.data.exams.length ? (
         <>
-          <Row gutter={16} style={{ marginBottom: 16 }}>
-            <Col span={8}>
-              <Statistic title="Jami imtihonlar" value={resultsQuery.data.exams.length} />
-            </Col>
-            <Col span={8}>
-              <Statistic title="Umumiy o'rtacha ball" value={resultsQuery.data.overallAverage} suffix="%" />
-            </Col>
-            <Col span={8}>
-              <Statistic title="Umumiy o'tish darajasi" value={resultsQuery.data.overallPassRate} suffix="%" />
-            </Col>
-          </Row>
+          <SummaryCard
+            items={[
+              { icon: <FormOutlined />, label: 'Jami imtihonlar', value: resultsQuery.data.exams.length, color: palette.info },
+              { icon: <TrophyOutlined />, label: "Umumiy o'rtacha ball", value: resultsQuery.data.overallAverage, suffix: '%', color: palette.primary },
+              {
+                icon: <UserOutlined />,
+                label: "Umumiy o'tish darajasi",
+                value: resultsQuery.data.overallPassRate,
+                suffix: '%',
+                color: resultsQuery.data.overallPassRate >= 60 ? palette.success : palette.error,
+              },
+            ]}
+          />
           <Table
             size="small"
             rowKey="examId"
@@ -417,47 +424,45 @@ export function GroupDetailPage() {
 
   return (
     <div>
-      <Button icon={<ArrowLeftOutlined />} type="text" onClick={() => navigate('/groups')} style={{ marginBottom: 8 }}>
-        Guruhlar ro'yxatiga qaytish
-      </Button>
-
-      <Card style={{ marginBottom: 24 }}>
-        <Row justify="space-between" align="middle" gutter={[16, 16]}>
-          <Col>
-            <Typography.Title level={3} style={{ margin: 0 }}>
-              {group.name} <Tag>{group.code}</Tag>
-            </Typography.Title>
-            <Space size={12} wrap>
-              <Typography.Text type="secondary">{group.course.name}</Typography.Text>
-              <Typography.Text type="secondary">&middot; {group.branch.name}</Typography.Text>
-              {group.teacherEmployee && <Typography.Text type="secondary">&middot; {group.teacherEmployee.fullName}</Typography.Text>}
-            </Space>
-          </Col>
-          <Col>
-            <Space wrap>
-              <Tag color={STATUS_COLORS[group.status]}>{STATUS_LABELS[group.status]}</Tag>
-              {canEnroll && group.availableSeats > 0 && (
-                <Button icon={<UserAddOutlined />} onClick={() => setEnrollOpen(true)}>
-                  O'quvchi yozish
+      <DetailHeader
+        backLabel="Guruhlar ro'yxatiga qaytish"
+        onBack={() => navigate('/groups')}
+        title={
+          <>
+            {group.name} <Tag>{group.code}</Tag>
+          </>
+        }
+        subtitle={
+          <Space size={12} wrap>
+            <Typography.Text type="secondary">{group.course.name}</Typography.Text>
+            <Typography.Text type="secondary">&middot; {group.branch.name}</Typography.Text>
+            {group.teacherEmployee && <Typography.Text type="secondary">&middot; {group.teacherEmployee.fullName}</Typography.Text>}
+          </Space>
+        }
+        actions={
+          <ActionBar>
+            <Tag color={STATUS_COLORS[group.status]}>{STATUS_LABELS[group.status]}</Tag>
+            {canEnroll && group.availableSeats > 0 && (
+              <Button icon={<UserAddOutlined />} onClick={() => setEnrollOpen(true)}>
+                O'quvchi yozish
+              </Button>
+            )}
+            {canEdit && (
+              <Button icon={<EditOutlined />} onClick={() => setEditOpen(true)}>
+                Tahrirlash
+              </Button>
+            )}
+            {canEdit && group.status !== 'CANCELLED' && (
+              <Popconfirm title="Guruhni bekor qilishni tasdiqlaysizmi?" onConfirm={() => deactivateMutation.mutate()}>
+                <Button loading={deactivateMutation.isPending} danger icon={<StopOutlined />}>
+                  Bekor qilish
                 </Button>
-              )}
-              {canEdit && (
-                <Button icon={<EditOutlined />} onClick={() => setEditOpen(true)}>
-                  Tahrirlash
-                </Button>
-              )}
-              {canEdit && group.status !== 'CANCELLED' && (
-                <Popconfirm title="Guruhni bekor qilishni tasdiqlaysizmi?" onConfirm={() => deactivateMutation.mutate()}>
-                  <Button loading={deactivateMutation.isPending} danger icon={<StopOutlined />}>
-                    Bekor qilish
-                  </Button>
-                </Popconfirm>
-              )}
-            </Space>
-          </Col>
-        </Row>
-
-        <Row gutter={24} style={{ marginTop: 20 }} align="middle">
+              </Popconfirm>
+            )}
+          </ActionBar>
+        }
+      >
+        <Row gutter={24} style={{ marginTop: 4 }} align="middle">
           <Col xs={24} sm={10}>
             <Typography.Text type="secondary" style={{ fontSize: 13 }}>
               To'ldirilganlik: {group.enrolledCount} / {group.capacity}
@@ -469,18 +474,23 @@ export function GroupDetailPage() {
             />
           </Col>
           <Col xs={12} sm={5}>
-            <Statistic title="Bo'sh o'rinlar" value={group.availableSeats} styles={{ content: { color: group.availableSeats > 0 ? palette.success : palette.error, fontSize: 20 } }} />
+            <Typography.Text type="secondary" style={{ fontSize: 13, display: 'block' }}>
+              Bo'sh o'rinlar
+            </Typography.Text>
+            <Typography.Text strong style={{ fontSize: 20, color: group.availableSeats > 0 ? palette.success : palette.error }}>
+              {group.availableSeats}
+            </Typography.Text>
           </Col>
           <Col xs={12} sm={9}>
-            <Statistic
-              title="To'lov"
-              value={group.tuitionAmount ? Number(group.tuitionAmount) : 0}
-              formatter={(v) => formatCurrency(Number(v))}
-              styles={{ content: { fontSize: 20 } }}
-            />
+            <Typography.Text type="secondary" style={{ fontSize: 13, display: 'block' }}>
+              To'lov
+            </Typography.Text>
+            <Typography.Text strong style={{ fontSize: 20 }}>
+              {formatCurrency(group.tuitionAmount ? Number(group.tuitionAmount) : 0)}
+            </Typography.Text>
           </Col>
         </Row>
-      </Card>
+      </DetailHeader>
 
       <Card>
         <Tabs activeKey={activeTab} onChange={setActiveTab} items={tabs} />

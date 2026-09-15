@@ -6,6 +6,7 @@ import { listDepartments } from '../../api/departments';
 import { downloadPayrollReport, getPayrollReport, listPayrollPeriods } from '../../api/payroll';
 import { PageErrorState } from '../../components/PageErrorState';
 import { formatNumber } from '../../utils/format';
+import { palette } from '../../theme';
 
 const money = (value: number) => formatNumber(value, 2);
 
@@ -78,12 +79,12 @@ export function PayrollReportsPage() {
         </Col>
         <Col span={5}>
           <Card size="small">
-            <Statistic title="Ushlab qolinganlar" value={summary?.totalDeduction ?? 0} styles={{ content: { color: '#f5222d' } }} />
+            <Statistic title="Ushlab qolinganlar" value={summary?.totalDeduction ?? 0} styles={{ content: { color: palette.error } }} />
           </Card>
         </Col>
         <Col span={5}>
           <Card size="small">
-            <Statistic title="Sof (Net)" value={summary?.totalNet ?? 0} styles={{ content: { color: '#3f8600' } }} />
+            <Statistic title="Sof (Net)" value={summary?.totalNet ?? 0} styles={{ content: { color: palette.success } }} />
           </Card>
         </Col>
         <Col span={5}>

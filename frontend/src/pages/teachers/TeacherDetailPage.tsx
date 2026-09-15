@@ -1,6 +1,19 @@
-import { ArrowLeftOutlined, EditOutlined, StopOutlined } from '@ant-design/icons';
+import {
+  CalendarOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  CloseCircleOutlined,
+  DollarOutlined,
+  EditOutlined,
+  GroupOutlined,
+  InfoCircleOutlined,
+  PercentageOutlined,
+  StopOutlined,
+  TeamOutlined,
+  WalletOutlined,
+} from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Avatar, Button, Card, Col, Descriptions, Popconfirm, Row, Space, Spin, Statistic, Table, Tabs, Tag, Typography } from 'antd';
+import { App, Avatar, Button, Card, Descriptions, Popconfirm, Spin, Table, Tabs, Tag, Typography } from 'antd';
 import { EmptyState } from '../../components/EmptyState';
 import { useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -9,10 +22,14 @@ import { listPayroll } from '../../api/payroll';
 import { listSchedules } from '../../api/schedules';
 import { getAttendanceSummary } from '../../api/studentAttendance';
 import { deactivateTeacher, getTeacher, getTeacherCompensationPreview } from '../../api/teachers';
+import { ActionBar } from '../../components/ActionBar';
+import { DetailHeader } from '../../components/DetailHeader';
 import { PageErrorState } from '../../components/PageErrorState';
+import { SummaryCard } from '../../components/SummaryCard';
 import { avatarColor } from '../../utils/avatarColor';
 import { StatusTag } from '../../components/StatusTag';
 import { TeacherFormModal } from '../../components/TeacherFormModal';
+import { palette } from '../../theme';
 import { useAuthStore } from '../../store/auth.store';
 import { formatCurrency, formatDate, formatNumber } from '../../utils/format';
 import type { ScheduleDayOfWeek, SalaryType, StudentGroupStatus, TeacherProfileStatus } from '../../types';
@@ -137,23 +154,15 @@ export function TeacherDetailPage() {
             )}
           </Descriptions>
 
-          <Row gutter={16} style={{ marginTop: 24 }}>
-            <Col span={8}>
-              <Card size="small">
-                <Statistic title="Faol guruhlar" value={teacher.workload.activeGroupsCount} />
-              </Card>
-            </Col>
-            <Col span={8}>
-              <Card size="small">
-                <Statistic title="Faol o'quvchilar" value={teacher.workload.activeStudentsCount} styles={{ content: { color: '#3f8600' } }} />
-              </Card>
-            </Col>
-            <Col span={8}>
-              <Card size="small">
-                <Statistic title="Jami o'quvchilar (tarixiy)" value={teacher.workload.totalEnrolledStudents} />
-              </Card>
-            </Col>
-          </Row>
+          <div style={{ marginTop: 24 }}>
+            <SummaryCard
+              items={[
+                { icon: <GroupOutlined />, label: 'Faol guruhlar', value: teacher.workload.activeGroupsCount, color: palette.primary },
+                { icon: <TeamOutlined />, label: "Faol o'quvchilar", value: teacher.workload.activeStudentsCount, color: palette.success },
+                { icon: <TeamOutlined />, label: "Jami o'quvchilar (tarixiy)", value: teacher.workload.totalEnrolledStudents, color: palette.info },
+              ]}
+            />
+          </div>
         </>
       ),
     },
@@ -229,26 +238,27 @@ export function TeacherDetailPage() {
       ) : attendanceQuery.isError ? (
         <PageErrorState onRetry={() => attendanceQuery.refetch()} />
       ) : !attendanceQuery.data ? null : (
-        <Row gutter={16}>
-          <Col span={4}>
-            <Statistic title="Jami belgilangan" value={attendanceQuery.data.totalMarked} />
-          </Col>
-          <Col span={4}>
-            <Statistic title="Keldi" value={attendanceQuery.data.present} styles={{ content: { color: '#3f8600' } }} />
-          </Col>
-          <Col span={4}>
-            <Statistic title="Kelmadi" value={attendanceQuery.data.absent} styles={{ content: { color: '#cf1322' } }} />
-          </Col>
-          <Col span={4}>
-            <Statistic title="Kech qoldi" value={attendanceQuery.data.late} styles={{ content: { color: '#d4b106' } }} />
-          </Col>
-          <Col span={4}>
-            <Statistic title="Sababli" value={attendanceQuery.data.excused} styles={{ content: { color: '#1677ff' } }} />
-          </Col>
-          <Col span={4}>
-            <Statistic title="Davomat foizi" value={attendanceQuery.data.markedAttendancePercentage} suffix="%" />
-          </Col>
-        </Row>
+        <SummaryCard
+          items={[
+            { icon: <CalendarOutlined />, label: 'Jami belgilangan', value: attendanceQuery.data.totalMarked, color: palette.info },
+            { icon: <CheckCircleOutlined />, label: 'Keldi', value: attendanceQuery.data.present, color: palette.success },
+            { icon: <CloseCircleOutlined />, label: 'Kelmadi', value: attendanceQuery.data.absent, color: palette.error },
+            { icon: <ClockCircleOutlined />, label: 'Kech qoldi', value: attendanceQuery.data.late, color: palette.warning },
+            { icon: <InfoCircleOutlined />, label: 'Sababli', value: attendanceQuery.data.excused, color: palette.info },
+            {
+              icon: <PercentageOutlined />,
+              label: 'Davomat foizi',
+              value: attendanceQuery.data.markedAttendancePercentage,
+              suffix: '%',
+              color:
+                attendanceQuery.data.markedAttendancePercentage >= 80
+                  ? palette.success
+                  : attendanceQuery.data.markedAttendancePercentage >= 50
+                    ? palette.warning
+                    : palette.error,
+            },
+          ]}
+        />
       ),
     },
     canViewCompensation && {
@@ -280,36 +290,26 @@ export function TeacherDetailPage() {
             Davr: {formatDate(compensationQuery.data.period.start)} — {formatDate(compensationQuery.data.period.end)}
           </Typography.Paragraph>
 
-          <Row gutter={16}>
-            <Col span={6}>
-              <Card size="small">
-                <Statistic title="Yakunlangan darslar" value={compensationQuery.data.completedLessons} />
-              </Card>
-            </Col>
-            <Col span={6}>
-              <Card size="small">
-                <Statistic title="Faol guruhlar" value={compensationQuery.data.activeGroups} />
-              </Card>
-            </Col>
-            <Col span={6}>
-              <Card size="small">
-                <Statistic
-                  title="Darslar bo'yicha (taxminiy)"
-                  value={compensationQuery.data.estimatedLessonPay ?? '—'}
-                  precision={compensationQuery.data.estimatedLessonPay !== null ? 2 : undefined}
-                />
-              </Card>
-            </Col>
-            <Col span={6}>
-              <Card size="small">
-                <Statistic
-                  title="Guruhlar bo'yicha (taxminiy)"
-                  value={compensationQuery.data.estimatedGroupPay ?? '—'}
-                  precision={compensationQuery.data.estimatedGroupPay !== null ? 2 : undefined}
-                />
-              </Card>
-            </Col>
-          </Row>
+          <SummaryCard
+            items={[
+              { icon: <CheckCircleOutlined />, label: 'Yakunlangan darslar', value: compensationQuery.data.completedLessons, color: palette.success },
+              { icon: <GroupOutlined />, label: 'Faol guruhlar', value: compensationQuery.data.activeGroups, color: palette.primary },
+              {
+                icon: <DollarOutlined />,
+                label: "Darslar bo'yicha (taxminiy)",
+                value: compensationQuery.data.estimatedLessonPay ?? 0,
+                color: palette.info,
+                formatter: () => (compensationQuery.data!.estimatedLessonPay === null ? '—' : formatNumber(compensationQuery.data!.estimatedLessonPay, 2)),
+              },
+              {
+                icon: <WalletOutlined />,
+                label: "Guruhlar bo'yicha (taxminiy)",
+                value: compensationQuery.data.estimatedGroupPay ?? 0,
+                color: palette.info,
+                formatter: () => (compensationQuery.data!.estimatedGroupPay === null ? '—' : formatNumber(compensationQuery.data!.estimatedGroupPay, 2)),
+              },
+            ]}
+          />
         </>
       ),
     },
@@ -340,46 +340,38 @@ export function TeacherDetailPage() {
 
   return (
     <div>
-      <Button icon={<ArrowLeftOutlined />} type="text" onClick={() => navigate('/teachers')} style={{ marginBottom: 8 }}>
-        O'qituvchilar ro'yxatiga qaytish
-      </Button>
-
-      <Card style={{ marginBottom: 24 }}>
-        <Row justify="space-between" align="middle">
-          <Col>
-            <Space size={16} align="center">
-              <Avatar size={48} style={{ background: avatarColor(teacher.employee.fullName), fontSize: 18, flexShrink: 0 }}>
-                {teacher.employee.fullName.charAt(0)}
-              </Avatar>
-              <div>
-                <Typography.Title level={3} style={{ margin: 0 }}>
-                  {teacher.employee.fullName}
-                </Typography.Title>
-                <Typography.Text type="secondary">
-                  {teacher.employee.employeeCode} · {teacher.specialization ?? "Mutaxassisligi ko'rsatilmagan"}
-                </Typography.Text>
-              </div>
-            </Space>
-          </Col>
-          <Col>
-            <Space>
-              <Tag color={STATUS_COLORS[teacher.status]}>{STATUS_LABELS[teacher.status]}</Tag>
-              {canEdit && (
-                <Button icon={<EditOutlined />} onClick={() => setEditOpen(true)}>
-                  Tahrirlash
+      <DetailHeader
+        backLabel="O'qituvchilar ro'yxatiga qaytish"
+        onBack={() => navigate('/teachers')}
+        avatar={
+          <Avatar size={48} style={{ background: avatarColor(teacher.employee.fullName), fontSize: 18, flexShrink: 0 }}>
+            {teacher.employee.fullName.charAt(0)}
+          </Avatar>
+        }
+        title={teacher.employee.fullName}
+        subtitle={
+          <>
+            {teacher.employee.employeeCode} · {teacher.specialization ?? "Mutaxassisligi ko'rsatilmagan"}
+          </>
+        }
+        actions={
+          <ActionBar>
+            <Tag color={STATUS_COLORS[teacher.status]}>{STATUS_LABELS[teacher.status]}</Tag>
+            {canEdit && (
+              <Button icon={<EditOutlined />} onClick={() => setEditOpen(true)}>
+                Tahrirlash
+              </Button>
+            )}
+            {canEdit && teacher.status !== 'INACTIVE' && (
+              <Popconfirm title="O'qituvchi profilini nofaol qilishni tasdiqlaysizmi?" onConfirm={() => deactivateMutation.mutate()}>
+                <Button loading={deactivateMutation.isPending} danger icon={<StopOutlined />}>
+                  Nofaol qilish
                 </Button>
-              )}
-              {canEdit && teacher.status !== 'INACTIVE' && (
-                <Popconfirm title="O'qituvchi profilini nofaol qilishni tasdiqlaysizmi?" onConfirm={() => deactivateMutation.mutate()}>
-                  <Button loading={deactivateMutation.isPending} danger icon={<StopOutlined />}>
-                    Nofaol qilish
-                  </Button>
-                </Popconfirm>
-              )}
-            </Space>
-          </Col>
-        </Row>
-      </Card>
+              </Popconfirm>
+            )}
+          </ActionBar>
+        }
+      />
 
       <Card>
         <Tabs activeKey={activeTab} onChange={setActiveTab} items={tabs} />

@@ -24,6 +24,7 @@ import { listGroups } from '../../api/groups';
 import { listStudents } from '../../api/students';
 import { listTeachers } from '../../api/teachers';
 import { useAuthStore } from '../../store/auth.store';
+import { palette } from '../../theme';
 import type { LeadStatus, StudentGroupStatus, StudentStatus } from '../../types';
 import { formatNumber } from '../../utils/format';
 
@@ -232,12 +233,12 @@ export function EducationReportsPage() {
             </Col>
             <Col span={8}>
               <Card size="small">
-                <Statistic title="Faol" value={studentsQuery.data?.activeStudents ?? 0} loading={studentsQuery.isLoading} styles={{ content: { color: '#3f8600' } }} />
+                <Statistic title="Faol" value={studentsQuery.data?.activeStudents ?? 0} loading={studentsQuery.isLoading} styles={{ content: { color: palette.success } }} />
               </Card>
             </Col>
             <Col span={8}>
               <Card size="small">
-                <Statistic title="Nofaol" value={studentsQuery.data?.inactiveStudents ?? 0} loading={studentsQuery.isLoading} styles={{ content: { color: '#f5222d' } }} />
+                <Statistic title="Nofaol" value={studentsQuery.data?.inactiveStudents ?? 0} loading={studentsQuery.isLoading} styles={{ content: { color: palette.error } }} />
               </Card>
             </Col>
           </Row>
@@ -380,12 +381,12 @@ export function EducationReportsPage() {
             </Col>
             <Col span={6}>
               <Card size="small">
-                <Statistic title="Sababsiz qoldirish %" value={attendanceQuery.data?.overall.absenceRate ?? 0} suffix="%" loading={attendanceQuery.isLoading} styles={{ content: { color: '#f5222d' } }} />
+                <Statistic title="Sababsiz qoldirish %" value={attendanceQuery.data?.overall.absenceRate ?? 0} suffix="%" loading={attendanceQuery.isLoading} styles={{ content: { color: palette.error } }} />
               </Card>
             </Col>
             <Col span={6}>
               <Card size="small">
-                <Statistic title="Kechikish %" value={attendanceQuery.data?.overall.lateRate ?? 0} suffix="%" loading={attendanceQuery.isLoading} styles={{ content: { color: '#faad14' } }} />
+                <Statistic title="Kechikish %" value={attendanceQuery.data?.overall.lateRate ?? 0} suffix="%" loading={attendanceQuery.isLoading} styles={{ content: { color: palette.warning } }} />
               </Card>
             </Col>
             <Col span={6}>
@@ -582,12 +583,12 @@ export function EducationReportsPage() {
             </Col>
             <Col span={6}>
               <Card size="small">
-                <Statistic title="Yig'ilgan" value={tuitionQuery.data?.collected.totalCollected ?? 0} formatter={(v) => money(Number(v))} loading={tuitionQuery.isLoading} styles={{ content: { color: '#3f8600' } }} />
+                <Statistic title="Yig'ilgan" value={tuitionQuery.data?.collected.totalCollected ?? 0} formatter={(v) => money(Number(v))} loading={tuitionQuery.isLoading} styles={{ content: { color: palette.success } }} />
               </Card>
             </Col>
             <Col span={6}>
               <Card size="small">
-                <Statistic title="Qoldiq" value={tuitionQuery.data?.outstanding.totalOutstanding ?? 0} formatter={(v) => money(Number(v))} loading={tuitionQuery.isLoading} styles={{ content: { color: '#f5222d' } }} />
+                <Statistic title="Qoldiq" value={tuitionQuery.data?.outstanding.totalOutstanding ?? 0} formatter={(v) => money(Number(v))} loading={tuitionQuery.isLoading} styles={{ content: { color: palette.error } }} />
               </Card>
             </Col>
             <Col span={6}>
@@ -685,12 +686,12 @@ export function EducationReportsPage() {
             </Col>
             <Col span={6}>
               <Card size="small">
-                <Statistic title="Konversiya %" value={admissionsQuery.data?.conversionRate ?? 0} suffix="%" loading={admissionsQuery.isLoading} styles={{ content: { color: '#3f8600' } }} />
+                <Statistic title="Konversiya %" value={admissionsQuery.data?.conversionRate ?? 0} suffix="%" loading={admissionsQuery.isLoading} styles={{ content: { color: palette.success } }} />
               </Card>
             </Col>
             <Col span={6}>
               <Card size="small">
-                <Statistic title="Muddati o'tgan follow-up" value={admissionsQuery.data?.followUpStatus.overdue ?? 0} loading={admissionsQuery.isLoading} styles={{ content: { color: '#f5222d' } }} />
+                <Statistic title="Muddati o'tgan follow-up" value={admissionsQuery.data?.followUpStatus.overdue ?? 0} loading={admissionsQuery.isLoading} styles={{ content: { color: palette.error } }} />
               </Card>
             </Col>
             <Col span={6}>

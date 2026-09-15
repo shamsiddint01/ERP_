@@ -11,6 +11,7 @@ import { bulkMarkAttendance, listStudentAttendance, type BulkAttendanceEntry } f
 import { PageErrorState } from '../../components/PageErrorState';
 import { ATTENDANCE_STATUS_OPTIONS } from '../../utils/attendanceStatus';
 import type { EnrollmentListItem, StudentAttendanceStatus } from '../../types';
+import { palette } from '../../theme';
 
 interface FormValues {
   status?: Record<string, StudentAttendanceStatus>;
@@ -125,10 +126,10 @@ export function LessonAttendancePage() {
 
         <Space size={32} style={{ marginTop: 16 }}>
           <Statistic title="Jami o'quvchilar" value={roster.length} />
-          <Statistic title="Keldi" value={counts.present} styles={{ content: { color: '#3f8600' } }} />
-          <Statistic title="Kelmadi" value={counts.absent} styles={{ content: { color: '#cf1322' } }} />
-          <Statistic title="Kech qoldi" value={counts.late} styles={{ content: { color: '#d4b106' } }} />
-          <Statistic title="Sababli" value={counts.excused} styles={{ content: { color: '#1677ff' } }} />
+          <Statistic title="Keldi" value={counts.present} styles={{ content: { color: palette.success } }} />
+          <Statistic title="Kelmadi" value={counts.absent} styles={{ content: { color: palette.error } }} />
+          <Statistic title="Kech qoldi" value={counts.late} styles={{ content: { color: palette.warning } }} />
+          <Statistic title="Sababli" value={counts.excused} styles={{ content: { color: palette.info } }} />
         </Space>
       </Card>
 

@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { downloadReportExport, getStudentDebtReport, type StudentDebtRow } from '../../api/reports';
 import { PageErrorState } from '../../components/PageErrorState';
 import { formatCurrency } from '../../utils/format';
+import { palette } from '../../theme';
 
 export function StudentBalancesPage() {
   const navigate = useNavigate();
@@ -45,13 +46,13 @@ export function StudentBalancesPage() {
               value={debtQuery.data?.paid ?? 0}
               formatter={(v) => formatCurrency(Number(v))}
               loading={debtQuery.isLoading}
-              styles={{ content: { color: '#3f8600' } }}
+              styles={{ content: { color: palette.success } }}
             />
           </Card>
         </Col>
         <Col span={6}>
           <Card size="small">
-            <Statistic title="Qoldiq" value={debtQuery.data?.outstanding ?? 0} formatter={(v) => formatCurrency(Number(v))} loading={debtQuery.isLoading} styles={{ content: { color: '#faad14' } }} />
+            <Statistic title="Qoldiq" value={debtQuery.data?.outstanding ?? 0} formatter={(v) => formatCurrency(Number(v))} loading={debtQuery.isLoading} styles={{ content: { color: palette.warning } }} />
           </Card>
         </Col>
         <Col span={6}>
@@ -61,7 +62,7 @@ export function StudentBalancesPage() {
               value={debtQuery.data?.overdue ?? 0}
               formatter={(v) => formatCurrency(Number(v))}
               loading={debtQuery.isLoading}
-              styles={{ content: { color: '#cf1322' } }}
+              styles={{ content: { color: palette.error } }}
             />
           </Card>
         </Col>
@@ -89,7 +90,7 @@ export function StudentBalancesPage() {
               title: "Muddati o'tgan",
               dataIndex: 'overdue',
               align: 'right',
-              render: (v: number) => <span style={{ color: v > 0 ? '#cf1322' : undefined }}>{formatCurrency(v)}</span>,
+              render: (v: number) => <span style={{ color: v > 0 ? palette.error : undefined }}>{formatCurrency(v)}</span>,
             },
           ]}
         />

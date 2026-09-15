@@ -1,19 +1,30 @@
 import {
-  ArrowLeftOutlined,
+  CalendarOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
+  CloseCircleOutlined,
+  DollarOutlined,
   DownloadOutlined,
   EditOutlined,
+  ExclamationCircleOutlined,
+  FormOutlined,
+  InfoCircleOutlined,
   LinkOutlined,
   PauseCircleOutlined,
+  PercentageOutlined,
   PlayCircleOutlined,
   PlusOutlined,
   StarFilled,
   StarOutlined,
   StopOutlined,
   SwapOutlined,
+  TagOutlined,
+  TrophyOutlined,
   UserAddOutlined,
+  WalletOutlined,
 } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Avatar, Button, Card, Col, DatePicker, Descriptions, Popconfirm, Progress, Row, Select, Space, Spin, Statistic, Table, Tabs, Tag, Typography } from 'antd';
+import { App, Avatar, Button, Card, Col, DatePicker, Descriptions, Popconfirm, Progress, Row, Select, Space, Spin, Table, Tabs, Tag, Typography } from 'antd';
 import { EmptyState } from '../../components/EmptyState';
 import { useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
@@ -24,15 +35,19 @@ import { listGroups } from '../../api/groups';
 import { deactivateStudent, getStudent, getStudentGrades, getStudentProgress, removeStudentGuardian, updateStudentGuardianLink } from '../../api/students';
 import { downloadStudentAttendanceCsv, getStudentAttendanceHistory } from '../../api/studentAttendance';
 import { getStudentFinancialSummary } from '../../api/tuition';
+import { ActionBar } from '../../components/ActionBar';
 import { CreateTuitionChargeModal } from '../../components/CreateTuitionChargeModal';
+import { DetailHeader } from '../../components/DetailHeader';
 import { EnrollmentFormModal } from '../../components/EnrollmentFormModal';
 import { GrantDiscountModal } from '../../components/GrantDiscountModal';
 import { LinkGuardianModal } from '../../components/LinkGuardianModal';
 import { PageErrorState } from '../../components/PageErrorState';
+import { SummaryCard } from '../../components/SummaryCard';
 import { avatarColor } from '../../utils/avatarColor';
 import { StatusTag } from '../../components/StatusTag';
 import { StudentFormModal } from '../../components/StudentFormModal';
 import { TransferEnrollmentModal } from '../../components/TransferEnrollmentModal';
+import { palette } from '../../theme';
 import { useAuthStore } from '../../store/auth.store';
 import { formatCurrency, formatDate, formatDateTime, formatNumber } from '../../utils/format';
 import { ATTENDANCE_STATUS_COLORS, ATTENDANCE_STATUS_LABELS } from '../../utils/attendanceStatus';
@@ -400,36 +415,27 @@ export function StudentDetailPage() {
             </Col>
           </Row>
           {attendanceHistoryQuery.data && (
-            <Row gutter={16} style={{ marginBottom: 16 }}>
-              <Col span={4}>
-                <Statistic title="Jami darslar" value={attendanceHistoryQuery.data.eligibleLessons} />
-              </Col>
-              <Col span={4}>
-                <Statistic title="Keldi" value={attendanceHistoryQuery.data.present} styles={{ content: { color: '#3f8600' } }} />
-              </Col>
-              <Col span={4}>
-                <Statistic title="Kelmadi" value={attendanceHistoryQuery.data.absent} styles={{ content: { color: '#cf1322' } }} />
-              </Col>
-              <Col span={4}>
-                <Statistic title="Kech qoldi" value={attendanceHistoryQuery.data.late} styles={{ content: { color: '#d4b106' } }} />
-              </Col>
-              <Col span={4}>
-                <Statistic title="Sababli" value={attendanceHistoryQuery.data.excused} styles={{ content: { color: '#1677ff' } }} />
-              </Col>
-              <Col span={4}>
-                <Statistic
-                  title="Davomat foizi"
-                  value={attendanceHistoryQuery.data.attendancePercentage}
-                  suffix="%"
-                  styles={{
-                    content: {
-                      color:
-                        attendanceHistoryQuery.data.attendancePercentage >= 80 ? '#3f8600' : attendanceHistoryQuery.data.attendancePercentage >= 50 ? '#d4b106' : '#cf1322',
-                    },
-                  }}
-                />
-              </Col>
-            </Row>
+            <SummaryCard
+              items={[
+                { icon: <CalendarOutlined />, label: 'Jami darslar', value: attendanceHistoryQuery.data.eligibleLessons, color: palette.info },
+                { icon: <CheckCircleOutlined />, label: 'Keldi', value: attendanceHistoryQuery.data.present, color: palette.success },
+                { icon: <CloseCircleOutlined />, label: 'Kelmadi', value: attendanceHistoryQuery.data.absent, color: palette.error },
+                { icon: <ClockCircleOutlined />, label: 'Kech qoldi', value: attendanceHistoryQuery.data.late, color: palette.warning },
+                { icon: <InfoCircleOutlined />, label: 'Sababli', value: attendanceHistoryQuery.data.excused, color: palette.info },
+                {
+                  icon: <PercentageOutlined />,
+                  label: 'Davomat foizi',
+                  value: attendanceHistoryQuery.data.attendancePercentage,
+                  suffix: '%',
+                  color:
+                    attendanceHistoryQuery.data.attendancePercentage >= 80
+                      ? palette.success
+                      : attendanceHistoryQuery.data.attendancePercentage >= 50
+                        ? palette.warning
+                        : palette.error,
+                },
+              ]}
+            />
           )}
 
           <Space style={{ marginBottom: 16 }} wrap>
@@ -492,38 +498,21 @@ export function StudentDetailPage() {
             </Space>
           </Row>
 
-          <Row gutter={16} style={{ marginBottom: 24 }}>
-            <Col span={5}>
-              <Card size="small">
-                <Statistic title="Jami hisoblangan" value={financeSummaryQuery.data.balance.totalBilled} formatter={(v) => formatCurrency(Number(v))} />
-              </Card>
-            </Col>
-            <Col span={5}>
-              <Card size="small">
-                <Statistic title="Chegirmalar" value={financeSummaryQuery.data.balance.discounts} formatter={(v) => formatCurrency(Number(v))} />
-              </Card>
-            </Col>
-            <Col span={5}>
-              <Card size="small">
-                <Statistic title="To'langan" value={financeSummaryQuery.data.balance.paid} formatter={(v) => formatCurrency(Number(v))} styles={{ content: { color: '#3f8600' } }} />
-              </Card>
-            </Col>
-            <Col span={5}>
-              <Card size="small">
-                <Statistic title="Qoldiq" value={financeSummaryQuery.data.balance.outstanding} formatter={(v) => formatCurrency(Number(v))} />
-              </Card>
-            </Col>
-            <Col span={4}>
-              <Card size="small">
-                <Statistic
-                  title="Muddati o'tgan"
-                  value={financeSummaryQuery.data.balance.overdue}
-                  formatter={(v) => formatCurrency(Number(v))}
-                  styles={{ content: { color: financeSummaryQuery.data!.balance.overdue > 0 ? '#cf1322' : undefined } }}
-                />
-              </Card>
-            </Col>
-          </Row>
+          <SummaryCard
+            items={[
+              { icon: <WalletOutlined />, label: 'Jami hisoblangan', value: financeSummaryQuery.data.balance.totalBilled, color: palette.info, formatter: (v) => formatCurrency(v) },
+              { icon: <TagOutlined />, label: 'Chegirmalar', value: financeSummaryQuery.data.balance.discounts, color: palette.warning, formatter: (v) => formatCurrency(v) },
+              { icon: <DollarOutlined />, label: "To'langan", value: financeSummaryQuery.data.balance.paid, color: palette.success, formatter: (v) => formatCurrency(v) },
+              { icon: <WalletOutlined />, label: 'Qoldiq', value: financeSummaryQuery.data.balance.outstanding, color: palette.primary, formatter: (v) => formatCurrency(v) },
+              {
+                icon: <ExclamationCircleOutlined />,
+                label: "Muddati o'tgan",
+                value: financeSummaryQuery.data.balance.overdue,
+                color: financeSummaryQuery.data.balance.overdue > 0 ? palette.error : palette.success,
+                formatter: (v) => formatCurrency(v),
+              },
+            ]}
+          />
 
           <Tabs
             items={[
@@ -659,28 +648,26 @@ export function StudentDetailPage() {
         <PageErrorState onRetry={() => progressQuery.refetch()} />
       ) : !progressQuery.data ? null : (
         <>
-          <Row gutter={16} style={{ marginBottom: 24 }}>
-            <Col span={6}>
-              <Card size="small">
-                <Statistic title="Jami imtihonlar" value={progressQuery.data.totalExams} />
-              </Card>
-            </Col>
-            <Col span={6}>
-              <Card size="small">
-                <Statistic title="O'rtacha ball (%)" value={progressQuery.data.averagePercentage} precision={2} />
-              </Card>
-            </Col>
-            <Col span={6}>
-              <Card size="small">
-                <Statistic title="O'tish darajasi (%)" value={progressQuery.data.passRate} precision={2} />
-              </Card>
-            </Col>
-            <Col span={6}>
-              <Card size="small">
-                <Statistic title="Davomat (%)" value={progressQuery.data.attendancePercentage} precision={2} />
-              </Card>
-            </Col>
-          </Row>
+          <SummaryCard
+            items={[
+              { icon: <FormOutlined />, label: 'Jami imtihonlar', value: progressQuery.data.totalExams, color: palette.info },
+              { icon: <TrophyOutlined />, label: "O'rtacha ball (%)", value: progressQuery.data.averagePercentage, color: palette.primary, formatter: (v) => v.toFixed(2) },
+              {
+                icon: <PercentageOutlined />,
+                label: "O'tish darajasi (%)",
+                value: progressQuery.data.passRate,
+                color: progressQuery.data.passRate >= 60 ? palette.success : palette.error,
+                formatter: (v) => v.toFixed(2),
+              },
+              {
+                icon: <CheckCircleOutlined />,
+                label: 'Davomat (%)',
+                value: progressQuery.data.attendancePercentage,
+                color: progressQuery.data.attendancePercentage >= 80 ? palette.success : progressQuery.data.attendancePercentage >= 50 ? palette.warning : palette.error,
+                formatter: (v) => v.toFixed(2),
+              },
+            ]}
+          />
 
           <Typography.Title level={5}>Kurslar bo'yicha o'zlashtirish (joriy yozilishlar)</Typography.Title>
           <Table
@@ -755,46 +742,38 @@ export function StudentDetailPage() {
 
   return (
     <div>
-      <Button icon={<ArrowLeftOutlined />} type="text" onClick={() => navigate('/students')} style={{ marginBottom: 8 }}>
-        O'quvchilar ro'yxatiga qaytish
-      </Button>
-
-      <Card style={{ marginBottom: 24 }}>
-        <Row justify="space-between" align="middle">
-          <Col>
-            <Space size={16} align="center">
-              <Avatar size={48} style={{ background: avatarColor(student.fullName), fontSize: 18, flexShrink: 0 }}>
-                {student.fullName.charAt(0)}
-              </Avatar>
-              <div>
-                <Typography.Title level={3} style={{ margin: 0 }}>
-                  {student.fullName}
-                </Typography.Title>
-                <Typography.Text type="secondary">
-                  {student.studentCode} · {student.branch?.name ?? 'Filialsiz'}
-                </Typography.Text>
-              </div>
-            </Space>
-          </Col>
-          <Col>
-            <Space>
-              <Tag color={STATUS_COLORS[student.status]}>{STATUS_LABELS[student.status]}</Tag>
-              {canEdit && (
-                <Button icon={<EditOutlined />} onClick={() => setEditOpen(true)}>
-                  Tahrirlash
+      <DetailHeader
+        backLabel="O'quvchilar ro'yxatiga qaytish"
+        onBack={() => navigate('/students')}
+        avatar={
+          <Avatar size={48} style={{ background: avatarColor(student.fullName), fontSize: 18, flexShrink: 0 }}>
+            {student.fullName.charAt(0)}
+          </Avatar>
+        }
+        title={student.fullName}
+        subtitle={
+          <>
+            {student.studentCode} · {student.branch?.name ?? 'Filialsiz'}
+          </>
+        }
+        actions={
+          <ActionBar>
+            <Tag color={STATUS_COLORS[student.status]}>{STATUS_LABELS[student.status]}</Tag>
+            {canEdit && (
+              <Button icon={<EditOutlined />} onClick={() => setEditOpen(true)}>
+                Tahrirlash
+              </Button>
+            )}
+            {canEdit && student.status !== 'INACTIVE' && (
+              <Popconfirm title="O'quvchini nofaol qilishni tasdiqlaysizmi?" onConfirm={() => deactivateMutation.mutate()}>
+                <Button loading={deactivateMutation.isPending} danger icon={<StopOutlined />}>
+                  Nofaol qilish
                 </Button>
-              )}
-              {canEdit && student.status !== 'INACTIVE' && (
-                <Popconfirm title="O'quvchini nofaol qilishni tasdiqlaysizmi?" onConfirm={() => deactivateMutation.mutate()}>
-                  <Button loading={deactivateMutation.isPending} danger icon={<StopOutlined />}>
-                    Nofaol qilish
-                  </Button>
-                </Popconfirm>
-              )}
-            </Space>
-          </Col>
-        </Row>
-      </Card>
+              </Popconfirm>
+            )}
+          </ActionBar>
+        }
+      />
 
       <Card>
         <Tabs activeKey={activeTab} onChange={setActiveTab} items={tabs} />

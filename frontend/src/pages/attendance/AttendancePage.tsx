@@ -8,6 +8,7 @@ import { listDepartments } from '../../api/departments';
 import { listEmployees } from '../../api/employees';
 import { useAuthStore } from '../../store/auth.store';
 import type { AttendanceRecordItem, AttendanceStatus } from '../../types';
+import { palette } from '../../theme';
 
 const { RangePicker } = DatePicker;
 
@@ -126,17 +127,17 @@ export function AttendancePage() {
         </Col>
         <Col span={4}>
           <Card size="small">
-            <Statistic title="Bugun kelgan" value={overviewQuery.data?.presentToday ?? 0} styles={{ content: { color: '#3f8600' } }} />
+            <Statistic title="Bugun kelgan" value={overviewQuery.data?.presentToday ?? 0} styles={{ content: { color: palette.success } }} />
           </Card>
         </Col>
         <Col span={4}>
           <Card size="small">
-            <Statistic title="Kechikkan" value={overviewQuery.data?.lateToday ?? 0} styles={{ content: { color: '#faad14' } }} />
+            <Statistic title="Kechikkan" value={overviewQuery.data?.lateToday ?? 0} styles={{ content: { color: palette.warning } }} />
           </Card>
         </Col>
         <Col span={4}>
           <Card size="small">
-            <Statistic title="Kelmagan" value={overviewQuery.data?.absentToday ?? 0} styles={{ content: { color: '#f5222d' } }} />
+            <Statistic title="Kelmagan" value={overviewQuery.data?.absentToday ?? 0} styles={{ content: { color: palette.error } }} />
           </Card>
         </Col>
         <Col span={4}>

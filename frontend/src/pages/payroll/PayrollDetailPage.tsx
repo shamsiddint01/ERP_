@@ -16,6 +16,7 @@ import {
 import { PageErrorState } from '../../components/PageErrorState';
 import { useAuthStore } from '../../store/auth.store';
 import type { PayrollComponentType, PayrollLineItem, PayrollStatus } from '../../types';
+import { palette } from '../../theme';
 
 const STATUS_COLORS: Record<PayrollStatus, string> = {
   DRAFT: 'default',
@@ -261,7 +262,7 @@ export function PayrollDetailPage() {
         <Col span={4}>
           <Card size="small">
             <Typography.Text type="secondary">Ushlab qolish</Typography.Text>
-            <Typography.Title level={5} style={{ margin: 0, color: '#f5222d' }}>
+            <Typography.Title level={5} style={{ margin: 0, color: palette.error }}>
               -{Number(payroll.deductionAmount).toLocaleString('uz-UZ')}
             </Typography.Title>
           </Card>
@@ -277,7 +278,7 @@ export function PayrollDetailPage() {
         <Col span={4}>
           <Card size="small">
             <Typography.Text type="secondary">Sof (Net)</Typography.Text>
-            <Typography.Title level={5} style={{ margin: 0, color: '#3f8600' }}>
+            <Typography.Title level={5} style={{ margin: 0, color: palette.success }}>
               {Number(payroll.netSalary).toLocaleString('uz-UZ')}
             </Typography.Title>
           </Card>

@@ -10,6 +10,7 @@ import { CreateEmployeeModal } from '../../components/CreateEmployeeModal';
 import { PageErrorState } from '../../components/PageErrorState';
 import { useAuthStore } from '../../store/auth.store';
 import type { EmployeeListItem, EmployeeStatus } from '../../types';
+import { palette } from '../../theme';
 
 const STATUS_COLORS: Record<EmployeeStatus, string> = { ACTIVE: 'green', ON_LEAVE: 'gold', SUSPENDED: 'orange', TERMINATED: 'default' };
 const STATUS_LABELS: Record<EmployeeStatus, string> = { ACTIVE: 'Faol', ON_LEAVE: "Ta'tilda", SUSPENDED: 'Vaqtincha to\'xtatilgan', TERMINATED: 'Ishdan bo\'shatilgan' };
@@ -88,12 +89,12 @@ export function EmployeesPage() {
         </Col>
         <Col span={4}>
           <Card size="small">
-            <Statistic title="Faol" value={overviewQuery.data?.activeCount ?? 0} styles={{ content: { color: '#3f8600' } }} />
+            <Statistic title="Faol" value={overviewQuery.data?.activeCount ?? 0} styles={{ content: { color: palette.success } }} />
           </Card>
         </Col>
         <Col span={4}>
           <Card size="small">
-            <Statistic title="Ta'tilda" value={overviewQuery.data?.onLeaveCount ?? 0} styles={{ content: { color: '#faad14' } }} />
+            <Statistic title="Ta'tilda" value={overviewQuery.data?.onLeaveCount ?? 0} styles={{ content: { color: palette.warning } }} />
           </Card>
         </Col>
         <Col span={4}>

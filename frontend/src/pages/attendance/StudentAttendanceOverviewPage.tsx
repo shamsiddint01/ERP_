@@ -13,6 +13,7 @@ import { PageErrorState } from '../../components/PageErrorState';
 import { useAuthStore } from '../../store/auth.store';
 import { ATTENDANCE_STATUS_COLORS, ATTENDANCE_STATUS_LABELS } from '../../utils/attendanceStatus';
 import type { StudentAttendanceListItem, StudentAttendanceStatus } from '../../types';
+import { palette } from '../../theme';
 
 export function StudentAttendanceOverviewPage() {
   const navigate = useNavigate();
@@ -88,16 +89,16 @@ export function StudentAttendanceOverviewPage() {
               <Statistic title="Belgilangan" value={summary.totalMarked} />
             </Col>
             <Col span={4}>
-              <Statistic title="Keldi" value={summary.present} styles={{ content: { color: '#3f8600' } }} />
+              <Statistic title="Keldi" value={summary.present} styles={{ content: { color: palette.success } }} />
             </Col>
             <Col span={4}>
-              <Statistic title="Kelmadi" value={summary.absent} styles={{ content: { color: '#cf1322' } }} />
+              <Statistic title="Kelmadi" value={summary.absent} styles={{ content: { color: palette.error } }} />
             </Col>
             <Col span={4}>
-              <Statistic title="Kech qoldi" value={summary.late} styles={{ content: { color: '#d4b106' } }} />
+              <Statistic title="Kech qoldi" value={summary.late} styles={{ content: { color: palette.warning } }} />
             </Col>
             <Col span={4}>
-              <Statistic title="Sababli" value={summary.excused} styles={{ content: { color: '#1677ff' } }} />
+              <Statistic title="Sababli" value={summary.excused} styles={{ content: { color: palette.info } }} />
             </Col>
             <Col span={4}>
               <Statistic title="Davomat foizi" value={summary.markedAttendancePercentage} suffix="%" />

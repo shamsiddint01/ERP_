@@ -4,6 +4,7 @@ import { Button, Card, Col, Descriptions, Row, Spin, Statistic, Table, Tag, Typo
 import { useNavigate, useParams } from 'react-router-dom';
 import { getDepartment } from '../../api/departments';
 import type { EmployeeStatus, PositionStatus } from '../../types';
+import { palette } from '../../theme';
 
 const EMPLOYEE_STATUS_COLORS: Record<EmployeeStatus, string> = { ACTIVE: 'green', ON_LEAVE: 'gold', SUSPENDED: 'orange', TERMINATED: 'default' };
 const POSITION_STATUS_COLORS: Record<PositionStatus, string> = { ACTIVE: 'green', INACTIVE: 'default' };
@@ -51,7 +52,7 @@ export function DepartmentDetailPage() {
         </Col>
         <Col span={8}>
           <Card>
-            <Statistic title="Faol xodimlar" value={activeEmployees} styles={{ content: { color: '#3f8600' } }} />
+            <Statistic title="Faol xodimlar" value={activeEmployees} styles={{ content: { color: palette.success } }} />
           </Card>
         </Col>
         <Col span={8}>

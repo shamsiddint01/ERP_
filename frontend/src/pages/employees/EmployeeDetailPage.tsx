@@ -7,6 +7,7 @@ import { getEmployee, getEmployeeActivity, reactivateEmployee, terminateEmployee
 import { PageErrorState } from '../../components/PageErrorState';
 import { useAuthStore } from '../../store/auth.store';
 import type { AttendanceStatus, EmployeeStatus } from '../../types';
+import { palette } from '../../theme';
 
 const STATUS_COLORS: Record<EmployeeStatus, string> = { ACTIVE: 'green', ON_LEAVE: 'gold', SUSPENDED: 'orange', TERMINATED: 'default' };
 const ATTENDANCE_STATUS_COLORS: Record<AttendanceStatus, string> = {
@@ -143,12 +144,12 @@ export function EmployeeDetailPage() {
           </Col>
           <Col span={6}>
             <Card size="small">
-              <Statistic title="Kechikkan kunlar" value={activityQuery.data.attendanceSummary.lateCount} styles={{ content: { color: '#faad14' } }} />
+              <Statistic title="Kechikkan kunlar" value={activityQuery.data.attendanceSummary.lateCount} styles={{ content: { color: palette.warning } }} />
             </Card>
           </Col>
           <Col span={6}>
             <Card size="small">
-              <Statistic title="Kelmagan kunlar" value={activityQuery.data.attendanceSummary.absentCount} styles={{ content: { color: '#f5222d' } }} />
+              <Statistic title="Kelmagan kunlar" value={activityQuery.data.attendanceSummary.absentCount} styles={{ content: { color: palette.error } }} />
             </Card>
           </Col>
           <Col span={6}>

@@ -10,6 +10,7 @@ import { StockActionModal } from '../../components/StockActionModal';
 import { StockStatusBadge } from '../../components/StockStatusBadge';
 import { useAuthStore } from '../../store/auth.store';
 import type { InventoryStockRow, StockMovement, StockTransfer, StockTransferStatus } from '../../types';
+import { palette } from '../../theme';
 
 const MOVEMENT_TYPE_LABELS: Record<string, string> = {
   STOCK_IN: 'Kirim',
@@ -253,12 +254,12 @@ export function InventoryPage() {
         </Col>
         <Col span={6}>
           <Card>
-            <Statistic title="Kam qolgan" value={summaryQuery.data?.lowStockCount ?? 0} styles={{ content: { color: '#faad14' } }} />
+            <Statistic title="Kam qolgan" value={summaryQuery.data?.lowStockCount ?? 0} styles={{ content: { color: palette.warning } }} />
           </Card>
         </Col>
         <Col span={6}>
           <Card>
-            <Statistic title="Tugagan" value={summaryQuery.data?.outOfStockCount ?? 0} styles={{ content: { color: '#f5222d' } }} />
+            <Statistic title="Tugagan" value={summaryQuery.data?.outOfStockCount ?? 0} styles={{ content: { color: palette.error } }} />
           </Card>
         </Col>
       </Row>

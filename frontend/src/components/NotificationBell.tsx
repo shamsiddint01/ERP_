@@ -1,9 +1,10 @@
 import { BellOutlined, CheckOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Badge, Button, Dropdown, Empty, List, Spin, Tag, Typography } from 'antd';
+import { App, Badge, Button, Dropdown, List, Spin, Tag, Typography } from 'antd';
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUnreadCount, listNotifications, markAllNotificationsRead, markNotificationRead } from '../api/notifications';
+import { EmptyState } from './EmptyState';
 import type { NotificationItem, NotificationSeverity } from '../types';
 import { formatRelativeTime } from '../utils/format';
 
@@ -79,7 +80,7 @@ export function NotificationBell() {
             <Spin />
           </div>
         ) : (recentQuery.data?.items.length ?? 0) === 0 ? (
-          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Bildirishnomalar yo'q" style={{ padding: 24 }} />
+          <EmptyState title="Bildirishnomalar yo'q" />
         ) : (
           <List<NotificationItem>
             size="small"

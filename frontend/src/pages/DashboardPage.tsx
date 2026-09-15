@@ -123,7 +123,7 @@ export function DashboardPage() {
   const todayLabel = formatLongDate(new Date());
 
   return (
-    <div>
+    <div className="dashboard-stagger">
       <div
         style={{
           marginBottom: 24,
