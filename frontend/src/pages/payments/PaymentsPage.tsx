@@ -4,6 +4,7 @@ import { App, Button, Input, Popconfirm, Select, Space, Table, Tag, Typography }
 import { useState } from 'react';
 import { listPayments, refundPayment, type PaymentQuery } from '../../api/payments';
 import { AllocatePaymentModal } from '../../components/AllocatePaymentModal';
+import { PageErrorState } from '../../components/PageErrorState';
 import { useAuthStore } from '../../store/auth.store';
 import type { Payment, PaymentMethod, PaymentStatus } from '../../types';
 
@@ -65,6 +66,10 @@ export function PaymentsPage() {
 
   const canRefund = hasPermission('payments', 'APPROVE');
   const canAllocate = hasPermission('tuition', 'EDIT');
+
+  if (paymentsQuery.isError && !paymentsQuery.data) {
+    return <PageErrorState onRetry={() => paymentsQuery.refetch()} />;
+  }
 
   return (
     <div>
@@ -147,7 +152,7 @@ export function PaymentsPage() {
                 )}
                 {canRefund && record.status === 'COMPLETED' && (
                   <Popconfirm title="To'lovni qaytarish?" onConfirm={() => refundMutation.mutate(record.id)}>
-                    <Button size="small" danger icon={<UndoOutlined />}>
+                    <Button loading={refundMutation.isPending} size="small" danger icon={<UndoOutlined />}>
                       Qaytarish
                     </Button>
                   </Popconfirm>

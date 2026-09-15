@@ -5,6 +5,7 @@ import type { Dayjs } from 'dayjs';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { deleteNotification, listNotifications, markAllNotificationsRead, markNotificationRead } from '../api/notifications';
+import { PageErrorState } from '../components/PageErrorState';
 import type { NotificationItem, NotificationSeverity, NotificationType } from '../types';
 import { formatDateTime } from '../utils/format';
 
@@ -67,13 +68,18 @@ export function NotificationsPage() {
     void queryClient.invalidateQueries({ queryKey: ['notifications'] });
   };
 
-  const markOne = useMutation({ mutationFn: markNotificationRead, onSuccess: invalidate });
+  const markOne = useMutation({
+    mutationFn: markNotificationRead,
+    onSuccess: invalidate,
+    onError: () => message.error('Belgilab bo‘lmadi'),
+  });
   const markAll = useMutation({
     mutationFn: markAllNotificationsRead,
     onSuccess: (result) => {
       message.success(`${result.updated} ta bildirishnoma o'qilgan deb belgilandi`);
       invalidate();
     },
+    onError: () => message.error('Belgilab bo‘lmadi'),
   });
   const remove = useMutation({
     mutationFn: deleteNotification,
@@ -81,7 +87,12 @@ export function NotificationsPage() {
       message.success('Bildirishnoma o‘chirildi');
       invalidate();
     },
+    onError: () => message.error('O‘chirib bo‘lmadi'),
   });
+
+  if (notificationsQuery.isError && !notificationsQuery.data) {
+    return <PageErrorState onRetry={() => notificationsQuery.refetch()} />;
+  }
 
   return (
     <div>

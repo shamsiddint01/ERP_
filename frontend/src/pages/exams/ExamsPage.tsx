@@ -6,6 +6,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { getGroup } from '../../api/groups';
 import { listExams } from '../../api/exams';
 import { CreateExamModal } from '../../components/CreateExamModal';
+import { PageErrorState } from '../../components/PageErrorState';
 import { useAuthStore } from '../../store/auth.store';
 import type { Exam, ExamStatus, ExamType } from '../../types';
 
@@ -38,6 +39,10 @@ export function ExamsPage() {
   const groupQuery = useQuery({ queryKey: ['group', groupId], queryFn: () => getGroup(groupId!), enabled: !!groupId });
 
   const canCreate = hasPermission('exams', 'CREATE');
+
+  if (examsQuery.isError && !examsQuery.data) {
+    return <PageErrorState onRetry={() => examsQuery.refetch()} />;
+  }
 
   return (
     <div>

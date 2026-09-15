@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { listBranches } from '../../api/branches';
 import { listStudents } from '../../api/students';
+import { PageErrorState } from '../../components/PageErrorState';
 import { StudentFormModal } from '../../components/StudentFormModal';
 import { useAuthStore } from '../../store/auth.store';
 import type { StudentListItem, StudentStatus } from '../../types';
@@ -34,6 +35,10 @@ export function StudentsPage() {
     queryFn: () => listStudents({ search: search || undefined, status, branchId, page, pageSize: 20 }),
     placeholderData: (prev) => prev,
   });
+
+  if (studentsQuery.isError && !studentsQuery.data) {
+    return <PageErrorState onRetry={() => studentsQuery.refetch()} />;
+  }
 
   return (
     <div>

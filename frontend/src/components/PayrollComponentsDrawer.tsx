@@ -69,7 +69,7 @@ export function PayrollComponentsDrawer({ open, onClose }: PayrollComponentsDraw
             actions={[
               !component.isSystem && (
                 <Popconfirm key="delete" title="O'chirish?" onConfirm={() => deleteMutation.mutate(component.id)}>
-                  <Button danger size="small" icon={<DeleteOutlined />} />
+                  <Button loading={deleteMutation.isPending} danger size="small" icon={<DeleteOutlined />} />
                 </Popconfirm>
               ),
             ]}

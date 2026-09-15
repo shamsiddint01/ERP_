@@ -7,6 +7,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { listEnrollments } from '../../api/enrollments';
 import { getLesson } from '../../api/lessons';
 import { bulkMarkAttendance, listStudentAttendance, type BulkAttendanceEntry } from '../../api/studentAttendance';
+import { PageErrorState } from '../../components/PageErrorState';
 import { ATTENDANCE_STATUS_OPTIONS } from '../../utils/attendanceStatus';
 import type { EnrollmentListItem, StudentAttendanceStatus } from '../../types';
 
@@ -98,6 +99,10 @@ export function LessonAttendancePage() {
         <Spin size="large" />
       </div>
     );
+  }
+
+  if (lessonQuery.isError) {
+    return <PageErrorState onRetry={() => lessonQuery.refetch()} />;
   }
 
   const lesson = lessonQuery.data;

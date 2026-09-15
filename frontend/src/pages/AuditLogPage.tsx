@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Table, Tag, Typography } from 'antd';
 import { useState } from 'react';
 import { listAuditLogs, type AuditLogEntry } from '../api/auditLog';
+import { PageErrorState } from '../components/PageErrorState';
 import { formatDateTime } from '../utils/format';
 
 const ACTION_COLORS: Record<string, string> = {
@@ -20,6 +21,10 @@ export function AuditLogPage() {
   const [page, setPage] = useState(1);
   const pageSize = 25;
   const auditQuery = useQuery({ queryKey: ['audit-logs', page], queryFn: () => listAuditLogs(page, pageSize) });
+
+  if (auditQuery.isError && !auditQuery.data) {
+    return <PageErrorState onRetry={() => auditQuery.refetch()} />;
+  }
 
   return (
     <div>

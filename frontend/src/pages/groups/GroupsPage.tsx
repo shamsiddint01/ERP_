@@ -9,6 +9,7 @@ import { listCourses } from '../../api/courses';
 import { listGroups } from '../../api/groups';
 import { listTeachers } from '../../api/teachers';
 import { GroupFormModal } from '../../components/GroupFormModal';
+import { PageErrorState } from '../../components/PageErrorState';
 import { useAuthStore } from '../../store/auth.store';
 import type { GroupListItem, StudentGroupStatus } from '../../types';
 
@@ -56,6 +57,10 @@ export function GroupsPage() {
       }),
     placeholderData: (prev) => prev,
   });
+
+  if (groupsQuery.isError && !groupsQuery.data) {
+    return <PageErrorState onRetry={() => groupsQuery.refetch()} />;
+  }
 
   return (
     <div>

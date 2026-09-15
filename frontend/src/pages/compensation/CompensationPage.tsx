@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { deleteCompensation, listCompensation } from '../../api/compensation';
 import { listEmployees } from '../../api/employees';
 import { CreateCompensationModal } from '../../components/CreateCompensationModal';
+import { PageErrorState } from '../../components/PageErrorState';
 import { useAuthStore } from '../../store/auth.store';
 import type { EmployeeCompensation, SalaryType } from '../../types';
 
@@ -47,6 +48,10 @@ export function CompensationPage() {
 
   const canCreate = hasPermission('compensation', 'CREATE');
   const canDelete = hasPermission('compensation', 'DELETE');
+
+  if (compensationQuery.isError && !compensationQuery.data) {
+    return <PageErrorState onRetry={() => compensationQuery.refetch()} />;
+  }
 
   return (
     <div>
@@ -101,7 +106,7 @@ export function CompensationPage() {
             render: (_, record) =>
               canDelete && (
                 <Popconfirm title="O'chirish?" onConfirm={() => deleteMutation.mutate(record.id)}>
-                  <Button size="small" danger icon={<DeleteOutlined />} />
+                  <Button loading={deleteMutation.isPending} size="small" danger icon={<DeleteOutlined />} />
                 </Popconfirm>
               ),
           },

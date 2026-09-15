@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { deactivateClassroom, getClassroom } from '../../api/classrooms';
 import { ClassroomFormModal } from '../../components/ClassroomFormModal';
+import { PageErrorState } from '../../components/PageErrorState';
 import { useAuthStore } from '../../store/auth.store';
 import type { ClassroomStatus } from '../../types';
 
@@ -42,6 +43,10 @@ export function ClassroomDetailPage() {
     );
   }
 
+  if (classroomQuery.isError) {
+    return <PageErrorState onRetry={() => classroomQuery.refetch()} />;
+  }
+
   const classroom = classroomQuery.data;
   if (!classroom) return null;
 
@@ -77,7 +82,7 @@ export function ClassroomDetailPage() {
               )}
               {canEdit && classroom.status !== 'INACTIVE' && (
                 <Popconfirm title="Xonani nofaol qilishni tasdiqlaysizmi?" onConfirm={() => deactivateMutation.mutate()}>
-                  <Button danger icon={<StopOutlined />} loading={deactivateMutation.isPending}>
+                  <Button loading={deactivateMutation.isPending} danger icon={<StopOutlined />}>
                     Nofaol qilish
                   </Button>
                 </Popconfirm>

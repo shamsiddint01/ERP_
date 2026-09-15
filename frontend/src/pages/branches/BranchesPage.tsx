@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { listBranches } from '../../api/branches';
 import { BranchFormModal } from '../../components/BranchFormModal';
+import { PageErrorState } from '../../components/PageErrorState';
 import { useAuthStore } from '../../store/auth.store';
 import type { BranchListItem, BranchStatus } from '../../types';
 
@@ -24,6 +25,10 @@ export function BranchesPage() {
     queryFn: () => listBranches({ search: search || undefined, status, page, pageSize: 20 }),
     placeholderData: (prev) => prev,
   });
+
+  if (branchesQuery.isError && !branchesQuery.data) {
+    return <PageErrorState onRetry={() => branchesQuery.refetch()} />;
+  }
 
   return (
     <div>

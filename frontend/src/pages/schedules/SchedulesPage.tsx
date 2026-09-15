@@ -8,6 +8,7 @@ import { listGroups } from '../../api/groups';
 import { cancelSchedule, listSchedules } from '../../api/schedules';
 import { listTeachers } from '../../api/teachers';
 import { GenerateLessonsModal } from '../../components/GenerateLessonsModal';
+import { PageErrorState } from '../../components/PageErrorState';
 import { ScheduleFormModal } from '../../components/ScheduleFormModal';
 import { useAuthStore } from '../../store/auth.store';
 import type { ScheduleDayOfWeek, ScheduleDetail, ScheduleStatus } from '../../types';
@@ -77,6 +78,10 @@ export function SchedulesPage() {
   const canCreate = hasPermission('schedules', 'CREATE');
   const canEdit = hasPermission('schedules', 'EDIT');
   const canDelete = hasPermission('schedules', 'DELETE');
+
+  if (schedulesQuery.isError && !schedulesQuery.data) {
+    return <PageErrorState onRetry={() => schedulesQuery.refetch()} />;
+  }
 
   return (
     <div>

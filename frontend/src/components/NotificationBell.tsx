@@ -1,6 +1,6 @@
 import { BellOutlined, CheckOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Badge, Button, Dropdown, Empty, List, Spin, Tag, Typography } from 'antd';
+import { App, Badge, Button, Dropdown, Empty, List, Spin, Tag, Typography } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { getUnreadCount, listNotifications, markAllNotificationsRead, markNotificationRead } from '../api/notifications';
 import type { NotificationItem, NotificationSeverity } from '../types';
@@ -16,6 +16,7 @@ const SEVERITY_COLOR: Record<NotificationSeverity, string> = {
 export function NotificationBell() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { message } = App.useApp();
 
   const unreadQuery = useQuery({
     queryKey: ['notifications', 'unread-count'],
@@ -33,8 +34,8 @@ export function NotificationBell() {
     void queryClient.invalidateQueries({ queryKey: ['notifications'] });
   };
 
-  const markOne = useMutation({ mutationFn: markNotificationRead, onSuccess: invalidate });
-  const markAll = useMutation({ mutationFn: markAllNotificationsRead, onSuccess: invalidate });
+  const markOne = useMutation({ mutationFn: markNotificationRead, onSuccess: invalidate, onError: () => message.error('Belgilab bo‘lmadi') });
+  const markAll = useMutation({ mutationFn: markAllNotificationsRead, onSuccess: invalidate, onError: () => message.error('Belgilab bo‘lmadi') });
 
   function openNotification(item: NotificationItem) {
     if (!item.isRead) markOne.mutate(item.id);

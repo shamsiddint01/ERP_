@@ -27,6 +27,7 @@ import { CreateTuitionChargeModal } from '../../components/CreateTuitionChargeMo
 import { EnrollmentFormModal } from '../../components/EnrollmentFormModal';
 import { GrantDiscountModal } from '../../components/GrantDiscountModal';
 import { LinkGuardianModal } from '../../components/LinkGuardianModal';
+import { PageErrorState } from '../../components/PageErrorState';
 import { StatusTag } from '../../components/StatusTag';
 import { StudentFormModal } from '../../components/StudentFormModal';
 import { TransferEnrollmentModal } from '../../components/TransferEnrollmentModal';
@@ -192,6 +193,10 @@ export function StudentDetailPage() {
     );
   }
 
+  if (studentQuery.isError) {
+    return <PageErrorState onRetry={() => studentQuery.refetch()} />;
+  }
+
   const student = studentQuery.data;
   if (!student) return null;
 
@@ -302,7 +307,7 @@ export function StudentDetailPage() {
                         }}
                         onCancel={(e) => e?.stopPropagation()}
                       >
-                        <Button size="small" danger onClick={(e) => e.stopPropagation()}>
+                        <Button loading={unlinkMutation.isPending} size="small" danger onClick={(e) => e.stopPropagation()}>
                           Bekor qilish
                         </Button>
                       </Popconfirm>
@@ -466,6 +471,8 @@ export function StudentDetailPage() {
       label: 'Moliya',
       children: financeSummaryQuery.isLoading ? (
         <Spin />
+      ) : financeSummaryQuery.isError ? (
+        <PageErrorState onRetry={() => financeSummaryQuery.refetch()} />
       ) : !financeSummaryQuery.data ? null : (
         <>
           <Row justify="end" style={{ marginBottom: 16 }}>
@@ -601,7 +608,7 @@ export function StudentDetailPage() {
                         render: (_, record) =>
                           canRevokeDiscount && (
                             <Popconfirm title="Chegirmani bekor qilish?" onConfirm={() => revokeDiscountMutation.mutate(record.id)}>
-                              <Button size="small" danger icon={<StopOutlined />} />
+                              <Button loading={revokeDiscountMutation.isPending} size="small" danger icon={<StopOutlined />} />
                             </Popconfirm>
                           ),
                       },
@@ -646,6 +653,8 @@ export function StudentDetailPage() {
       label: "O'zlashtirish",
       children: progressQuery.isLoading ? (
         <Spin />
+      ) : progressQuery.isError ? (
+        <PageErrorState onRetry={() => progressQuery.refetch()} />
       ) : !progressQuery.data ? null : (
         <>
           <Row gutter={16} style={{ marginBottom: 24 }}>
@@ -768,7 +777,7 @@ export function StudentDetailPage() {
               )}
               {canEdit && student.status !== 'INACTIVE' && (
                 <Popconfirm title="O'quvchini nofaol qilishni tasdiqlaysizmi?" onConfirm={() => deactivateMutation.mutate()}>
-                  <Button danger icon={<StopOutlined />} loading={deactivateMutation.isPending}>
+                  <Button loading={deactivateMutation.isPending} danger icon={<StopOutlined />}>
                     Nofaol qilish
                   </Button>
                 </Popconfirm>

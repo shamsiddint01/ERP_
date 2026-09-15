@@ -9,6 +9,7 @@ import { listGroups } from '../../api/groups';
 import { deleteStudentAttendance, downloadAttendanceSummaryCsv, getAttendanceSummary, listStudentAttendance } from '../../api/studentAttendance';
 import { listTeachers } from '../../api/teachers';
 import { EditAttendanceModal } from '../../components/EditAttendanceModal';
+import { PageErrorState } from '../../components/PageErrorState';
 import { useAuthStore } from '../../store/auth.store';
 import { ATTENDANCE_STATUS_COLORS, ATTENDANCE_STATUS_LABELS } from '../../utils/attendanceStatus';
 import type { StudentAttendanceListItem, StudentAttendanceStatus } from '../../types';
@@ -64,6 +65,10 @@ export function StudentAttendanceOverviewPage() {
   const canEdit = hasPermission('student_attendance', 'EDIT');
   const canDelete = hasPermission('student_attendance', 'DELETE');
   const summary = summaryQuery.data;
+
+  if (listQuery.isError && !listQuery.data) {
+    return <PageErrorState onRetry={() => listQuery.refetch()} />;
+  }
 
   return (
     <div>

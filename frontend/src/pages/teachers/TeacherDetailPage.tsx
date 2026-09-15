@@ -8,6 +8,7 @@ import { listPayroll } from '../../api/payroll';
 import { listSchedules } from '../../api/schedules';
 import { getAttendanceSummary } from '../../api/studentAttendance';
 import { deactivateTeacher, getTeacher, getTeacherCompensationPreview } from '../../api/teachers';
+import { PageErrorState } from '../../components/PageErrorState';
 import { StatusTag } from '../../components/StatusTag';
 import { TeacherFormModal } from '../../components/TeacherFormModal';
 import { useAuthStore } from '../../store/auth.store';
@@ -102,6 +103,10 @@ export function TeacherDetailPage() {
         <Spin size="large" />
       </div>
     );
+  }
+
+  if (teacherQuery.isError) {
+    return <PageErrorState onRetry={() => teacherQuery.refetch()} />;
   }
 
   const teacher = teacherQuery.data;
@@ -219,6 +224,8 @@ export function TeacherDetailPage() {
       label: 'Davomat',
       children: attendanceQuery.isLoading ? (
         <Spin />
+      ) : attendanceQuery.isError ? (
+        <PageErrorState onRetry={() => attendanceQuery.refetch()} />
       ) : !attendanceQuery.data ? null : (
         <Row gutter={16}>
           <Col span={4}>
@@ -247,6 +254,8 @@ export function TeacherDetailPage() {
       label: 'Maosh',
       children: compensationQuery.isLoading ? (
         <Spin />
+      ) : compensationQuery.isError ? (
+        <PageErrorState onRetry={() => compensationQuery.refetch()} />
       ) : !compensationQuery.data ? null : (
         <>
           <Descriptions column={{ xs: 1, sm: 2 }} title="Joriy shartnoma" style={{ marginBottom: 16 }}>
@@ -353,7 +362,7 @@ export function TeacherDetailPage() {
               )}
               {canEdit && teacher.status !== 'INACTIVE' && (
                 <Popconfirm title="O'qituvchi profilini nofaol qilishni tasdiqlaysizmi?" onConfirm={() => deactivateMutation.mutate()}>
-                  <Button danger icon={<StopOutlined />} loading={deactivateMutation.isPending}>
+                  <Button loading={deactivateMutation.isPending} danger icon={<StopOutlined />}>
                     Nofaol qilish
                   </Button>
                 </Popconfirm>

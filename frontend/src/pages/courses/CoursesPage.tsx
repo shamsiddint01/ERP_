@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { listCourseCategories } from '../../api/courseCategories';
 import { listCourses } from '../../api/courses';
 import { CourseFormModal } from '../../components/CourseFormModal';
+import { PageErrorState } from '../../components/PageErrorState';
 import { useAuthStore } from '../../store/auth.store';
 import type { CourseLevel, CourseListItem, CourseStatus } from '../../types';
 
@@ -35,6 +36,10 @@ export function CoursesPage() {
     queryFn: () => listCourses({ search: search || undefined, categoryId, status, page, pageSize: 20 }),
     placeholderData: (prev) => prev,
   });
+
+  if (coursesQuery.isError && !coursesQuery.data) {
+    return <PageErrorState onRetry={() => coursesQuery.refetch()} />;
+  }
 
   return (
     <div>

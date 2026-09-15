@@ -111,7 +111,7 @@ export function AccountsPage() {
               record.isActive &&
               !record.isSystemAccount && (
                 <Popconfirm title="Hisobni faolsizlantirish?" onConfirm={() => deactivateMutation.mutate(record.id)}>
-                  <Button size="small" danger icon={<StopOutlined />}>
+                  <Button loading={deactivateMutation.isPending} size="small" danger icon={<StopOutlined />}>
                     Faolsizlantirish
                   </Button>
                 </Popconfirm>

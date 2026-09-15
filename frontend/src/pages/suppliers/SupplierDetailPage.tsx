@@ -160,7 +160,7 @@ export function SupplierDetailPage() {
                         render: (_, record: { product: { id: string } }) =>
                           hasPermission('suppliers', 'EDIT') && (
                             <Popconfirm title="Bog'lanishni o'chirish?" onConfirm={() => unlinkMutation.mutate(record.product.id)}>
-                              <Button size="small" danger>
+                              <Button loading={unlinkMutation.isPending} size="small" danger>
                                 O'chirish
                               </Button>
                             </Popconfirm>

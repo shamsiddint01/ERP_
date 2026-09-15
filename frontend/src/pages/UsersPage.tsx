@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { createUser, deactivateUser, listUsers } from '../api/users';
 import { listRoles } from '../api/roles';
 import { listEmployees } from '../api/employees';
+import { PageErrorState } from '../components/PageErrorState';
 import { useAuthStore } from '../store/auth.store';
 import type { UserListItem } from '../types';
 
@@ -51,6 +52,10 @@ export function UsersPage() {
 
   const canCreate = hasPermission('users', 'CREATE');
   const canDelete = hasPermission('users', 'DELETE');
+
+  if (usersQuery.isError && !usersQuery.data) {
+    return <PageErrorState onRetry={() => usersQuery.refetch()} />;
+  }
 
   return (
     <div>

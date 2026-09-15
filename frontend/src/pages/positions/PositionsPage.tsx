@@ -105,7 +105,7 @@ export function PositionsPage() {
               canEdit &&
               record.status === 'ACTIVE' && (
                 <Popconfirm title="Lavozimni faolsizlantirish?" onConfirm={() => deactivateMutation.mutate(record.id)}>
-                  <Button size="small" danger icon={<StopOutlined />}>
+                  <Button loading={deactivateMutation.isPending} size="small" danger icon={<StopOutlined />}>
                     Faolsizlantirish
                   </Button>
                 </Popconfirm>

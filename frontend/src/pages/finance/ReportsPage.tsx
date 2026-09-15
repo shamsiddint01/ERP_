@@ -13,6 +13,7 @@ import {
   getProfitAndLoss,
   getTrialBalance,
 } from '../../api/reports';
+import { PageErrorState } from '../../components/PageErrorState';
 import { formatNumber } from '../../utils/format';
 
 const { RangePicker } = DatePicker;
@@ -40,6 +41,10 @@ export function ReportsPage() {
     } catch {
       message.error('Eksport qilib bo‘lmadi');
     }
+  }
+
+  if (trialBalanceQuery.isError && !trialBalanceQuery.data) {
+    return <PageErrorState onRetry={() => trialBalanceQuery.refetch()} />;
   }
 
   return (

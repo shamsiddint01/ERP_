@@ -7,6 +7,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { deleteExam, getExam, listExamAssessments, updateExam } from '../../api/exams';
 import { getGroup } from '../../api/groups';
 import { AssessmentModal } from '../../components/AssessmentModal';
+import { PageErrorState } from '../../components/PageErrorState';
 import { useAuthStore } from '../../store/auth.store';
 import type { Assessment, ExamStatus } from '../../types';
 
@@ -75,6 +76,10 @@ export function ExamDetailPage() {
     );
   }
 
+  if (examQuery.isError) {
+    return <PageErrorState onRetry={() => examQuery.refetch()} />;
+  }
+
   const exam = examQuery.data;
   if (!exam) return null;
 
@@ -114,7 +119,7 @@ export function ExamDetailPage() {
               )}
               {canDelete && exam._count.assessments === 0 && (
                 <Popconfirm title="Imtihonni o'chirish?" onConfirm={() => deleteMutation.mutate()}>
-                  <Button danger icon={<StopOutlined />} loading={deleteMutation.isPending}>
+                  <Button loading={deleteMutation.isPending} danger icon={<StopOutlined />}>
                     O'chirish
                   </Button>
                 </Popconfirm>

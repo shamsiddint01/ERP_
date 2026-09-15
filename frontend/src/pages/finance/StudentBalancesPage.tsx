@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { App, Button, Card, Col, Row, Statistic, Table, Typography } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { downloadReportExport, getStudentDebtReport, type StudentDebtRow } from '../../api/reports';
+import { PageErrorState } from '../../components/PageErrorState';
 import { formatCurrency } from '../../utils/format';
 
 export function StudentBalancesPage() {
@@ -16,6 +17,10 @@ export function StudentBalancesPage() {
     } catch {
       message.error("Eksport qilib bo'lmadi");
     }
+  }
+
+  if (debtQuery.isError && !debtQuery.data) {
+    return <PageErrorState onRetry={() => debtQuery.refetch()} />;
   }
 
   return (

@@ -6,6 +6,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { deactivateGuardian, getGuardian } from '../../api/guardians';
 import { removeStudentGuardian } from '../../api/students';
 import { GuardianFormModal } from '../../components/GuardianFormModal';
+import { PageErrorState } from '../../components/PageErrorState';
 import { useAuthStore } from '../../store/auth.store';
 import type { GuardianStatus, StudentStatus } from '../../types';
 
@@ -43,6 +44,10 @@ export function GuardianDetailPage() {
       message.success('Nofaol qilindi');
       invalidate();
     },
+    onError: (error: unknown) => {
+      const detail = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      message.error(detail ?? 'Amalni bajarib bo‘lmadi');
+    },
   });
 
   const unlinkMutation = useMutation({
@@ -52,6 +57,10 @@ export function GuardianDetailPage() {
       invalidate();
       queryClient.invalidateQueries({ queryKey: ['students'] });
     },
+    onError: (error: unknown) => {
+      const detail = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      message.error(detail ?? 'Bog‘lanishni bekor qilib bo‘lmadi');
+    },
   });
 
   if (guardianQuery.isLoading) {
@@ -60,6 +69,10 @@ export function GuardianDetailPage() {
         <Spin size="large" />
       </div>
     );
+  }
+
+  if (guardianQuery.isError) {
+    return <PageErrorState onRetry={() => guardianQuery.refetch()} />;
   }
 
   const guardian = guardianQuery.data;
@@ -91,7 +104,7 @@ export function GuardianDetailPage() {
               )}
               {canEdit && guardian.status !== 'INACTIVE' && (
                 <Popconfirm title="Nofaol qilishni tasdiqlaysizmi?" onConfirm={() => deactivateMutation.mutate()}>
-                  <Button danger icon={<StopOutlined />} loading={deactivateMutation.isPending}>
+                  <Button loading={deactivateMutation.isPending} danger icon={<StopOutlined />}>
                     Nofaol qilish
                   </Button>
                 </Popconfirm>
@@ -142,7 +155,7 @@ export function GuardianDetailPage() {
                       }}
                       onCancel={(e) => e?.stopPropagation()}
                     >
-                      <Button size="small" danger onClick={(e) => e.stopPropagation()}>
+                      <Button loading={unlinkMutation.isPending} size="small" danger onClick={(e) => e.stopPropagation()}>
                         Bekor qilish
                       </Button>
                     </Popconfirm>

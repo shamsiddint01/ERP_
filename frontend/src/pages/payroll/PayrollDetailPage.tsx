@@ -13,6 +13,7 @@ import {
   payPayroll,
   removePayrollLine,
 } from '../../api/payroll';
+import { PageErrorState } from '../../components/PageErrorState';
 import { useAuthStore } from '../../store/auth.store';
 import type { PayrollComponentType, PayrollLineItem, PayrollStatus } from '../../types';
 
@@ -166,6 +167,10 @@ export function PayrollDetailPage() {
     );
   }
 
+  if (payrollQuery.isError) {
+    return <PageErrorState onRetry={() => payrollQuery.refetch()} />;
+  }
+
   const payroll = payrollQuery.data;
   if (!payroll) return null;
 
@@ -209,7 +214,7 @@ export function PayrollDetailPage() {
               )}
               {canApprove && ['DRAFT', 'CALCULATED', 'APPROVED'].includes(payroll.status) && (
                 <Popconfirm title="Bekor qilinsinmi?" onConfirm={() => cancelMutation.mutate(id!)}>
-                  <Button danger icon={<StopOutlined />}>
+                  <Button loading={cancelMutation.isPending} danger icon={<StopOutlined />}>
                     Bekor qilish
                   </Button>
                 </Popconfirm>
@@ -303,7 +308,7 @@ export function PayrollDetailPage() {
                 canModifyLines &&
                 ACTIONABLE_TYPES.includes(record.type as PayrollComponentType) && (
                   <Popconfirm title="O'chirilsinmi?" onConfirm={() => removeLineMutation.mutate(record.id)}>
-                    <Button size="small" danger icon={<DeleteOutlined />} />
+                    <Button loading={removeLineMutation.isPending} size="small" danger icon={<DeleteOutlined />} />
                   </Popconfirm>
                 ),
             },

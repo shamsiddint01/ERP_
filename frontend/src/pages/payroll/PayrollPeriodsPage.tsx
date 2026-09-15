@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { listPayrollPeriods } from '../../api/payroll';
 import { CreatePayrollPeriodModal } from '../../components/CreatePayrollPeriodModal';
+import { PageErrorState } from '../../components/PageErrorState';
 import { PayrollComponentsDrawer } from '../../components/PayrollComponentsDrawer';
 import { useAuthStore } from '../../store/auth.store';
 import type { PayrollPeriod, PayrollPeriodStatus } from '../../types';
@@ -24,6 +25,10 @@ export function PayrollPeriodsPage() {
     queryFn: () => listPayrollPeriods({ page, pageSize: 20 }),
     placeholderData: (prev) => prev,
   });
+
+  if (periodsQuery.isError && !periodsQuery.data) {
+    return <PageErrorState onRetry={() => periodsQuery.refetch()} />;
+  }
 
   return (
     <div>

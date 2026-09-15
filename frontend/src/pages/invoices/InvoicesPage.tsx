@@ -159,7 +159,7 @@ export function InvoicesPage() {
               )}
               {canApprove && invoice.status !== 'VOID' && Number(invoice.amountPaid) === 0 && (
                 <Popconfirm title="Hisob-fakturani bekor qilish?" onConfirm={() => voidMutation.mutate(invoice.id)}>
-                  <Button danger icon={<StopOutlined />}>
+                  <Button loading={voidMutation.isPending} danger icon={<StopOutlined />}>
                     Bekor qilish
                   </Button>
                 </Popconfirm>

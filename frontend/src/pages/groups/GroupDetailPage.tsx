@@ -10,6 +10,7 @@ import { downloadGroupAttendanceCsv, getGroupAttendanceSummary } from '../../api
 import { EnrollmentFormModal } from '../../components/EnrollmentFormModal';
 import { GenerateLessonsModal } from '../../components/GenerateLessonsModal';
 import { GroupFormModal } from '../../components/GroupFormModal';
+import { PageErrorState } from '../../components/PageErrorState';
 import { ScheduleFormModal } from '../../components/ScheduleFormModal';
 import { useAuthStore } from '../../store/auth.store';
 import { formatCurrency, formatDate, formatDateTime, formatNumber } from '../../utils/format';
@@ -122,6 +123,10 @@ export function GroupDetailPage() {
         <Spin size="large" />
       </div>
     );
+  }
+
+  if (groupQuery.isError) {
+    return <PageErrorState onRetry={() => groupQuery.refetch()} />;
   }
 
   const group = groupQuery.data;
@@ -315,6 +320,8 @@ export function GroupDetailPage() {
       label: 'Davomat',
       children: attendanceSummaryQuery.isLoading ? (
         <Spin />
+      ) : attendanceSummaryQuery.isError ? (
+        <PageErrorState onRetry={() => attendanceSummaryQuery.refetch()} />
       ) : !attendanceSummaryQuery.data ? null : (
         <>
           <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
@@ -370,6 +377,8 @@ export function GroupDetailPage() {
       label: 'Akademik natijalar',
       children: resultsQuery.isLoading ? (
         <Spin />
+      ) : resultsQuery.isError ? (
+        <PageErrorState onRetry={() => resultsQuery.refetch()} />
       ) : !resultsQuery.data ? null : resultsQuery.data.exams.length ? (
         <>
           <Row gutter={16} style={{ marginBottom: 16 }}>
@@ -433,7 +442,7 @@ export function GroupDetailPage() {
               )}
               {canEdit && group.status !== 'CANCELLED' && (
                 <Popconfirm title="Guruhni bekor qilishni tasdiqlaysizmi?" onConfirm={() => deactivateMutation.mutate()}>
-                  <Button danger icon={<StopOutlined />} loading={deactivateMutation.isPending}>
+                  <Button loading={deactivateMutation.isPending} danger icon={<StopOutlined />}>
                     Bekor qilish
                   </Button>
                 </Popconfirm>

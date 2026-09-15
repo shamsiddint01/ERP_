@@ -4,6 +4,7 @@ import { App, Button, Card, Col, Row, Select, Space, Statistic, Table, Tabs, Typ
 import { useState } from 'react';
 import { listDepartments } from '../../api/departments';
 import { downloadPayrollReport, getPayrollReport, listPayrollPeriods } from '../../api/payroll';
+import { PageErrorState } from '../../components/PageErrorState';
 import { formatNumber } from '../../utils/format';
 
 const money = (value: number) => formatNumber(value, 2);
@@ -35,6 +36,10 @@ export function PayrollReportsPage() {
   const summary = summaryQuery.data as
     | { employeeCount: number; totalGross: number; totalDeduction: number; totalNet: number; totalOvertime: number; totalBonus: number; totalAllowance: number }
     | undefined;
+
+  if (summaryQuery.isError && !summaryQuery.data) {
+    return <PageErrorState onRetry={() => summaryQuery.refetch()} />;
+  }
 
   return (
     <div>

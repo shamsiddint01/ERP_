@@ -5,6 +5,7 @@ import dayjs from 'dayjs';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { activateEnrollment, cancelEnrollmentAction, completeEnrollment, getEnrollment, pauseEnrollment } from '../../api/enrollments';
+import { PageErrorState } from '../../components/PageErrorState';
 import { TransferEnrollmentModal } from '../../components/TransferEnrollmentModal';
 import { useAuthStore } from '../../store/auth.store';
 import type { EnrollmentStatus } from '../../types';
@@ -80,6 +81,10 @@ export function EnrollmentDetailPage() {
         <Spin size="large" />
       </div>
     );
+  }
+
+  if (enrollmentQuery.isError) {
+    return <PageErrorState onRetry={() => enrollmentQuery.refetch()} />;
   }
 
   const enrollment = enrollmentQuery.data;

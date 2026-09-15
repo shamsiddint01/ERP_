@@ -11,6 +11,7 @@ import { listGroups } from '../../api/groups';
 import { listStudents } from '../../api/students';
 import { listTeachers } from '../../api/teachers';
 import { EnrollmentFormModal } from '../../components/EnrollmentFormModal';
+import { PageErrorState } from '../../components/PageErrorState';
 import { useAuthStore } from '../../store/auth.store';
 import type { EnrollmentListItem, EnrollmentStatus } from '../../types';
 
@@ -58,6 +59,10 @@ export function EnrollmentsPage() {
       listEnrollments({ studentId, groupId, courseId, teacherEmployeeId, branchId, status, dateFrom: dateRange?.[0], dateTo: dateRange?.[1], page, pageSize: 20 }),
     placeholderData: (prev) => prev,
   });
+
+  if (enrollmentsQuery.isError && !enrollmentsQuery.data) {
+    return <PageErrorState onRetry={() => enrollmentsQuery.refetch()} />;
+  }
 
   return (
     <div>

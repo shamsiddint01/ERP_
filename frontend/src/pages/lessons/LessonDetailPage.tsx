@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { cancelLesson, completeLesson, getLesson, noShowLesson, startLesson } from '../../api/lessons';
 import { LessonFormModal } from '../../components/LessonFormModal';
+import { PageErrorState } from '../../components/PageErrorState';
 import { useAuthStore } from '../../store/auth.store';
 import type { LessonStatus, ScheduleDayOfWeek } from '../../types';
 
@@ -86,6 +87,10 @@ export function LessonDetailPage() {
         <Spin size="large" />
       </div>
     );
+  }
+
+  if (lessonQuery.isError) {
+    return <PageErrorState onRetry={() => lessonQuery.refetch()} />;
   }
 
   const lesson = lessonQuery.data;

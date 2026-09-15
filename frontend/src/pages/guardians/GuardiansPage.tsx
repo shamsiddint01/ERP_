@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { listGuardians } from '../../api/guardians';
 import { GuardianFormModal } from '../../components/GuardianFormModal';
+import { PageErrorState } from '../../components/PageErrorState';
 import { useAuthStore } from '../../store/auth.store';
 import type { GuardianListItem, GuardianStatus } from '../../types';
 
@@ -33,6 +34,10 @@ export function GuardiansPage() {
     queryFn: () => listGuardians({ search: search || undefined, status, page, pageSize: 20 }),
     placeholderData: (prev) => prev,
   });
+
+  if (guardiansQuery.isError && !guardiansQuery.data) {
+    return <PageErrorState onRetry={() => guardiansQuery.refetch()} />;
+  }
 
   return (
     <div>

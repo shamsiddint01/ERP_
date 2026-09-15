@@ -6,6 +6,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { deactivateBranch, getBranch } from '../../api/branches';
 import { BranchFormModal } from '../../components/BranchFormModal';
 import { ClassroomFormModal } from '../../components/ClassroomFormModal';
+import { PageErrorState } from '../../components/PageErrorState';
 import { useAuthStore } from '../../store/auth.store';
 import type { BranchStatus, ClassroomStatus } from '../../types';
 
@@ -45,6 +46,10 @@ export function BranchDetailPage() {
     );
   }
 
+  if (branchQuery.isError) {
+    return <PageErrorState onRetry={() => branchQuery.refetch()} />;
+  }
+
   const branch = branchQuery.data;
   if (!branch) return null;
 
@@ -74,7 +79,7 @@ export function BranchDetailPage() {
               )}
               {canEdit && branch.status !== 'INACTIVE' && (
                 <Popconfirm title="Filialni nofaol qilishni tasdiqlaysizmi?" onConfirm={() => deactivateMutation.mutate()}>
-                  <Button danger icon={<StopOutlined />} loading={deactivateMutation.isPending}>
+                  <Button loading={deactivateMutation.isPending} danger icon={<StopOutlined />}>
                     Nofaol qilish
                   </Button>
                 </Popconfirm>

@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { listBranches } from '../../api/branches';
 import { listTeachers } from '../../api/teachers';
+import { PageErrorState } from '../../components/PageErrorState';
 import { TeacherFormModal } from '../../components/TeacherFormModal';
 import { useAuthStore } from '../../store/auth.store';
 import type { TeacherListItem, TeacherProfileStatus } from '../../types';
@@ -29,6 +30,10 @@ export function TeachersPage() {
     queryFn: () => listTeachers({ search: search || undefined, branchId, status, page, pageSize: 20 }),
     placeholderData: (prev) => prev,
   });
+
+  if (teachersQuery.isError && !teachersQuery.data) {
+    return <PageErrorState onRetry={() => teachersQuery.refetch()} />;
+  }
 
   return (
     <div>

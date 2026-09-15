@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { deactivateCourse, getCourse } from '../../api/courses';
 import { CourseFormModal } from '../../components/CourseFormModal';
+import { PageErrorState } from '../../components/PageErrorState';
 import { useAuthStore } from '../../store/auth.store';
 import type { CourseLevel, CourseStatus } from '../../types';
 
@@ -50,6 +51,10 @@ export function CourseDetailPage() {
     );
   }
 
+  if (courseQuery.isError) {
+    return <PageErrorState onRetry={() => courseQuery.refetch()} />;
+  }
+
   const course = courseQuery.data;
   if (!course) return null;
 
@@ -79,7 +84,7 @@ export function CourseDetailPage() {
               )}
               {canEdit && course.status !== 'INACTIVE' && (
                 <Popconfirm title="Kursni nofaol qilishni tasdiqlaysizmi?" onConfirm={() => deactivateMutation.mutate()}>
-                  <Button danger icon={<StopOutlined />} loading={deactivateMutation.isPending}>
+                  <Button loading={deactivateMutation.isPending} danger icon={<StopOutlined />}>
                     Nofaol qilish
                   </Button>
                 </Popconfirm>

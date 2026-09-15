@@ -1,8 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
-import { Alert, Card, Col, Empty, Row, Skeleton, Statistic, Table, Tag, Typography } from 'antd';
+import { Card, Col, Empty, Row, Skeleton, Statistic, Table, Tag, Typography } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { getDashboardCharts, getDashboardOverview, getDashboardToday } from '../api/dashboard';
+import { PageErrorState } from '../components/PageErrorState';
 import { useAuthStore } from '../store/auth.store';
 import { formatNumber } from '../utils/format';
 
@@ -54,7 +55,7 @@ export function DashboardPage() {
   const today = todayQuery.data;
 
   if (overviewQuery.isError) {
-    return <Alert type="error" showIcon title="Dashboard yuklanmadi" description="Iltimos, sahifani qayta yuklang yoki birozdan so'ng urinib ko'ring." />;
+    return <PageErrorState onRetry={() => overviewQuery.refetch()} title="Dashboard yuklanmadi" />;
   }
 
   return (

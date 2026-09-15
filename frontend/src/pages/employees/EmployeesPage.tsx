@@ -7,6 +7,7 @@ import { listDepartments } from '../../api/departments';
 import { getEmployeesOverview, listEmployees, reactivateEmployee, terminateEmployee } from '../../api/employees';
 import { listPositions } from '../../api/positions';
 import { CreateEmployeeModal } from '../../components/CreateEmployeeModal';
+import { PageErrorState } from '../../components/PageErrorState';
 import { useAuthStore } from '../../store/auth.store';
 import type { EmployeeListItem, EmployeeStatus } from '../../types';
 
@@ -61,6 +62,10 @@ export function EmployeesPage() {
   });
 
   const canDelete = hasPermission('employees', 'DELETE');
+
+  if (employeesQuery.isError && !employeesQuery.data) {
+    return <PageErrorState onRetry={() => employeesQuery.refetch()} />;
+  }
 
   return (
     <div>
@@ -189,7 +194,7 @@ export function EmployeesPage() {
                   }}
                   onCancel={(e) => e?.stopPropagation()}
                 >
-                  <Button size="small" danger icon={<StopOutlined />} onClick={(e) => e.stopPropagation()}>
+                  <Button loading={terminateMutation.isPending} size="small" danger icon={<StopOutlined />} onClick={(e) => e.stopPropagation()}>
                     Ishdan bo'shatish
                   </Button>
                 </Popconfirm>

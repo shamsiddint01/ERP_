@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { App, Button, Card, Col, Descriptions, Empty, Popconfirm, Row, Spin, Statistic, Table, Tabs, Tag, Typography } from 'antd';
 import { useNavigate, useParams } from 'react-router-dom';
 import { getEmployee, getEmployeeActivity, reactivateEmployee, terminateEmployee } from '../../api/employees';
+import { PageErrorState } from '../../components/PageErrorState';
 import { useAuthStore } from '../../store/auth.store';
 import type { AttendanceStatus, EmployeeStatus } from '../../types';
 
@@ -60,6 +61,10 @@ export function EmployeeDetailPage() {
     );
   }
 
+  if (employeeQuery.isError) {
+    return <PageErrorState onRetry={() => employeeQuery.refetch()} />;
+  }
+
   const employee = employeeQuery.data;
   if (!employee) return null;
 
@@ -92,7 +97,7 @@ export function EmployeeDetailPage() {
                 </Button>
               ) : (
                 <Popconfirm title="Xodimni ishdan bo'shatish?" onConfirm={() => terminateMutation.mutate()}>
-                  <Button danger icon={<StopOutlined />} loading={terminateMutation.isPending}>
+                  <Button loading={terminateMutation.isPending} danger icon={<StopOutlined />}>
                     Ishdan bo'shatish
                   </Button>
                 </Popconfirm>

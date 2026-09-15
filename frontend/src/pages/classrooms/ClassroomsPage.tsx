@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { listBranches } from '../../api/branches';
 import { listClassrooms } from '../../api/classrooms';
 import { ClassroomFormModal } from '../../components/ClassroomFormModal';
+import { PageErrorState } from '../../components/PageErrorState';
 import { useAuthStore } from '../../store/auth.store';
 import type { ClassroomListItem, ClassroomStatus } from '../../types';
 
@@ -28,6 +29,10 @@ export function ClassroomsPage() {
     queryFn: () => listClassrooms({ search: search || undefined, branchId, status, page, pageSize: 20 }),
     placeholderData: (prev) => prev,
   });
+
+  if (classroomsQuery.isError && !classroomsQuery.data) {
+    return <PageErrorState onRetry={() => classroomsQuery.refetch()} />;
+  }
 
   return (
     <div>

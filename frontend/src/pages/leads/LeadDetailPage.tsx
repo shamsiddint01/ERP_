@@ -6,6 +6,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { addLeadActivity, changeLeadStatus, deleteLead, getLead, type CreateLeadActivityPayload } from '../../api/leads';
 import { ConvertLeadModal } from '../../components/ConvertLeadModal';
 import { LeadFormModal } from '../../components/LeadFormModal';
+import { PageErrorState } from '../../components/PageErrorState';
 import { useAuthStore } from '../../store/auth.store';
 import type { LeadActivityType, LeadStatus } from '../../types';
 
@@ -112,6 +113,10 @@ export function LeadDetailPage() {
     );
   }
 
+  if (leadQuery.isError) {
+    return <PageErrorState onRetry={() => leadQuery.refetch()} />;
+  }
+
   const lead = leadQuery.data;
   if (!lead) return null;
 
@@ -145,7 +150,7 @@ export function LeadDetailPage() {
               )}
               {canDelete && !isConverted && (
                 <Popconfirm title="Lidni o'chirishni tasdiqlaysizmi?" onConfirm={() => deleteMutation.mutate()}>
-                  <Button danger icon={<DeleteOutlined />} loading={deleteMutation.isPending}>
+                  <Button loading={deleteMutation.isPending} danger icon={<DeleteOutlined />}>
                     O'chirish
                   </Button>
                 </Popconfirm>

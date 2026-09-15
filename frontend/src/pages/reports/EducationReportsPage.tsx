@@ -18,6 +18,7 @@ import {
   type EducationReportQuery,
 } from '../../api/educationReports';
 import { listBranches } from '../../api/branches';
+import { PageErrorState } from '../../components/PageErrorState';
 import { listCourses } from '../../api/courses';
 import { listGroups } from '../../api/groups';
 import { listStudents } from '../../api/students';
@@ -753,6 +754,10 @@ export function EducationReportsPage() {
       ),
     },
   ].filter((tab): tab is Exclude<typeof tab, false> => Boolean(tab));
+
+  if (studentsQuery.isError && !studentsQuery.data) {
+    return <PageErrorState onRetry={() => studentsQuery.refetch()} />;
+  }
 
   return (
     <div>

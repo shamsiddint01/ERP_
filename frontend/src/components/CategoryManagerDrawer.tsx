@@ -61,7 +61,7 @@ export function CategoryManagerDrawer({ open, onClose }: CategoryManagerDrawerPr
                 description="Rostdan ham o'chirmoqchimisiz?"
                 onConfirm={() => deleteMutation.mutate(category.id)}
               >
-                <Button danger size="small" icon={<DeleteOutlined />} />
+                <Button loading={deleteMutation.isPending} danger size="small" icon={<DeleteOutlined />} />
               </Popconfirm>,
             ]}
           >

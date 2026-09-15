@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { App, Button, Checkbox, Drawer, Form, Input, Modal, Space, Table, Tag, Typography } from 'antd';
 import { useEffect, useState } from 'react';
 import { createRole, getPermissionCatalog, getRole, listRoles, updateRolePermissions } from '../api/roles';
+import { PageErrorState } from '../components/PageErrorState';
 import { useAuthStore } from '../store/auth.store';
 import type { PermissionActionValue, RoleListItem } from '../types';
 
@@ -39,6 +40,10 @@ export function RolesPage() {
       setCreateOpen(false);
       createForm.resetFields();
     },
+    onError: (error: unknown) => {
+      const detail = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      message.error(detail ?? 'Rol yaratib bo‘lmadi');
+    },
   });
 
   const savePermissionsMutation = useMutation({
@@ -55,6 +60,10 @@ export function RolesPage() {
       queryClient.invalidateQueries({ queryKey: ['roles'] });
       setEditingRoleId(null);
     },
+    onError: (error: unknown) => {
+      const detail = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
+      message.error(detail ?? 'Ruxsatlarni saqlab bo‘lmadi');
+    },
   });
 
   const canEdit = hasPermission('roles', 'EDIT');
@@ -68,6 +77,10 @@ export function RolesPage() {
       else next.add(key);
       return next;
     });
+  }
+
+  if (rolesQuery.isError && !rolesQuery.data) {
+    return <PageErrorState onRetry={() => rolesQuery.refetch()} />;
   }
 
   return (

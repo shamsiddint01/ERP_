@@ -5,6 +5,7 @@ import dayjs from 'dayjs';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { cancelTuitionCharge, getTuitionCharge, updateTuitionCharge } from '../../api/tuition';
+import { PageErrorState } from '../../components/PageErrorState';
 import { RecordTuitionPaymentModal } from '../../components/RecordTuitionPaymentModal';
 import { useAuthStore } from '../../store/auth.store';
 import type { TuitionChargeStatus } from '../../types';
@@ -72,6 +73,10 @@ export function TuitionDetailPage() {
     );
   }
 
+  if (chargeQuery.isError) {
+    return <PageErrorState onRetry={() => chargeQuery.refetch()} />;
+  }
+
   const charge = chargeQuery.data;
   if (!charge) return null;
 
@@ -118,7 +123,7 @@ export function TuitionDetailPage() {
               )}
               {canCancel && charge.status !== 'CANCELLED' && charge.allocations.length === 0 && (
                 <Popconfirm title="Ushbu hisobni bekor qilishni tasdiqlaysizmi?" onConfirm={() => cancelMutation.mutate()}>
-                  <Button danger icon={<StopOutlined />} loading={cancelMutation.isPending}>
+                  <Button loading={cancelMutation.isPending} danger icon={<StopOutlined />}>
                     Bekor qilish
                   </Button>
                 </Popconfirm>

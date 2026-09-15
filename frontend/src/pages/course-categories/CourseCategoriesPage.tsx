@@ -118,7 +118,7 @@ export function CourseCategoriesPage() {
                 )}
                 {canDelete && record.status === 'ACTIVE' && (
                   <Popconfirm title="Kategoriyani nofaol qilish?" onConfirm={() => deactivateMutation.mutate(record.id)}>
-                    <Button size="small" danger icon={<StopOutlined />}>
+                    <Button loading={deactivateMutation.isPending} size="small" danger icon={<StopOutlined />}>
                       Nofaol qilish
                     </Button>
                   </Popconfirm>

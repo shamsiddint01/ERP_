@@ -102,7 +102,7 @@ export function DepartmentsPage() {
                   }}
                   onCancel={(e) => e?.stopPropagation()}
                 >
-                  <Button size="small" danger icon={<StopOutlined />} onClick={(e) => e.stopPropagation()}>
+                  <Button size="small" danger icon={<StopOutlined />} loading={deactivateMutation.isPending} onClick={(e) => e.stopPropagation()}>
                     Faolsizlantirish
                   </Button>
                 </Popconfirm>

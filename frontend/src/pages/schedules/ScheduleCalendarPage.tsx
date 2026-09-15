@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { listBranches } from '../../api/branches';
 import { listLessons } from '../../api/lessons';
 import { listSchedules } from '../../api/schedules';
+import { PageErrorState } from '../../components/PageErrorState';
 import { useAuthStore } from '../../store/auth.store';
 import type { LessonStatus, ScheduleDayOfWeek, ScheduleListItem } from '../../types';
 
@@ -98,7 +99,11 @@ export function ScheduleCalendarPage() {
         </Space>
       </Space>
 
-      {view === 'week' ? (
+      {view === 'week' && schedulesQuery.isError ? (
+        <PageErrorState onRetry={() => schedulesQuery.refetch()} />
+      ) : view === 'day' && lessonsQuery.isError ? (
+        <PageErrorState onRetry={() => lessonsQuery.refetch()} />
+      ) : view === 'week' ? (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(160px, 1fr))', gap: 12, overflowX: 'auto' }}>
           {DAYS.map((day) => (
             <Card key={day} title={DAY_LABELS[day]} size="small" loading={schedulesQuery.isLoading}>

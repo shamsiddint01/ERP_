@@ -212,12 +212,12 @@ function TransfersTab() {
               hasPermission('inventory', 'APPROVE') && (
                 <Space>
                   <Popconfirm title="Transferni bajarish?" onConfirm={() => completeMutation.mutate(record.id)}>
-                    <Button size="small" type="primary">
+                    <Button loading={completeMutation.isPending} size="small" type="primary">
                       Bajarish
                     </Button>
                   </Popconfirm>
                   <Popconfirm title="Transferni bekor qilish?" onConfirm={() => cancelMutation.mutate(record.id)}>
-                    <Button size="small" danger>
+                    <Button loading={cancelMutation.isPending} size="small" danger>
                       Bekor qilish
                     </Button>
                   </Popconfirm>

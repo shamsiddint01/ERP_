@@ -7,6 +7,7 @@ import { listBranches } from '../../api/branches';
 import { listCourses } from '../../api/courses';
 import { listLeads } from '../../api/leads';
 import { LeadFormModal } from '../../components/LeadFormModal';
+import { PageErrorState } from '../../components/PageErrorState';
 import { useAuthStore } from '../../store/auth.store';
 import type { LeadListItem, LeadStatus } from '../../types';
 
@@ -46,6 +47,10 @@ export function LeadsPage() {
     queryFn: () => listLeads({ search: search || undefined, status, preferredCourseId, preferredBranchId, page, pageSize: 20 }),
     placeholderData: (prev) => prev,
   });
+
+  if (leadsQuery.isError && !leadsQuery.data) {
+    return <PageErrorState onRetry={() => leadsQuery.refetch()} />;
+  }
 
   return (
     <div>

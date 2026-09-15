@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { listTuitionCharges } from '../../api/tuition';
 import { CreateTuitionChargeModal } from '../../components/CreateTuitionChargeModal';
+import { PageErrorState } from '../../components/PageErrorState';
 import { useAuthStore } from '../../store/auth.store';
 import type { TuitionCharge, TuitionChargeStatus } from '../../types';
 
@@ -38,6 +39,10 @@ export function TuitionPage() {
   });
 
   const canCreate = hasPermission('tuition', 'CREATE');
+
+  if (chargesQuery.isError && !chargesQuery.data) {
+    return <PageErrorState onRetry={() => chargesQuery.refetch()} />;
+  }
 
   return (
     <div>

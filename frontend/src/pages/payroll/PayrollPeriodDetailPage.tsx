@@ -14,6 +14,7 @@ import {
   listPayroll,
   payPayroll,
 } from '../../api/payroll';
+import { PageErrorState } from '../../components/PageErrorState';
 import { useAuthStore } from '../../store/auth.store';
 import type { PayrollListItem, PayrollStatus } from '../../types';
 
@@ -131,6 +132,10 @@ export function PayrollPeriodDetailPage() {
   const canEdit = hasPermission('payroll', 'EDIT');
   const canApprove = hasPermission('payroll', 'APPROVE');
 
+  if (periodQuery.isError) {
+    return <PageErrorState onRetry={() => periodQuery.refetch()} />;
+  }
+
   return (
     <div>
       <Button icon={<ArrowLeftOutlined />} type="text" onClick={() => navigate('/payroll')} style={{ marginBottom: 8 }}>
@@ -214,7 +219,7 @@ export function PayrollPeriodDetailPage() {
                 )}
                 {canApprove && ['DRAFT', 'CALCULATED', 'APPROVED'].includes(record.status) && (
                   <Popconfirm title="Bekor qilinsinmi?" onConfirm={() => cancelMutation.mutate(record.id)}>
-                    <Button size="small" danger icon={<StopOutlined />}>
+                    <Button loading={cancelMutation.isPending} size="small" danger icon={<StopOutlined />}>
                       Bekor qilish
                     </Button>
                   </Popconfirm>

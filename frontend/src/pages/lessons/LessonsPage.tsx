@@ -9,6 +9,7 @@ import { listGroups } from '../../api/groups';
 import { listLessons } from '../../api/lessons';
 import { listTeachers } from '../../api/teachers';
 import { LessonFormModal } from '../../components/LessonFormModal';
+import { PageErrorState } from '../../components/PageErrorState';
 import { useAuthStore } from '../../store/auth.store';
 import type { LessonListItem, LessonStatus } from '../../types';
 
@@ -58,6 +59,10 @@ export function LessonsPage() {
   });
 
   const canCreate = hasPermission('lessons', 'CREATE');
+
+  if (lessonsQuery.isError && !lessonsQuery.data) {
+    return <PageErrorState onRetry={() => lessonsQuery.refetch()} />;
+  }
 
   return (
     <div>

@@ -123,7 +123,7 @@ export function DiscountsPage() {
                   />
                   {canDeactivate && record.isActive && (
                     <Popconfirm title="Chegirmani nofaol qilish?" onConfirm={() => deactivateMutation.mutate(record.id)}>
-                      <Button size="small" danger icon={<StopOutlined />} />
+                      <Button loading={deactivateMutation.isPending} size="small" danger icon={<StopOutlined />} />
                     </Popconfirm>
                   )}
                 </Space>

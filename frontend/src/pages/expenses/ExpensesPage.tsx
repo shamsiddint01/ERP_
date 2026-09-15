@@ -134,7 +134,7 @@ export function ExpensesPage() {
                       Tasdiqlash
                     </Button>
                     <Popconfirm title="Xarajatni rad etish?" onConfirm={() => rejectMutation.mutate(record.id)}>
-                      <Button size="small" danger icon={<CloseOutlined />}>
+                      <Button loading={rejectMutation.isPending} size="small" danger icon={<CloseOutlined />}>
                         Rad etish
                       </Button>
                     </Popconfirm>
@@ -142,14 +142,14 @@ export function ExpensesPage() {
                 )}
                 {canApprove && record.status === 'APPROVED' && (
                   <Popconfirm title="To'lovni amalga oshirish?" onConfirm={() => payMutation.mutate(record.id)}>
-                    <Button size="small" type="primary" icon={<DollarOutlined />} loading={payMutation.isPending}>
+                    <Button loading={payMutation.isPending} size="small" type="primary" icon={<DollarOutlined />}>
                       To'lash
                     </Button>
                   </Popconfirm>
                 )}
                 {canEdit && ['DRAFT', 'PENDING', 'APPROVED'].includes(record.status) && (
                   <Popconfirm title="Xarajatni bekor qilish?" onConfirm={() => cancelMutation.mutate(record.id)}>
-                    <Button size="small" icon={<StopOutlined />}>
+                    <Button loading={cancelMutation.isPending} size="small" icon={<StopOutlined />}>
                       Bekor qilish
                     </Button>
                   </Popconfirm>
