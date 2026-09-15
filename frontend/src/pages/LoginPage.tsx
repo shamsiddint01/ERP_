@@ -1,8 +1,9 @@
-import { LockOutlined, UserOutlined } from '@ant-design/icons';
+import { LockOutlined, ReadOutlined, UserOutlined } from '@ant-design/icons';
 import { Alert, Button, Card, Form, Input, Typography } from 'antd';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchCurrentUser, login } from '../api/auth';
+import { palette } from '../theme';
 import { useAuthStore } from '../store/auth.store';
 
 interface LoginFormValues {
@@ -33,8 +34,24 @@ export function LoginPage() {
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', background: '#f0f2f5' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', background: palette.layoutBg }}>
       <Card style={{ width: 380 }}>
+        <div
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: 10,
+            background: palette.primary,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: 20,
+            color: '#fff',
+            margin: '0 auto 16px',
+          }}
+        >
+          <ReadOutlined />
+        </div>
         <Typography.Title level={3} style={{ textAlign: 'center', marginBottom: 24 }}>
           Ta'lim Markazi tizimiga kirish
         </Typography.Title>
