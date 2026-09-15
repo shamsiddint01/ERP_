@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { getGroup, listGroups } from '../api/groups';
 import { createEnrollment, type CreateEnrollmentPayload } from '../api/enrollments';
 import { listStudents } from '../api/students';
+import { FormSection } from './FormSection';
 
 interface EnrollmentFormModalProps {
   open: boolean;
@@ -96,28 +97,30 @@ export function EnrollmentFormModal({ open, onClose, defaultGroupId, defaultStud
       width={600}
     >
       <Form form={form} layout="vertical" onFinish={(values) => mutation.mutate(values)}>
-        <Form.Item name="studentId" label="O'quvchi" rules={[{ required: true, message: "O'quvchini tanlang" }]}>
-          <Select
-            showSearch
-            disabled={!!defaultStudentId}
-            loading={studentsQuery.isLoading}
-            filterOption={false}
-            onSearch={setStudentSearch}
-            options={studentsQuery.data?.items.map((s) => ({ value: s.id, label: `${s.fullName} (${s.studentCode})` }))}
-            placeholder="Ism yoki kod bo'yicha qidiring"
-          />
-        </Form.Item>
-        <Form.Item name="groupId" label="Guruh" rules={[{ required: true, message: 'Guruhni tanlang' }]}>
-          <Select
-            showSearch
-            disabled={!!defaultGroupId}
-            loading={groupsQuery.isLoading}
-            filterOption={false}
-            onSearch={setGroupSearch}
-            options={groupsQuery.data?.items.map((g) => ({ value: g.id, label: `${g.name} (${g.code})` }))}
-            placeholder="Nomi yoki kodi bo'yicha qidiring"
-          />
-        </Form.Item>
+        <FormSection title="Yozilish">
+          <Form.Item name="studentId" label="O'quvchi" rules={[{ required: true, message: "O'quvchini tanlang" }]}>
+            <Select
+              showSearch
+              disabled={!!defaultStudentId}
+              loading={studentsQuery.isLoading}
+              filterOption={false}
+              onSearch={setStudentSearch}
+              options={studentsQuery.data?.items.map((s) => ({ value: s.id, label: `${s.fullName} (${s.studentCode})` }))}
+              placeholder="Ism yoki kod bo'yicha qidiring"
+            />
+          </Form.Item>
+          <Form.Item name="groupId" label="Guruh" rules={[{ required: true, message: 'Guruhni tanlang' }]} style={{ marginBottom: 0 }}>
+            <Select
+              showSearch
+              disabled={!!defaultGroupId}
+              loading={groupsQuery.isLoading}
+              filterOption={false}
+              onSearch={setGroupSearch}
+              options={groupsQuery.data?.items.map((g) => ({ value: g.id, label: `${g.name} (${g.code})` }))}
+              placeholder="Nomi yoki kodi bo'yicha qidiring"
+            />
+          </Form.Item>
+        </FormSection>
 
         {groupInfo && (
           <Card size="small" style={{ marginBottom: 16 }} loading={selectedGroupQuery.isLoading}>
@@ -137,21 +140,23 @@ export function EnrollmentFormModal({ open, onClose, defaultGroupId, defaultStud
           </Card>
         )}
 
-        <Form.Item name="startDate" label="Boshlanish sanasi (ixtiyoriy — bugungi sana olinadi)">
-          <DatePicker style={{ width: '100%' }} />
-        </Form.Item>
-        <Form.Item name="endDate" label="Tugash sanasi">
-          <DatePicker style={{ width: '100%' }} />
-        </Form.Item>
-        <Form.Item name="agreedTuition" label="Kelishilgan to'lov (bo'sh qoldirilsa guruh narxi olinadi)">
-          <InputNumber min={0} style={{ width: '100%' }} />
-        </Form.Item>
-        <Form.Item name="discountAmount" label="Chegirma">
-          <InputNumber min={0} style={{ width: '100%' }} />
-        </Form.Item>
-        <Form.Item name="notes" label="Izoh">
-          <Input.TextArea />
-        </Form.Item>
+        <FormSection title="Shartlar">
+          <Form.Item name="startDate" label="Boshlanish sanasi (ixtiyoriy — bugungi sana olinadi)">
+            <DatePicker style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="endDate" label="Tugash sanasi">
+            <DatePicker style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="agreedTuition" label="Kelishilgan to'lov (bo'sh qoldirilsa guruh narxi olinadi)">
+            <InputNumber min={0} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="discountAmount" label="Chegirma">
+            <InputNumber min={0} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="notes" label="Izoh" style={{ marginBottom: 0 }}>
+            <Input.TextArea />
+          </Form.Item>
+        </FormSection>
       </Form>
     </Modal>
   );

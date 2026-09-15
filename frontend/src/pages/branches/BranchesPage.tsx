@@ -1,11 +1,13 @@
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Input, Select, Space, Table, Tag, Typography } from 'antd';
+import { Button, Input, Select, Table, Tag } from 'antd';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { listBranches } from '../../api/branches';
 import { BranchFormModal } from '../../components/BranchFormModal';
+import { FilterBar } from '../../components/FilterBar';
 import { PageErrorState } from '../../components/PageErrorState';
+import { PageHeader } from '../../components/PageHeader';
 import { useAuthStore } from '../../store/auth.store';
 import type { BranchListItem, BranchStatus } from '../../types';
 
@@ -32,18 +34,18 @@ export function BranchesPage() {
 
   return (
     <div>
-      <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
-        <Typography.Title level={4} style={{ margin: 0 }}>
-          Filiallar
-        </Typography.Title>
-        {hasPermission('branches', 'CREATE') && (
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
-            Yangi filial
-          </Button>
-        )}
-      </Space>
+      <PageHeader
+        title="Filiallar"
+        extra={
+          hasPermission('branches', 'CREATE') && (
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
+              Yangi filial
+            </Button>
+          )
+        }
+      />
 
-      <Space style={{ marginBottom: 16 }} wrap>
+      <FilterBar>
         <Input
           placeholder="Qidirish: nomi, kodi, manzil, telefon"
           prefix={<SearchOutlined />}
@@ -64,7 +66,7 @@ export function BranchesPage() {
             setPage(1);
           }}
         />
-      </Space>
+      </FilterBar>
 
       <Table<BranchListItem>
         rowKey="id"

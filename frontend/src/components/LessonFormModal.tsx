@@ -8,6 +8,7 @@ import { listGroups } from '../api/groups';
 import { createLesson, updateLesson, type CreateLessonPayload } from '../api/lessons';
 import { listSchedules } from '../api/schedules';
 import { listTeachers } from '../api/teachers';
+import { FormSection } from './FormSection';
 import type { LessonDetail, ScheduleDayOfWeek } from '../types';
 
 const DAY_LABELS: Record<ScheduleDayOfWeek, string> = {
@@ -137,82 +138,91 @@ export function LessonFormModal({ open, onClose, lesson, defaultGroupId }: Lesso
       width={640}
     >
       <Form form={form} layout="vertical" onFinish={(values) => mutation.mutate(values)}>
-        <Form.Item name="groupId" label="Guruh" rules={[{ required: true }]}>
-          <Select
-            disabled={groupLocked}
-            showSearch
-            loading={groupsQuery.isLoading}
-            filterOption={(input, option) => ((option?.label as string) ?? '').toLowerCase().includes(input.toLowerCase())}
-            options={groupsQuery.data?.items.map((g) => ({ value: g.id, label: `${g.name} (${g.code})` }))}
-            onChange={(value) => {
-              const group = groupsQuery.data?.items.find((g) => g.id === value);
-              form.setFieldValue('branchId', group?.branchId);
-              form.setFieldValue('classroomId', undefined);
-              form.setFieldValue('scheduleId', undefined);
-            }}
-          />
-        </Form.Item>
-        <Form.Item name="branchId" label="Filial" tooltip="Guruhning o'z filialidan olinadi" rules={[{ required: true }]}>
-          <Select disabled loading={branchesQuery.isLoading} options={branchesQuery.data?.items.map((b) => ({ value: b.id, label: b.name }))} />
-        </Form.Item>
-        {!isEdit && (
-          <Form.Item name="scheduleId" label="Bog'liq dars jadvali (ixtiyoriy)">
+        <FormSection title="Guruh va joylashuv">
+          <Form.Item name="groupId" label="Guruh" rules={[{ required: true }]}>
             <Select
-              allowClear
-              disabled={!groupId}
-              loading={schedulesQuery.isLoading}
-              options={schedulesQuery.data?.items.map((s) => ({ value: s.id, label: `${DAY_LABELS[s.dayOfWeek]} ${s.startTime}-${s.endTime}` }))}
-              placeholder="Mustaqil (jadvalga bog'liq bo'lmagan) dars"
+              disabled={groupLocked}
+              showSearch
+              loading={groupsQuery.isLoading}
+              filterOption={(input, option) => ((option?.label as string) ?? '').toLowerCase().includes(input.toLowerCase())}
+              options={groupsQuery.data?.items.map((g) => ({ value: g.id, label: `${g.name} (${g.code})` }))}
+              onChange={(value) => {
+                const group = groupsQuery.data?.items.find((g) => g.id === value);
+                form.setFieldValue('branchId', group?.branchId);
+                form.setFieldValue('classroomId', undefined);
+                form.setFieldValue('scheduleId', undefined);
+              }}
             />
           </Form.Item>
-        )}
-        <Form.Item name="teacherEmployeeId" label="O'qituvchi">
-          <Select
-            allowClear
-            showSearch
-            disabled={schedulingLocked}
-            loading={teachersQuery.isLoading}
-            filterOption={(input, option) => ((option?.label as string) ?? '').toLowerCase().includes(input.toLowerCase())}
-            options={teachersQuery.data?.items.map((t) => ({ value: t.employeeId, label: t.employee.fullName }))}
-          />
-        </Form.Item>
-        <Form.Item name="classroomId" label="Xona">
-          <Select
-            allowClear
-            disabled={schedulingLocked || !branchId}
-            loading={classroomsQuery.isLoading}
-            options={classroomsQuery.data?.items.map((c) => ({ value: c.id, label: `${c.name} (${c.roomNumber})` }))}
-          />
-        </Form.Item>
-        <Form.Item name="scheduledStart" label="Boshlanish vaqti" rules={[{ required: true }]}>
-          <DatePicker showTime format="YYYY-MM-DD HH:mm" style={{ width: '100%' }} disabled={schedulingLocked} />
-        </Form.Item>
-        <Form.Item
-          name="scheduledEnd"
-          label="Tugash vaqti"
-          dependencies={['scheduledStart']}
-          rules={[
-            { required: true },
-            ({ getFieldValue }) => ({
-              validator(_, value: dayjs.Dayjs | undefined) {
-                const start = getFieldValue('scheduledStart') as dayjs.Dayjs | undefined;
-                if (!value || !start || value.isAfter(start)) return Promise.resolve();
-                return Promise.reject(new Error('Tugash vaqti boshlanish vaqtidan keyin bo\'lishi kerak'));
-              },
-            }),
-          ]}
-        >
-          <DatePicker showTime format="YYYY-MM-DD HH:mm" style={{ width: '100%' }} disabled={schedulingLocked} />
-        </Form.Item>
-        <Form.Item name="topic" label="Mavzu">
-          <Input placeholder="Masalan: Present Simple" />
-        </Form.Item>
-        <Form.Item name="homework" label="Uy vazifasi">
-          <Input.TextArea />
-        </Form.Item>
-        <Form.Item name="notes" label="Izoh">
-          <Input.TextArea />
-        </Form.Item>
+          <Form.Item name="branchId" label="Filial" tooltip="Guruhning o'z filialidan olinadi" rules={[{ required: true }]}>
+            <Select disabled loading={branchesQuery.isLoading} options={branchesQuery.data?.items.map((b) => ({ value: b.id, label: b.name }))} />
+          </Form.Item>
+          {!isEdit && (
+            <Form.Item name="scheduleId" label="Bog'liq dars jadvali (ixtiyoriy)">
+              <Select
+                allowClear
+                disabled={!groupId}
+                loading={schedulesQuery.isLoading}
+                options={schedulesQuery.data?.items.map((s) => ({ value: s.id, label: `${DAY_LABELS[s.dayOfWeek]} ${s.startTime}-${s.endTime}` }))}
+                placeholder="Mustaqil (jadvalga bog'liq bo'lmagan) dars"
+              />
+            </Form.Item>
+          )}
+          <Form.Item name="teacherEmployeeId" label="O'qituvchi">
+            <Select
+              allowClear
+              showSearch
+              disabled={schedulingLocked}
+              loading={teachersQuery.isLoading}
+              filterOption={(input, option) => ((option?.label as string) ?? '').toLowerCase().includes(input.toLowerCase())}
+              options={teachersQuery.data?.items.map((t) => ({ value: t.employeeId, label: t.employee.fullName }))}
+            />
+          </Form.Item>
+          <Form.Item name="classroomId" label="Xona" style={{ marginBottom: 0 }}>
+            <Select
+              allowClear
+              disabled={schedulingLocked || !branchId}
+              loading={classroomsQuery.isLoading}
+              options={classroomsQuery.data?.items.map((c) => ({ value: c.id, label: `${c.name} (${c.roomNumber})` }))}
+            />
+          </Form.Item>
+        </FormSection>
+
+        <FormSection title="Vaqt">
+          <Form.Item name="scheduledStart" label="Boshlanish vaqti" rules={[{ required: true }]}>
+            <DatePicker showTime format="YYYY-MM-DD HH:mm" style={{ width: '100%' }} disabled={schedulingLocked} />
+          </Form.Item>
+          <Form.Item
+            name="scheduledEnd"
+            label="Tugash vaqti"
+            dependencies={['scheduledStart']}
+            rules={[
+              { required: true },
+              ({ getFieldValue }) => ({
+                validator(_, value: dayjs.Dayjs | undefined) {
+                  const start = getFieldValue('scheduledStart') as dayjs.Dayjs | undefined;
+                  if (!value || !start || value.isAfter(start)) return Promise.resolve();
+                  return Promise.reject(new Error('Tugash vaqti boshlanish vaqtidan keyin bo\'lishi kerak'));
+                },
+              }),
+            ]}
+            style={{ marginBottom: 0 }}
+          >
+            <DatePicker showTime format="YYYY-MM-DD HH:mm" style={{ width: '100%' }} disabled={schedulingLocked} />
+          </Form.Item>
+        </FormSection>
+
+        <FormSection title="Tafsilotlar">
+          <Form.Item name="topic" label="Mavzu">
+            <Input placeholder="Masalan: Present Simple" />
+          </Form.Item>
+          <Form.Item name="homework" label="Uy vazifasi">
+            <Input.TextArea />
+          </Form.Item>
+          <Form.Item name="notes" label="Izoh" style={{ marginBottom: 0 }}>
+            <Input.TextArea />
+          </Form.Item>
+        </FormSection>
       </Form>
     </Modal>
   );

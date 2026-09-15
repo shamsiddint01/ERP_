@@ -1,10 +1,14 @@
-import { ArrowLeftOutlined, DollarOutlined, EditOutlined, StopOutlined } from '@ant-design/icons';
+import { DollarOutlined, EditOutlined, StopOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Button, Card, Col, DatePicker, Descriptions, Form, Input, Modal, Popconfirm, Row, Space, Spin, Table, Tag, Typography } from 'antd';
+import { App, Button, DatePicker, Form, Input, Modal, Popconfirm, Spin, Table, Tag } from 'antd';
 import dayjs from 'dayjs';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { cancelTuitionCharge, getTuitionCharge, updateTuitionCharge } from '../../api/tuition';
+import { ActionBar } from '../../components/ActionBar';
+import { DetailHeader } from '../../components/DetailHeader';
+import { DetailSection } from '../../components/DetailSection';
+import { InfoGrid } from '../../components/InfoGrid';
 import { PageErrorState } from '../../components/PageErrorState';
 import { RecordTuitionPaymentModal } from '../../components/RecordTuitionPaymentModal';
 import { useAuthStore } from '../../store/auth.store';
@@ -88,66 +92,63 @@ export function TuitionDetailPage() {
 
   return (
     <div>
-      <Button icon={<ArrowLeftOutlined />} type="text" onClick={() => navigate('/tuition')} style={{ marginBottom: 8 }}>
-        Ro'yxatga qaytish
-      </Button>
-
-      <Card style={{ marginBottom: 24 }}>
-        <Row justify="space-between" align="middle">
-          <Col>
-            <Typography.Title level={3} style={{ margin: 0 }}>
-              {charge.billingPeriod} — {charge.student.fullName}
-            </Typography.Title>
-            <Typography.Text type="secondary">
-              {charge.student.studentCode} · {charge.enrollment.group.name}
-            </Typography.Text>
-          </Col>
-          <Col>
-            <Space>
-              <Tag color={STATUS_COLORS[charge.status]}>{STATUS_LABELS[charge.status]}</Tag>
-              {outstanding > 0 && charge.status !== 'CANCELLED' && canRecordPayment && (
-                <Button type="primary" icon={<DollarOutlined />} onClick={() => setPaymentOpen(true)}>
-                  To'lov qabul qilish
+      <DetailHeader
+        backLabel="Ro'yxatga qaytish"
+        onBack={() => navigate('/tuition')}
+        title={
+          <>
+            {charge.billingPeriod} — {charge.student.fullName}
+          </>
+        }
+        subtitle={
+          <>
+            {charge.student.studentCode} · {charge.enrollment.group.name}
+          </>
+        }
+        actions={
+          <ActionBar>
+            <Tag color={STATUS_COLORS[charge.status]}>{STATUS_LABELS[charge.status]}</Tag>
+            {outstanding > 0 && charge.status !== 'CANCELLED' && canRecordPayment && (
+              <Button type="primary" icon={<DollarOutlined />} onClick={() => setPaymentOpen(true)}>
+                To'lov qabul qilish
+              </Button>
+            )}
+            {canEdit && charge.status !== 'CANCELLED' && (
+              <Button
+                icon={<EditOutlined />}
+                onClick={() => {
+                  form.setFieldsValue({ dueDate: dayjs(charge.dueDate), description: charge.description ?? undefined });
+                  setEditOpen(true);
+                }}
+              >
+                Tahrirlash
+              </Button>
+            )}
+            {canCancel && charge.status !== 'CANCELLED' && charge.allocations.length === 0 && (
+              <Popconfirm title="Ushbu hisobni bekor qilishni tasdiqlaysizmi?" onConfirm={() => cancelMutation.mutate()}>
+                <Button loading={cancelMutation.isPending} danger icon={<StopOutlined />}>
+                  Bekor qilish
                 </Button>
-              )}
-              {canEdit && charge.status !== 'CANCELLED' && (
-                <Button
-                  icon={<EditOutlined />}
-                  onClick={() => {
-                    form.setFieldsValue({ dueDate: dayjs(charge.dueDate), description: charge.description ?? undefined });
-                    setEditOpen(true);
-                  }}
-                >
-                  Tahrirlash
-                </Button>
-              )}
-              {canCancel && charge.status !== 'CANCELLED' && charge.allocations.length === 0 && (
-                <Popconfirm title="Ushbu hisobni bekor qilishni tasdiqlaysizmi?" onConfirm={() => cancelMutation.mutate()}>
-                  <Button loading={cancelMutation.isPending} danger icon={<StopOutlined />}>
-                    Bekor qilish
-                  </Button>
-                </Popconfirm>
-              )}
-            </Space>
-          </Col>
-        </Row>
-      </Card>
+              </Popconfirm>
+            )}
+          </ActionBar>
+        }
+      >
+        <InfoGrid
+          column={{ xs: 1, sm: 2 }}
+          items={[
+            { label: 'Summa', value: Number(charge.amount).toLocaleString('uz-UZ') },
+            { label: 'Chegirma', value: Number(charge.discountAmount).toLocaleString('uz-UZ') },
+            { label: 'Sof summa', value: Number(charge.netAmount).toLocaleString('uz-UZ') },
+            { label: "To'langan", value: allocated.toLocaleString('uz-UZ') },
+            { label: 'Qoldiq', value: outstanding.toLocaleString('uz-UZ') },
+            { label: 'Muddati', value: new Date(charge.dueDate).toLocaleDateString('uz-UZ') },
+            { label: 'Izoh', value: charge.description, span: 2 },
+          ]}
+        />
+      </DetailHeader>
 
-      <Card style={{ marginBottom: 24 }}>
-        <Descriptions column={{ xs: 1, sm: 2 }} bordered size="small">
-          <Descriptions.Item label="Summa">{Number(charge.amount).toLocaleString('uz-UZ')}</Descriptions.Item>
-          <Descriptions.Item label="Chegirma">{Number(charge.discountAmount).toLocaleString('uz-UZ')}</Descriptions.Item>
-          <Descriptions.Item label="Sof summa">{Number(charge.netAmount).toLocaleString('uz-UZ')}</Descriptions.Item>
-          <Descriptions.Item label="To'langan">{allocated.toLocaleString('uz-UZ')}</Descriptions.Item>
-          <Descriptions.Item label="Qoldiq">{outstanding.toLocaleString('uz-UZ')}</Descriptions.Item>
-          <Descriptions.Item label="Muddati">{new Date(charge.dueDate).toLocaleDateString('uz-UZ')}</Descriptions.Item>
-          <Descriptions.Item label="Izoh" span={2}>
-            {charge.description ?? '—'}
-          </Descriptions.Item>
-        </Descriptions>
-      </Card>
-
-      <Card title="To'lovlar tarixi">
+      <DetailSection title="To'lovlar tarixi">
         <Table
           size="small"
           rowKey="id"
@@ -162,7 +163,7 @@ export function TuitionDetailPage() {
             { title: 'Kim qabul qildi', dataIndex: ['allocatedBy', 'fullName'] },
           ]}
         />
-      </Card>
+      </DetailSection>
 
       <RecordTuitionPaymentModal
         open={paymentOpen}

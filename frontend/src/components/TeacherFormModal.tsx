@@ -3,6 +3,7 @@ import { App, Form, Input, InputNumber, Modal, Select } from 'antd';
 import { useEffect, useState } from 'react';
 import { listEmployees } from '../api/employees';
 import { createTeacher, updateTeacher, type CreateTeacherPayload } from '../api/teachers';
+import { FormSection } from './FormSection';
 import type { TeacherDetail, TeacherProfileStatus } from '../types';
 
 interface TeacherFormModalProps {
@@ -89,43 +90,51 @@ export function TeacherFormModal({ open, onClose, teacher }: TeacherFormModalPro
     >
       <Form form={form} layout="vertical" onFinish={(values) => mutation.mutate(values)}>
         {!isEdit && (
-          <Form.Item name="employeeId" label="Xodim" rules={[{ required: true, message: 'Xodimni tanlang' }]}>
-            <Select
-              showSearch
-              loading={employeesQuery.isLoading}
-              filterOption={false}
-              onSearch={setEmployeeSearch}
-              options={employeesQuery.data?.items.map((e) => ({ value: e.id, label: `${e.fullName} (${e.employeeCode})` }))}
-              placeholder="Ism bo'yicha qidiring"
-            />
-          </Form.Item>
+          <FormSection title="Xodim">
+            <Form.Item name="employeeId" label="Xodim" rules={[{ required: true, message: 'Xodimni tanlang' }]} style={{ marginBottom: 0 }}>
+              <Select
+                showSearch
+                loading={employeesQuery.isLoading}
+                filterOption={false}
+                onSearch={setEmployeeSearch}
+                options={employeesQuery.data?.items.map((e) => ({ value: e.id, label: `${e.fullName} (${e.employeeCode})` }))}
+                placeholder="Ism bo'yicha qidiring"
+              />
+            </Form.Item>
+          </FormSection>
         )}
-        <Form.Item name="specialization" label="Mutaxassislik">
-          <Input placeholder="Masalan: IELTS, Umumiy ingliz tili" />
-        </Form.Item>
-        <Form.Item name="qualification" label="Malaka/Sertifikat">
-          <Input placeholder="Masalan: CELTA sertifikati" />
-        </Form.Item>
-        <Form.Item name="experienceYears" label="Ish tajribasi (yil)">
-          <InputNumber min={0} style={{ width: '100%' }} />
-        </Form.Item>
-        <Form.Item name="bio" label="Bio">
-          <Input.TextArea />
-        </Form.Item>
-        <Form.Item name="hourlyRate" label="Soatlik stavka (so'm)">
-          <InputNumber min={0} style={{ width: '100%' }} />
-        </Form.Item>
-        <Form.Item name="perLessonRate" label="Dars uchun stavka (so'm)">
-          <InputNumber min={0} style={{ width: '100%' }} />
-        </Form.Item>
-        <Form.Item name="perGroupRate" label="Guruh uchun stavka (so'm)">
-          <InputNumber min={0} style={{ width: '100%' }} />
-        </Form.Item>
-        {isEdit && (
-          <Form.Item name="status" label="Status">
-            <Select options={[{ value: 'ACTIVE', label: 'Faol' }, { value: 'INACTIVE', label: 'Nofaol' }]} />
+
+        <FormSection title="Kasbiy ma'lumotlar">
+          <Form.Item name="specialization" label="Mutaxassislik">
+            <Input placeholder="Masalan: IELTS, Umumiy ingliz tili" />
           </Form.Item>
-        )}
+          <Form.Item name="qualification" label="Malaka/Sertifikat">
+            <Input placeholder="Masalan: CELTA sertifikati" />
+          </Form.Item>
+          <Form.Item name="experienceYears" label="Ish tajribasi (yil)">
+            <InputNumber min={0} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="bio" label="Bio" style={{ marginBottom: 0 }}>
+            <Input.TextArea />
+          </Form.Item>
+        </FormSection>
+
+        <FormSection title="Stavkalar">
+          <Form.Item name="hourlyRate" label="Soatlik stavka (so'm)">
+            <InputNumber min={0} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="perLessonRate" label="Dars uchun stavka (so'm)">
+            <InputNumber min={0} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="perGroupRate" label="Guruh uchun stavka (so'm)" style={{ marginBottom: isEdit ? undefined : 0 }}>
+            <InputNumber min={0} style={{ width: '100%' }} />
+          </Form.Item>
+          {isEdit && (
+            <Form.Item name="status" label="Status" style={{ marginBottom: 0 }}>
+              <Select options={[{ value: 'ACTIVE', label: 'Faol' }, { value: 'INACTIVE', label: 'Nofaol' }]} />
+            </Form.Item>
+          )}
+        </FormSection>
       </Form>
     </Modal>
   );

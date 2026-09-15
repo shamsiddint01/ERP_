@@ -1,12 +1,14 @@
 import { EyeOutlined, PlusOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Select, Space, Table, Tag, Typography } from 'antd';
+import { Button, Select, Table, Tag } from 'antd';
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { getGroup } from '../../api/groups';
 import { listExams } from '../../api/exams';
 import { CreateExamModal } from '../../components/CreateExamModal';
+import { FilterBar } from '../../components/FilterBar';
 import { PageErrorState } from '../../components/PageErrorState';
+import { PageHeader } from '../../components/PageHeader';
 import { useAuthStore } from '../../store/auth.store';
 import type { Exam, ExamStatus, ExamType } from '../../types';
 
@@ -46,18 +48,18 @@ export function ExamsPage() {
 
   return (
     <div>
-      <Space style={{ width: '100%', justifyContent: 'space-between', marginBottom: 16 }}>
-        <Typography.Title level={4} style={{ margin: 0 }}>
-          {groupId ? `Imtihonlar — ${groupQuery.data?.name ?? ''}` : 'Imtihonlar'}
-        </Typography.Title>
-        {canCreate && (
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
-            Yangi imtihon
-          </Button>
-        )}
-      </Space>
+      <PageHeader
+        title={groupId ? `Imtihonlar — ${groupQuery.data?.name ?? ''}` : 'Imtihonlar'}
+        extra={
+          canCreate && (
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
+              Yangi imtihon
+            </Button>
+          )
+        }
+      />
 
-      <Space style={{ marginBottom: 16 }} wrap>
+      <FilterBar>
         <Select
           placeholder="Status"
           allowClear
@@ -68,7 +70,7 @@ export function ExamsPage() {
             setPage(1);
           }}
         />
-      </Space>
+      </FilterBar>
 
       <Table<Exam>
         rowKey="id"

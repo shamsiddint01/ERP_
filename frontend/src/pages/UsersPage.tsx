@@ -1,11 +1,12 @@
 import { PlusOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Button, Form, Input, Modal, Select, Space, Table, Tag, Typography } from 'antd';
+import { App, Button, Form, Input, Modal, Select, Table, Tag } from 'antd';
 import { useState } from 'react';
 import { createUser, deactivateUser, listUsers } from '../api/users';
 import { listRoles } from '../api/roles';
 import { listEmployees } from '../api/employees';
 import { PageErrorState } from '../components/PageErrorState';
+import { PageHeader } from '../components/PageHeader';
 import { useAuthStore } from '../store/auth.store';
 import type { UserListItem } from '../types';
 
@@ -59,16 +60,16 @@ export function UsersPage() {
 
   return (
     <div>
-      <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
-        <Typography.Title level={4} style={{ margin: 0 }}>
-          Foydalanuvchilar
-        </Typography.Title>
-        {canCreate && (
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
-            Yangi foydalanuvchi
-          </Button>
-        )}
-      </Space>
+      <PageHeader
+        title="Foydalanuvchilar"
+        extra={
+          canCreate && (
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
+              Yangi foydalanuvchi
+            </Button>
+          )
+        }
+      />
 
       <Table<UserListItem>
         rowKey="id"

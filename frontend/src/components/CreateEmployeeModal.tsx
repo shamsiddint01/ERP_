@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, DatePicker, Form, Input, InputNumber, Modal, Select } from 'antd';
+import { App, Col, DatePicker, Form, Input, InputNumber, Modal, Row, Select } from 'antd';
 import dayjs from 'dayjs';
 import { useState } from 'react';
 import { listDepartments } from '../api/departments';
 import { createEmployee, listEmployees } from '../api/employees';
 import { listPositions } from '../api/positions';
+import { FormSection } from './FormSection';
 
 interface CreateEmployeeModalProps {
   open: boolean;
@@ -81,63 +82,101 @@ export function CreateEmployeeModal({ open, onClose }: CreateEmployeeModalProps)
       width={640}
     >
       <Form form={form} layout="vertical" onFinish={(values) => mutation.mutate(values)} initialValues={{ hireDate: dayjs() }}>
-        <Form.Item name="firstName" label="Ism" rules={[{ required: true }]}>
-          <Input />
-        </Form.Item>
-        <Form.Item name="lastName" label="Familiya" rules={[{ required: true }]}>
-          <Input />
-        </Form.Item>
-        <Form.Item name="middleName" label="Otasining ismi">
-          <Input />
-        </Form.Item>
-        <Form.Item name="phone" label="Telefon" rules={[{ required: true }]}>
-          <Input placeholder="+998901234567" />
-        </Form.Item>
-        <Form.Item name="email" label="Email">
-          <Input />
-        </Form.Item>
-        <Form.Item name="dateOfBirth" label="Tug'ilgan sana">
-          <DatePicker style={{ width: '100%' }} />
-        </Form.Item>
-        <Form.Item name="address" label="Manzil">
-          <Input />
-        </Form.Item>
-        <Form.Item name="departmentId" label="Bo'lim">
-          <Select
-            allowClear
-            loading={departmentsQuery.isLoading}
-            options={departmentsQuery.data?.items.map((d) => ({ value: d.id, label: d.name }))}
-            onChange={(value) => {
-              setDepartmentId(value);
-              form.setFieldValue('positionId', undefined);
-            }}
-          />
-        </Form.Item>
-        <Form.Item name="positionId" label="Lavozim">
-          <Select
-            allowClear
-            disabled={!departmentId}
-            loading={positionsQuery.isLoading}
-            options={positionsQuery.data?.items.map((p) => ({ value: p.id, label: p.title }))}
-            placeholder={departmentId ? 'Lavozimni tanlang' : "Avval bo'limni tanlang"}
-          />
-        </Form.Item>
-        <Form.Item name="managerId" label="Rahbar">
-          <Select
-            allowClear
-            loading={employeesQuery.isLoading}
-            options={employeesQuery.data?.items.map((e) => ({ value: e.id, label: e.fullName }))}
-          />
-        </Form.Item>
-        <Form.Item name="hireDate" label="Ishga qabul qilingan sana" rules={[{ required: true }]}>
-          <DatePicker style={{ width: '100%' }} />
-        </Form.Item>
-        <Form.Item name="salary" label="Maosh">
-          <InputNumber min={0} style={{ width: '100%' }} />
-        </Form.Item>
-        <Form.Item name="notes" label="Izoh">
-          <Input.TextArea />
-        </Form.Item>
+        <FormSection title="Shaxsiy ma'lumotlar">
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="firstName" label="Ism" rules={[{ required: true }]}>
+                <Input />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="lastName" label="Familiya" rules={[{ required: true }]}>
+                <Input />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="middleName" label="Otasining ismi">
+                <Input />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="phone" label="Telefon" rules={[{ required: true }]}>
+                <Input placeholder="+998901234567" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="email" label="Email">
+                <Input />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="dateOfBirth" label="Tug'ilgan sana">
+                <DatePicker style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+            <Col span={24}>
+              <Form.Item name="address" label="Manzil" style={{ marginBottom: 0 }}>
+                <Input />
+              </Form.Item>
+            </Col>
+          </Row>
+        </FormSection>
+
+        <FormSection title="Lavozim">
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="departmentId" label="Bo'lim">
+                <Select
+                  allowClear
+                  loading={departmentsQuery.isLoading}
+                  options={departmentsQuery.data?.items.map((d) => ({ value: d.id, label: d.name }))}
+                  onChange={(value) => {
+                    setDepartmentId(value);
+                    form.setFieldValue('positionId', undefined);
+                  }}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="positionId" label="Lavozim">
+                <Select
+                  allowClear
+                  disabled={!departmentId}
+                  loading={positionsQuery.isLoading}
+                  options={positionsQuery.data?.items.map((p) => ({ value: p.id, label: p.title }))}
+                  placeholder={departmentId ? 'Lavozimni tanlang' : "Avval bo'limni tanlang"}
+                />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="managerId" label="Rahbar" style={{ marginBottom: 0 }}>
+                <Select
+                  allowClear
+                  loading={employeesQuery.isLoading}
+                  options={employeesQuery.data?.items.map((e) => ({ value: e.id, label: e.fullName }))}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+        </FormSection>
+
+        <FormSection title="Ish sharoiti">
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="hireDate" label="Ishga qabul qilingan sana" rules={[{ required: true }]}>
+                <DatePicker style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="salary" label="Maosh">
+                <InputNumber min={0} style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+          </Row>
+          <Form.Item name="notes" label="Izoh" style={{ marginBottom: 0 }}>
+            <Input.TextArea />
+          </Form.Item>
+        </FormSection>
       </Form>
     </Modal>
   );

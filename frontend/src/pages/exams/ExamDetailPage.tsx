@@ -1,13 +1,19 @@
-import { ArrowLeftOutlined, EditOutlined, StopOutlined } from '@ant-design/icons';
+import { CheckCircleOutlined, EditOutlined, PercentageOutlined, StopOutlined, TrophyOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Button, Card, Col, DatePicker, Descriptions, Form, Input, Modal, Popconfirm, Row, Select, Space, Spin, Statistic, Table, Tag, Typography } from 'antd';
+import { App, Button, DatePicker, Form, Input, Modal, Popconfirm, Select, Spin, Table, Tag } from 'antd';
 import dayjs from 'dayjs';
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { deleteExam, getExam, listExamAssessments, updateExam } from '../../api/exams';
 import { getGroup } from '../../api/groups';
+import { ActionBar } from '../../components/ActionBar';
 import { AssessmentModal } from '../../components/AssessmentModal';
+import { DetailHeader } from '../../components/DetailHeader';
+import { DetailSection } from '../../components/DetailSection';
+import { InfoGrid } from '../../components/InfoGrid';
 import { PageErrorState } from '../../components/PageErrorState';
+import { SummaryCard } from '../../components/SummaryCard';
+import { palette } from '../../theme';
 import { useAuthStore } from '../../store/auth.store';
 import type { Assessment, ExamStatus } from '../../types';
 
@@ -89,70 +95,63 @@ export function ExamDetailPage() {
 
   return (
     <div>
-      <Button icon={<ArrowLeftOutlined />} type="text" onClick={() => navigate('/exams')} style={{ marginBottom: 8 }}>
-        Imtihonlar ro'yxatiga qaytish
-      </Button>
-
-      <Card style={{ marginBottom: 24 }}>
-        <Row justify="space-between" align="middle">
-          <Col>
-            <Typography.Title level={3} style={{ margin: 0 }}>
-              {exam.title}
-            </Typography.Title>
-            <Typography.Text type="secondary">
-              {exam.course.name} · {exam.group.name} · {new Date(exam.date).toLocaleDateString('uz-UZ')}
-            </Typography.Text>
-          </Col>
-          <Col>
-            <Space>
-              <Tag color={STATUS_COLORS[exam.status]}>{STATUS_LABELS[exam.status]}</Tag>
-              {canEdit && (
-                <Button
-                  icon={<EditOutlined />}
-                  onClick={() => {
-                    form.setFieldsValue({ status: exam.status, date: dayjs(exam.date), notes: exam.notes ?? undefined });
-                    setEditOpen(true);
-                  }}
-                >
-                  Tahrirlash
+      <DetailHeader
+        backLabel="Imtihonlar ro'yxatiga qaytish"
+        onBack={() => navigate('/exams')}
+        title={exam.title}
+        subtitle={
+          <>
+            {exam.course.name} · {exam.group.name} · {new Date(exam.date).toLocaleDateString('uz-UZ')}
+          </>
+        }
+        actions={
+          <ActionBar>
+            <Tag color={STATUS_COLORS[exam.status]}>{STATUS_LABELS[exam.status]}</Tag>
+            {canEdit && (
+              <Button
+                icon={<EditOutlined />}
+                onClick={() => {
+                  form.setFieldsValue({ status: exam.status, date: dayjs(exam.date), notes: exam.notes ?? undefined });
+                  setEditOpen(true);
+                }}
+              >
+                Tahrirlash
+              </Button>
+            )}
+            {canDelete && exam._count.assessments === 0 && (
+              <Popconfirm title="Imtihonni o'chirish?" onConfirm={() => deleteMutation.mutate()}>
+                <Button loading={deleteMutation.isPending} danger icon={<StopOutlined />}>
+                  O'chirish
                 </Button>
-              )}
-              {canDelete && exam._count.assessments === 0 && (
-                <Popconfirm title="Imtihonni o'chirish?" onConfirm={() => deleteMutation.mutate()}>
-                  <Button loading={deleteMutation.isPending} danger icon={<StopOutlined />}>
-                    O'chirish
-                  </Button>
-                </Popconfirm>
-              )}
-            </Space>
-          </Col>
-        </Row>
-        <Descriptions column={{ xs: 1, sm: 2, md: 3 }} style={{ marginTop: 16 }} size="small">
-          <Descriptions.Item label="Maksimal ball">{Number(exam.maxScore)}</Descriptions.Item>
-          <Descriptions.Item label="O'tish balli">{Number(exam.passingScore)}</Descriptions.Item>
-          <Descriptions.Item label="O'qituvchi">{exam.teacherEmployee?.fullName ?? '—'}</Descriptions.Item>
-        </Descriptions>
-      </Card>
+              </Popconfirm>
+            )}
+          </ActionBar>
+        }
+      >
+        <InfoGrid
+          items={[
+            { label: 'Maksimal ball', value: Number(exam.maxScore) },
+            { label: "O'tish balli", value: Number(exam.passingScore) },
+            { label: "O'qituvchi", value: exam.teacherEmployee?.fullName },
+          ]}
+        />
+      </DetailHeader>
 
-      <Row gutter={16} style={{ marginBottom: 24 }}>
-        <Col span={6}>
-          <Card>
-            <Statistic title="Baholangan" value={`${stats.assessedCount}/${stats.totalEnrolled}`} />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic title="O'rtacha ball (%)" value={stats.average} precision={2} />
-          </Card>
-        </Col>
-        <Col span={6}>
-          <Card>
-            <Statistic title="O'tish darajasi (%)" value={stats.passRate} precision={2} styles={{ content: { color: stats.passRate >= 60 ? '#3f8600' : '#cf1322' } }} />
-          </Card>
-        </Col>
-      </Row>
+      <SummaryCard
+        items={[
+          { icon: <CheckCircleOutlined />, label: 'Baholangan', value: stats.assessedCount, color: palette.info, formatter: () => `${stats.assessedCount}/${stats.totalEnrolled}` },
+          { icon: <TrophyOutlined />, label: "O'rtacha ball (%)", value: stats.average, color: palette.primary, formatter: (v) => v.toFixed(2) },
+          {
+            icon: <PercentageOutlined />,
+            label: "O'tish darajasi (%)",
+            value: stats.passRate,
+            color: stats.passRate >= 60 ? palette.success : palette.error,
+            formatter: (v) => v.toFixed(2),
+          },
+        ]}
+      />
 
-      <Card title="O'quvchilar va baholar">
+      <DetailSection title="O'quvchilar va baholar">
         <Table
           rowKey={(row) => row.student.id}
           loading={groupQuery.isLoading || assessmentsQuery.isLoading}
@@ -186,7 +185,7 @@ export function ExamDetailPage() {
             },
           ]}
         />
-      </Card>
+      </DetailSection>
 
       {gradingTarget && (
         <AssessmentModal

@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Button, Card, Form, Input, Typography } from 'antd';
+import { App, Button, Card, Form, Input } from 'antd';
 import { useEffect } from 'react';
 import { getSettings, updateSettings } from '../api/settings';
 import { PageErrorState } from '../components/PageErrorState';
+import { PageHeader } from '../components/PageHeader';
 
 export function SettingsPage() {
   const { message } = App.useApp();
@@ -30,7 +31,7 @@ export function SettingsPage() {
 
   return (
     <div>
-      <Typography.Title level={4}>Kompaniya sozlamalari</Typography.Title>
+      <PageHeader title="Kompaniya sozlamalari" />
       <Card style={{ maxWidth: 480 }}>
         <Form form={form} layout="vertical" onFinish={(values) => updateMutation.mutate(values)}>
           <Form.Item name="companyName" label="Kompaniya nomi" rules={[{ required: true }]}>

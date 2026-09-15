@@ -3,6 +3,7 @@ import { App, Form, Input, InputNumber, Modal, Select } from 'antd';
 import { useEffect } from 'react';
 import { listBranches } from '../api/branches';
 import { createClassroom, updateClassroom, type ClassroomPayload } from '../api/classrooms';
+import { FormSection } from './FormSection';
 import type { ClassroomDetail, ClassroomStatus } from '../types';
 
 interface ClassroomFormModalProps {
@@ -82,42 +83,48 @@ export function ClassroomFormModal({ open, onClose, classroom, defaultBranchId }
       destroyOnHidden
     >
       <Form form={form} layout="vertical" onFinish={(values) => mutation.mutate(values)}>
-        <Form.Item name="branchId" label="Filial" rules={[{ required: true, message: 'Filialni tanlang' }]}>
-          <Select loading={branchesQuery.isLoading} options={branchesQuery.data?.items.map((b) => ({ value: b.id, label: b.name }))} disabled={isEdit} />
-        </Form.Item>
-        <Form.Item name="name" label="Nomi" rules={[{ required: true }]}>
-          <Input />
-        </Form.Item>
-        <Form.Item name="roomNumber" label="Xona raqami" rules={[{ required: true }]}>
-          <Input placeholder="Masalan: 101" />
-        </Form.Item>
-        <Form.Item
-          name="capacity"
-          label="Sig'imi (o'rindiqlar soni)"
-          rules={[
-            { required: true, message: "Sig'imni kiriting" },
-            { type: 'number', min: 1, message: "Sig'im musbat son bo'lishi kerak" },
-          ]}
-        >
-          <InputNumber min={1} style={{ width: '100%' }} />
-        </Form.Item>
-        <Form.Item name="equipment" label="Jihozlar">
-          <Input placeholder="Masalan: proyektor, doska" />
-        </Form.Item>
-        <Form.Item name="notes" label="Izoh">
-          <Input.TextArea />
-        </Form.Item>
-        {isEdit && (
-          <Form.Item name="status" label="Status">
-            <Select
-              options={[
-                { value: 'ACTIVE', label: 'Faol' },
-                { value: 'INACTIVE', label: 'Nofaol' },
-                { value: 'MAINTENANCE', label: "Ta'mirlashda" },
-              ]}
-            />
+        <FormSection title="Asosiy ma'lumotlar">
+          <Form.Item name="branchId" label="Filial" rules={[{ required: true, message: 'Filialni tanlang' }]}>
+            <Select loading={branchesQuery.isLoading} options={branchesQuery.data?.items.map((b) => ({ value: b.id, label: b.name }))} disabled={isEdit} />
           </Form.Item>
-        )}
+          <Form.Item name="name" label="Nomi" rules={[{ required: true }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item name="roomNumber" label="Xona raqami" rules={[{ required: true }]}>
+            <Input placeholder="Masalan: 101" />
+          </Form.Item>
+          <Form.Item
+            name="capacity"
+            label="Sig'imi (o'rindiqlar soni)"
+            rules={[
+              { required: true, message: "Sig'imni kiriting" },
+              { type: 'number', min: 1, message: "Sig'im musbat son bo'lishi kerak" },
+            ]}
+            style={{ marginBottom: 0 }}
+          >
+            <InputNumber min={1} style={{ width: '100%' }} />
+          </Form.Item>
+        </FormSection>
+
+        <FormSection title="Qo'shimcha">
+          <Form.Item name="equipment" label="Jihozlar">
+            <Input placeholder="Masalan: proyektor, doska" />
+          </Form.Item>
+          <Form.Item name="notes" label="Izoh">
+            <Input.TextArea />
+          </Form.Item>
+          {isEdit && (
+            <Form.Item name="status" label="Status" style={{ marginBottom: 0 }}>
+              <Select
+                options={[
+                  { value: 'ACTIVE', label: 'Faol' },
+                  { value: 'INACTIVE', label: 'Nofaol' },
+                  { value: 'MAINTENANCE', label: "Ta'mirlashda" },
+                ]}
+              />
+            </Form.Item>
+          )}
+        </FormSection>
       </Form>
     </Modal>
   );

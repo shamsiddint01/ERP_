@@ -1,10 +1,13 @@
-import { ArrowLeftOutlined, CarryOutOutlined, CheckCircleOutlined, CloseCircleOutlined, EditOutlined, PlayCircleOutlined, StopOutlined } from '@ant-design/icons';
+import { CarryOutOutlined, CheckCircleOutlined, CloseCircleOutlined, EditOutlined, PlayCircleOutlined, StopOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Button, Card, Col, Descriptions, Popconfirm, Row, Space, Spin, Tag, Typography } from 'antd';
+import { App, Button, Popconfirm, Spin, Tag, Typography } from 'antd';
 import dayjs from 'dayjs';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { cancelLesson, completeLesson, getLesson, noShowLesson, startLesson } from '../../api/lessons';
+import { ActionBar } from '../../components/ActionBar';
+import { DetailHeader } from '../../components/DetailHeader';
+import { InfoGrid } from '../../components/InfoGrid';
 import { LessonFormModal } from '../../components/LessonFormModal';
 import { PageErrorState } from '../../components/PageErrorState';
 import { useAuthStore } from '../../store/auth.store';
@@ -103,82 +106,73 @@ export function LessonDetailPage() {
 
   return (
     <div>
-      <Button icon={<ArrowLeftOutlined />} type="text" onClick={() => navigate('/lessons')} style={{ marginBottom: 8 }}>
-        Darslar ro'yxatiga qaytish
-      </Button>
-
-      <Card style={{ marginBottom: 24 }}>
-        <Row justify="space-between" align="middle">
-          <Col>
-            <Typography.Title level={3} style={{ margin: 0 }}>
-              <Typography.Link onClick={() => navigate(`/groups/${lesson.group.id}`)}>{lesson.group.name}</Typography.Link>
-            </Typography.Title>
-            <Typography.Text type="secondary">
-              {dayjs(lesson.scheduledStart).format('DD.MM.YYYY HH:mm')} – {dayjs(lesson.scheduledEnd).format('HH:mm')}
-              {lesson.schedule && ` · ${lesson.branch.name}`}
-            </Typography.Text>
-          </Col>
-          <Col>
-            <Space wrap>
-              <Tag color={STATUS_COLORS[lesson.status]}>{STATUS_LABELS[lesson.status]}</Tag>
-              {canViewAttendance && lesson.status !== 'CANCELLED' && (
-                <Button icon={<CarryOutOutlined />} onClick={() => navigate(`/lessons/${lesson.id}/attendance`)}>
-                  Davomat
+      <DetailHeader
+        backLabel="Darslar ro'yxatiga qaytish"
+        onBack={() => navigate('/lessons')}
+        title={<Typography.Link onClick={() => navigate(`/groups/${lesson.group.id}`)}>{lesson.group.name}</Typography.Link>}
+        subtitle={
+          <>
+            {dayjs(lesson.scheduledStart).format('DD.MM.YYYY HH:mm')} – {dayjs(lesson.scheduledEnd).format('HH:mm')}
+            {lesson.schedule && ` · ${lesson.branch.name}`}
+          </>
+        }
+        actions={
+          <ActionBar>
+            <Tag color={STATUS_COLORS[lesson.status]}>{STATUS_LABELS[lesson.status]}</Tag>
+            {canViewAttendance && lesson.status !== 'CANCELLED' && (
+              <Button icon={<CarryOutOutlined />} onClick={() => navigate(`/lessons/${lesson.id}/attendance`)}>
+                Davomat
+              </Button>
+            )}
+            {canEdit && lesson.status === 'SCHEDULED' && (
+              <Button type="primary" icon={<PlayCircleOutlined />} loading={isBusy} onClick={() => startMutation.mutate()}>
+                Boshlash
+              </Button>
+            )}
+            {canEdit && isOpenState && (
+              <Button type={lesson.status === 'IN_PROGRESS' ? 'primary' : undefined} icon={<CheckCircleOutlined />} loading={isBusy} onClick={() => completeMutation.mutate()}>
+                Yakunlash
+              </Button>
+            )}
+            {canEdit && isOpenState && (
+              <Popconfirm title="O'quvchi(lar) darsga kelmaganini tasdiqlaysizmi?" onConfirm={() => noShowMutation.mutate()}>
+                <Button icon={<CloseCircleOutlined />} loading={isBusy}>
+                  Kelmadi
                 </Button>
-              )}
-              {canEdit && lesson.status === 'SCHEDULED' && (
-                <Button icon={<PlayCircleOutlined />} loading={isBusy} onClick={() => startMutation.mutate()}>
-                  Boshlash
+              </Popconfirm>
+            )}
+            {canEdit && (
+              <Button icon={<EditOutlined />} onClick={() => setEditOpen(true)}>
+                Tahrirlash
+              </Button>
+            )}
+            {canEdit && isOpenState && (
+              <Popconfirm title="Darsni bekor qilishni tasdiqlaysizmi?" onConfirm={() => cancelMutation.mutate()}>
+                <Button danger icon={<StopOutlined />} loading={isBusy}>
+                  Bekor qilish
                 </Button>
-              )}
-              {canEdit && isOpenState && (
-                <Button icon={<CheckCircleOutlined />} loading={isBusy} onClick={() => completeMutation.mutate()}>
-                  Yakunlash
-                </Button>
-              )}
-              {canEdit && isOpenState && (
-                <Popconfirm title="O'quvchi(lar) darsga kelmaganini tasdiqlaysizmi?" onConfirm={() => noShowMutation.mutate()}>
-                  <Button icon={<CloseCircleOutlined />} loading={isBusy}>
-                    Kelmadi
-                  </Button>
-                </Popconfirm>
-              )}
-              {canEdit && (
-                <Button icon={<EditOutlined />} onClick={() => setEditOpen(true)}>
-                  Tahrirlash
-                </Button>
-              )}
-              {canEdit && isOpenState && (
-                <Popconfirm title="Darsni bekor qilishni tasdiqlaysizmi?" onConfirm={() => cancelMutation.mutate()}>
-                  <Button danger icon={<StopOutlined />} loading={isBusy}>
-                    Bekor qilish
-                  </Button>
-                </Popconfirm>
-              )}
-            </Space>
-          </Col>
-        </Row>
-
-        <Descriptions column={{ xs: 1, sm: 2, md: 3 }} style={{ marginTop: 16 }}>
-          <Descriptions.Item label="O'qituvchi">{lesson.teacherEmployee?.fullName ?? '—'}</Descriptions.Item>
-          <Descriptions.Item label="Xona">{lesson.classroom ? `${lesson.classroom.name} (${lesson.classroom.roomNumber})` : '—'}</Descriptions.Item>
-          <Descriptions.Item label="Filial">{lesson.branch.name}</Descriptions.Item>
-          <Descriptions.Item label="Haqiqiy boshlanish">{lesson.actualStart ? dayjs(lesson.actualStart).format('DD.MM.YYYY HH:mm') : '—'}</Descriptions.Item>
-          <Descriptions.Item label="Haqiqiy tugash">{lesson.actualEnd ? dayjs(lesson.actualEnd).format('DD.MM.YYYY HH:mm') : '—'}</Descriptions.Item>
-          <Descriptions.Item label="Bog'liq jadval">
-            {lesson.schedule ? `${DAY_LABELS[lesson.schedule.dayOfWeek]} ${lesson.schedule.startTime}-${lesson.schedule.endTime}` : 'Mustaqil dars'}
-          </Descriptions.Item>
-          <Descriptions.Item label="Mavzu" span={3}>
-            {lesson.topic ?? '—'}
-          </Descriptions.Item>
-          <Descriptions.Item label="Uy vazifasi" span={3}>
-            {lesson.homework ?? '—'}
-          </Descriptions.Item>
-          <Descriptions.Item label="Izoh" span={3}>
-            {lesson.notes ?? '—'}
-          </Descriptions.Item>
-        </Descriptions>
-      </Card>
+              </Popconfirm>
+            )}
+          </ActionBar>
+        }
+      >
+        <InfoGrid
+          items={[
+            { label: "O'qituvchi", value: lesson.teacherEmployee?.fullName },
+            { label: 'Xona', value: lesson.classroom ? `${lesson.classroom.name} (${lesson.classroom.roomNumber})` : undefined },
+            { label: 'Filial', value: lesson.branch.name },
+            { label: 'Haqiqiy boshlanish', value: lesson.actualStart ? dayjs(lesson.actualStart).format('DD.MM.YYYY HH:mm') : undefined },
+            { label: 'Haqiqiy tugash', value: lesson.actualEnd ? dayjs(lesson.actualEnd).format('DD.MM.YYYY HH:mm') : undefined },
+            {
+              label: "Bog'liq jadval",
+              value: lesson.schedule ? `${DAY_LABELS[lesson.schedule.dayOfWeek]} ${lesson.schedule.startTime}-${lesson.schedule.endTime}` : 'Mustaqil dars',
+            },
+            { label: 'Mavzu', value: lesson.topic, span: 3 },
+            { label: 'Uy vazifasi', value: lesson.homework, span: 3 },
+            { label: 'Izoh', value: lesson.notes, span: 3 },
+          ]}
+        />
+      </DetailHeader>
 
       <LessonFormModal open={editOpen} onClose={() => setEditOpen(false)} lesson={lesson} />
     </div>

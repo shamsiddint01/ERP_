@@ -1,11 +1,13 @@
 import { EyeOutlined, PlusOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Select, Space, Table, Tag, Typography } from 'antd';
+import { Button, Select, Table, Tag } from 'antd';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { listTuitionCharges } from '../../api/tuition';
 import { CreateTuitionChargeModal } from '../../components/CreateTuitionChargeModal';
+import { FilterBar } from '../../components/FilterBar';
 import { PageErrorState } from '../../components/PageErrorState';
+import { PageHeader } from '../../components/PageHeader';
 import { useAuthStore } from '../../store/auth.store';
 import type { TuitionCharge, TuitionChargeStatus } from '../../types';
 
@@ -46,18 +48,18 @@ export function TuitionPage() {
 
   return (
     <div>
-      <Space style={{ width: '100%', justifyContent: 'space-between', marginBottom: 16 }}>
-        <Typography.Title level={4} style={{ margin: 0 }}>
-          O'quv to'lovlari (hisoblar)
-        </Typography.Title>
-        {canCreate && (
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
-            Yangi hisob
-          </Button>
-        )}
-      </Space>
+      <PageHeader
+        title="O'quv to'lovlari (hisoblar)"
+        extra={
+          canCreate && (
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
+              Yangi hisob
+            </Button>
+          )
+        }
+      />
 
-      <Space style={{ marginBottom: 16 }} wrap>
+      <FilterBar>
         <Select
           placeholder="Status"
           allowClear
@@ -68,7 +70,7 @@ export function TuitionPage() {
             setPage(1);
           }}
         />
-      </Space>
+      </FilterBar>
 
       <Table<TuitionCharge>
         rowKey="id"

@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, DatePicker, Form, Input, InputNumber, Modal, Select } from 'antd';
+import { App, Col, DatePicker, Form, Input, InputNumber, Modal, Row, Select } from 'antd';
 import dayjs from 'dayjs';
 import { useEffect } from 'react';
 import { listBranches } from '../api/branches';
@@ -7,6 +7,7 @@ import { listClassrooms } from '../api/classrooms';
 import { listCourses } from '../api/courses';
 import { createGroup, updateGroup, type GroupPayload } from '../api/groups';
 import { listTeachers } from '../api/teachers';
+import { FormSection } from './FormSection';
 import { useAuthStore } from '../store/auth.store';
 import type { CourseLevel, GroupDetail, StudentGroupStatus } from '../types';
 
@@ -127,66 +128,104 @@ export function GroupFormModal({ open, onClose, group }: GroupFormModalProps) {
       width={640}
     >
       <Form form={form} layout="vertical" onFinish={(values) => mutation.mutate(values)} initialValues={{ capacity: 12 }}>
-        <Form.Item name="code" label="Kod" rules={[{ required: true }]}>
-          <Input placeholder="Masalan: ENG-A1-03" />
-        </Form.Item>
-        <Form.Item name="name" label="Nomi" rules={[{ required: true }]}>
-          <Input />
-        </Form.Item>
-        <Form.Item name="courseId" label="Kurs" rules={[{ required: true }]}>
-          <Select loading={coursesQuery.isLoading} options={coursesQuery.data?.items.map((c) => ({ value: c.id, label: c.name }))} />
-        </Form.Item>
-        <Form.Item name="branchId" label="Filial" rules={[{ required: true }]}>
-          <Select
-            loading={branchesQuery.isLoading}
-            options={branchesQuery.data?.items.map((b) => ({ value: b.id, label: b.name }))}
-            onChange={() => form.setFieldValue('classroomId', undefined)}
-          />
-        </Form.Item>
-        <Form.Item name="classroomId" label="Xona">
-          <Select
-            allowClear
-            disabled={!branchId}
-            loading={classroomsQuery.isLoading}
-            options={classroomsQuery.data?.items.map((c) => ({ value: c.id, label: `${c.name} (${c.roomNumber})` }))}
-            placeholder={branchId ? 'Xonani tanlang' : "Avval filialni tanlang"}
-          />
-        </Form.Item>
-        {canTeachers && (
-          <Form.Item name="teacherEmployeeId" label="O'qituvchi">
-            <Select
-              allowClear
-              showSearch
-              loading={teachersQuery.isLoading}
-              filterOption={(input, option) => ((option?.label as string) ?? '').toLowerCase().includes(input.toLowerCase())}
-              options={teachersQuery.data?.items.map((t) => ({ value: t.employeeId, label: t.employee.fullName }))}
-              placeholder="Faol o'qituvchilar ro'yxatidan tanlang"
-            />
+        <FormSection title="Asosiy ma'lumotlar">
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="code" label="Kod" rules={[{ required: true }]}>
+                <Input placeholder="Masalan: ENG-A1-03" />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="name" label="Nomi" rules={[{ required: true }]}>
+                <Input />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="courseId" label="Kurs" rules={[{ required: true }]}>
+                <Select loading={coursesQuery.isLoading} options={coursesQuery.data?.items.map((c) => ({ value: c.id, label: c.name }))} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="branchId" label="Filial" rules={[{ required: true }]}>
+                <Select
+                  loading={branchesQuery.isLoading}
+                  options={branchesQuery.data?.items.map((b) => ({ value: b.id, label: b.name }))}
+                  onChange={() => form.setFieldValue('classroomId', undefined)}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+        </FormSection>
+
+        <FormSection title="Joylashuv va o'qituvchi">
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="classroomId" label="Xona">
+                <Select
+                  allowClear
+                  disabled={!branchId}
+                  loading={classroomsQuery.isLoading}
+                  options={classroomsQuery.data?.items.map((c) => ({ value: c.id, label: `${c.name} (${c.roomNumber})` }))}
+                  placeholder={branchId ? 'Xonani tanlang' : "Avval filialni tanlang"}
+                />
+              </Form.Item>
+            </Col>
+            {canTeachers && (
+              <Col span={12}>
+                <Form.Item name="teacherEmployeeId" label="O'qituvchi">
+                  <Select
+                    allowClear
+                    showSearch
+                    loading={teachersQuery.isLoading}
+                    filterOption={(input, option) => ((option?.label as string) ?? '').toLowerCase().includes(input.toLowerCase())}
+                    options={teachersQuery.data?.items.map((t) => ({ value: t.employeeId, label: t.employee.fullName }))}
+                    placeholder="Faol o'qituvchilar ro'yxatidan tanlang"
+                  />
+                </Form.Item>
+              </Col>
+            )}
+            <Col span={12}>
+              <Form.Item name="capacity" label="Sig'imi" rules={[{ type: 'number', min: 1, message: "Sig'im musbat son bo'lishi kerak" }]}>
+                <InputNumber min={1} style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="tuitionAmount" label="O'quv to'lovi (so'm)">
+                <InputNumber min={0} style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="level" label="Daraja" style={{ marginBottom: 0 }}>
+                <Select allowClear options={LEVEL_OPTIONS} />
+              </Form.Item>
+            </Col>
+          </Row>
+        </FormSection>
+
+        <FormSection title="Muddat va status">
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="startDate" label="Boshlanish sanasi" rules={[{ required: true }]}>
+                <DatePicker style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="endDate" label="Tugash sanasi">
+                <DatePicker style={{ width: '100%' }} />
+              </Form.Item>
+            </Col>
+            {isEdit && (
+              <Col span={12}>
+                <Form.Item name="status" label="Status">
+                  <Select options={STATUS_OPTIONS} />
+                </Form.Item>
+              </Col>
+            )}
+          </Row>
+          <Form.Item name="notes" label="Izoh" style={{ marginBottom: 0 }}>
+            <Input.TextArea />
           </Form.Item>
-        )}
-        <Form.Item name="capacity" label="Sig'imi" rules={[{ type: 'number', min: 1, message: "Sig'im musbat son bo'lishi kerak" }]}>
-          <InputNumber min={1} style={{ width: '100%' }} />
-        </Form.Item>
-        <Form.Item name="tuitionAmount" label="O'quv to'lovi (so'm)">
-          <InputNumber min={0} style={{ width: '100%' }} />
-        </Form.Item>
-        <Form.Item name="level" label="Daraja">
-          <Select allowClear options={LEVEL_OPTIONS} />
-        </Form.Item>
-        <Form.Item name="startDate" label="Boshlanish sanasi" rules={[{ required: true }]}>
-          <DatePicker style={{ width: '100%' }} />
-        </Form.Item>
-        <Form.Item name="endDate" label="Tugash sanasi">
-          <DatePicker style={{ width: '100%' }} />
-        </Form.Item>
-        {isEdit && (
-          <Form.Item name="status" label="Status">
-            <Select options={STATUS_OPTIONS} />
-          </Form.Item>
-        )}
-        <Form.Item name="notes" label="Izoh">
-          <Input.TextArea />
-        </Form.Item>
+        </FormSection>
       </Form>
     </Modal>
   );

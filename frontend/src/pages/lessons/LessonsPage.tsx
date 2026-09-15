@@ -1,6 +1,6 @@
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
-import { Button, DatePicker, Input, Select, Space, Table, Tag, Typography } from 'antd';
+import { Button, DatePicker, Input, Select, Table, Tag } from 'antd';
 import dayjs from 'dayjs';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -8,8 +8,10 @@ import { listBranches } from '../../api/branches';
 import { listGroups } from '../../api/groups';
 import { listLessons } from '../../api/lessons';
 import { listTeachers } from '../../api/teachers';
+import { FilterBar } from '../../components/FilterBar';
 import { LessonFormModal } from '../../components/LessonFormModal';
 import { PageErrorState } from '../../components/PageErrorState';
+import { PageHeader } from '../../components/PageHeader';
 import { useAuthStore } from '../../store/auth.store';
 import type { LessonListItem, LessonStatus } from '../../types';
 
@@ -66,18 +68,18 @@ export function LessonsPage() {
 
   return (
     <div>
-      <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
-        <Typography.Title level={4} style={{ margin: 0 }}>
-          Darslar
-        </Typography.Title>
-        {canCreate && (
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setFormOpen(true)}>
-            Yangi dars
-          </Button>
-        )}
-      </Space>
+      <PageHeader
+        title="Darslar"
+        extra={
+          canCreate && (
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => setFormOpen(true)}>
+              Yangi dars
+            </Button>
+          )
+        }
+      />
 
-      <Space style={{ marginBottom: 16 }} wrap>
+      <FilterBar>
         <Input
           placeholder="Qidirish: mavzu, guruh, o'qituvchi"
           prefix={<SearchOutlined />}
@@ -144,7 +146,7 @@ export function LessonsPage() {
             setPage(1);
           }}
         />
-      </Space>
+      </FilterBar>
 
       <Table<LessonListItem>
         rowKey="id"

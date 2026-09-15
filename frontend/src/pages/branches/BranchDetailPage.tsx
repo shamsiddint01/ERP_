@@ -1,13 +1,19 @@
-import { ArrowLeftOutlined, EditOutlined, PlusOutlined, StopOutlined } from '@ant-design/icons';
+import { EditOutlined, GroupOutlined, HomeOutlined, PlusOutlined, StopOutlined, TeamOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Button, Card, Col, Descriptions, Popconfirm, Row, Space, Spin, Statistic, Table, Tag, Typography } from 'antd';
+import { App, Button, Popconfirm, Spin, Table, Tag } from 'antd';
 import { EmptyState } from '../../components/EmptyState';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { deactivateBranch, getBranch } from '../../api/branches';
+import { ActionBar } from '../../components/ActionBar';
 import { BranchFormModal } from '../../components/BranchFormModal';
 import { ClassroomFormModal } from '../../components/ClassroomFormModal';
+import { DetailHeader } from '../../components/DetailHeader';
+import { DetailSection } from '../../components/DetailSection';
+import { InfoGrid } from '../../components/InfoGrid';
 import { PageErrorState } from '../../components/PageErrorState';
+import { SummaryCard } from '../../components/SummaryCard';
+import { palette } from '../../theme';
 import { useAuthStore } from '../../store/auth.store';
 import type { BranchStatus, ClassroomStatus } from '../../types';
 
@@ -58,69 +64,53 @@ export function BranchDetailPage() {
 
   return (
     <div>
-      <Button icon={<ArrowLeftOutlined />} type="text" onClick={() => navigate('/branches')} style={{ marginBottom: 8 }}>
-        Filiallar ro'yxatiga qaytish
-      </Button>
-
-      <Card style={{ marginBottom: 24 }}>
-        <Row justify="space-between" align="middle">
-          <Col>
-            <Typography.Title level={3} style={{ margin: 0 }}>
-              {branch.name} <Tag>{branch.code}</Tag>
-            </Typography.Title>
-            <Typography.Text type="secondary">{branch.address ?? 'Manzil kiritilmagan'}</Typography.Text>
-          </Col>
-          <Col>
-            <Space>
-              <Tag color={STATUS_COLORS[branch.status]}>{STATUS_LABELS[branch.status]}</Tag>
-              {canEdit && (
-                <Button icon={<EditOutlined />} onClick={() => setEditOpen(true)}>
-                  Tahrirlash
+      <DetailHeader
+        backLabel="Filiallar ro'yxatiga qaytish"
+        onBack={() => navigate('/branches')}
+        title={
+          <>
+            {branch.name} <Tag>{branch.code}</Tag>
+          </>
+        }
+        subtitle={branch.address ?? 'Manzil kiritilmagan'}
+        actions={
+          <ActionBar>
+            <Tag color={STATUS_COLORS[branch.status]}>{STATUS_LABELS[branch.status]}</Tag>
+            {canEdit && (
+              <Button icon={<EditOutlined />} onClick={() => setEditOpen(true)}>
+                Tahrirlash
+              </Button>
+            )}
+            {canEdit && branch.status !== 'INACTIVE' && (
+              <Popconfirm title="Filialni nofaol qilishni tasdiqlaysizmi?" onConfirm={() => deactivateMutation.mutate()}>
+                <Button loading={deactivateMutation.isPending} danger icon={<StopOutlined />}>
+                  Nofaol qilish
                 </Button>
-              )}
-              {canEdit && branch.status !== 'INACTIVE' && (
-                <Popconfirm title="Filialni nofaol qilishni tasdiqlaysizmi?" onConfirm={() => deactivateMutation.mutate()}>
-                  <Button loading={deactivateMutation.isPending} danger icon={<StopOutlined />}>
-                    Nofaol qilish
-                  </Button>
-                </Popconfirm>
-              )}
-            </Space>
-          </Col>
-        </Row>
+              </Popconfirm>
+            )}
+          </ActionBar>
+        }
+      >
+        <InfoGrid
+          items={[
+            { label: 'Telefon', value: branch.phone },
+            { label: 'Email', value: branch.email },
+            { label: 'Ish vaqti', value: branch.workingHours },
+            { label: 'Rahbar', value: branch.managerEmployee?.fullName },
+            ...(branch.notes ? [{ label: 'Izoh', value: branch.notes, span: 2 }] : []),
+          ]}
+        />
+      </DetailHeader>
 
-        <Descriptions column={{ xs: 1, sm: 2, md: 3 }} style={{ marginTop: 16 }}>
-          <Descriptions.Item label="Telefon">{branch.phone ?? '—'}</Descriptions.Item>
-          <Descriptions.Item label="Email">{branch.email ?? '—'}</Descriptions.Item>
-          <Descriptions.Item label="Ish vaqti">{branch.workingHours ?? '—'}</Descriptions.Item>
-          <Descriptions.Item label="Rahbar">{branch.managerEmployee?.fullName ?? '—'}</Descriptions.Item>
-          {branch.notes && (
-            <Descriptions.Item label="Izoh" span={2}>
-              {branch.notes}
-            </Descriptions.Item>
-          )}
-        </Descriptions>
-      </Card>
+      <SummaryCard
+        items={[
+          { icon: <HomeOutlined />, label: 'Xonalar soni', value: branch.classrooms.length, color: palette.info },
+          { icon: <TeamOutlined />, label: "O'quvchilar soni", value: branch._count.students, color: palette.primary },
+          { icon: <GroupOutlined />, label: 'Faol guruhlar soni', value: branch.activeGroupCount, color: palette.success },
+        ]}
+      />
 
-      <Row gutter={16} style={{ marginBottom: 24 }}>
-        <Col span={8}>
-          <Card>
-            <Statistic title="Xonalar soni" value={branch.classrooms.length} />
-          </Card>
-        </Col>
-        <Col span={8}>
-          <Card>
-            <Statistic title="O'quvchilar soni" value={branch._count.students} />
-          </Card>
-        </Col>
-        <Col span={8}>
-          <Card>
-            <Statistic title="Faol guruhlar soni" value={branch.activeGroupCount} styles={{ content: { color: '#3f8600' } }} />
-          </Card>
-        </Col>
-      </Row>
-
-      <Card
+      <DetailSection
         title="Xonalar"
         extra={
           canEdit && (
@@ -147,7 +137,7 @@ export function BranchDetailPage() {
         ) : (
           <EmptyState title="Xonalar hali qo'shilmagan" />
         )}
-      </Card>
+      </DetailSection>
 
       <BranchFormModal open={editOpen} onClose={() => setEditOpen(false)} branch={branch} />
       <ClassroomFormModal open={classroomModalOpen} onClose={() => setClassroomModalOpen(false)} defaultBranchId={branch.id} />

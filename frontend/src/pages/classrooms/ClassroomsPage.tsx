@@ -1,12 +1,14 @@
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Input, Select, Space, Table, Tag, Typography } from 'antd';
+import { Button, Input, Select, Table, Tag } from 'antd';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { listBranches } from '../../api/branches';
 import { listClassrooms } from '../../api/classrooms';
 import { ClassroomFormModal } from '../../components/ClassroomFormModal';
+import { FilterBar } from '../../components/FilterBar';
 import { PageErrorState } from '../../components/PageErrorState';
+import { PageHeader } from '../../components/PageHeader';
 import { useAuthStore } from '../../store/auth.store';
 import type { ClassroomListItem, ClassroomStatus } from '../../types';
 
@@ -36,18 +38,18 @@ export function ClassroomsPage() {
 
   return (
     <div>
-      <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
-        <Typography.Title level={4} style={{ margin: 0 }}>
-          Xonalar
-        </Typography.Title>
-        {hasPermission('classrooms', 'CREATE') && (
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
-            Yangi xona
-          </Button>
-        )}
-      </Space>
+      <PageHeader
+        title="Xonalar"
+        extra={
+          hasPermission('classrooms', 'CREATE') && (
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
+              Yangi xona
+            </Button>
+          )
+        }
+      />
 
-      <Space style={{ marginBottom: 16 }} wrap>
+      <FilterBar>
         <Input
           placeholder="Qidirish: nomi yoki xona raqami"
           prefix={<SearchOutlined />}
@@ -80,7 +82,7 @@ export function ClassroomsPage() {
             setPage(1);
           }}
         />
-      </Space>
+      </FilterBar>
 
       <Table<ClassroomListItem>
         rowKey="id"

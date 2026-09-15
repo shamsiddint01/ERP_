@@ -1,11 +1,12 @@
 import { BarChartOutlined, PlusOutlined, TagsOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Space, Table, Tag, Typography } from 'antd';
+import { Button, Table, Tag } from 'antd';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { listPayrollPeriods } from '../../api/payroll';
 import { CreatePayrollPeriodModal } from '../../components/CreatePayrollPeriodModal';
 import { PageErrorState } from '../../components/PageErrorState';
+import { PageHeader } from '../../components/PageHeader';
 import { PayrollComponentsDrawer } from '../../components/PayrollComponentsDrawer';
 import { useAuthStore } from '../../store/auth.store';
 import type { PayrollPeriod, PayrollPeriodStatus } from '../../types';
@@ -32,24 +33,24 @@ export function PayrollPeriodsPage() {
 
   return (
     <div>
-      <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
-        <Typography.Title level={4} style={{ margin: 0 }}>
-          Ish haqi (Payroll)
-        </Typography.Title>
-        <Space>
-          <Button icon={<BarChartOutlined />} onClick={() => navigate('/payroll/reports')}>
-            Hisobotlar
-          </Button>
-          <Button icon={<TagsOutlined />} onClick={() => setComponentsOpen(true)}>
-            Bonus/Ushlab qolish turlari
-          </Button>
-          {hasPermission('payroll', 'CREATE') && (
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
-              Yangi davr
+      <PageHeader
+        title="Ish haqi (Payroll)"
+        extra={
+          <>
+            <Button icon={<BarChartOutlined />} onClick={() => navigate('/payroll/reports')}>
+              Hisobotlar
             </Button>
-          )}
-        </Space>
-      </Space>
+            <Button icon={<TagsOutlined />} onClick={() => setComponentsOpen(true)}>
+              Bonus/Ushlab qolish turlari
+            </Button>
+            {hasPermission('payroll', 'CREATE') && (
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
+                Yangi davr
+              </Button>
+            )}
+          </>
+        }
+      />
 
       <Table<PayrollPeriod>
         rowKey="id"

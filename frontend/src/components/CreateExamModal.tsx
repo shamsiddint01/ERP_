@@ -5,6 +5,7 @@ import { createExam } from '../api/exams';
 import { listCourses } from '../api/courses';
 import { listGroups } from '../api/groups';
 import { listTeachers } from '../api/teachers';
+import { FormSection } from './FormSection';
 import { useAuthStore } from '../store/auth.store';
 import type { ExamType } from '../types';
 
@@ -92,49 +93,54 @@ export function CreateExamModal({ open, onClose, fixedGroupId, fixedCourseId }: 
   return (
     <Modal title="Yangi imtihon" open={open} onCancel={onClose} onOk={() => form.submit()} confirmLoading={mutation.isPending} destroyOnHidden>
       <Form form={form} layout="vertical" initialValues={{ date: dayjs(), maxScore: 100, passingScore: 60, type: 'QUIZ' }} onFinish={(values) => mutation.mutate(values)}>
-        <Form.Item name="title" label="Sarlavha" rules={[{ required: true }]}>
-          <Input placeholder="masalan, Oraliq nazorat — 1-modul" />
-        </Form.Item>
-        {!fixedCourseId && (
-          <Form.Item name="courseId" label="Kurs" rules={[{ required: true }]}>
-            <Select
-              showSearch
-              optionFilterProp="label"
-              onChange={() => form.setFieldValue('groupId', undefined)}
-              options={coursesQuery.data?.items.map((c) => ({ value: c.id, label: c.name }))}
-            />
+        <FormSection title="Asosiy ma'lumotlar">
+          <Form.Item name="title" label="Sarlavha" rules={[{ required: true }]}>
+            <Input placeholder="masalan, Oraliq nazorat — 1-modul" />
           </Form.Item>
-        )}
-        {!fixedGroupId && (
-          <Form.Item name="groupId" label="Guruh" rules={[{ required: true }]}>
-            <Select disabled={!selectedCourseId} options={groupsQuery.data?.items.map((g) => ({ value: g.id, label: g.name }))} placeholder="Avval kursni tanlang" />
+          {!fixedCourseId && (
+            <Form.Item name="courseId" label="Kurs" rules={[{ required: true }]}>
+              <Select
+                showSearch
+                optionFilterProp="label"
+                onChange={() => form.setFieldValue('groupId', undefined)}
+                options={coursesQuery.data?.items.map((c) => ({ value: c.id, label: c.name }))}
+              />
+            </Form.Item>
+          )}
+          {!fixedGroupId && (
+            <Form.Item name="groupId" label="Guruh" rules={[{ required: true }]}>
+              <Select disabled={!selectedCourseId} options={groupsQuery.data?.items.map((g) => ({ value: g.id, label: g.name }))} placeholder="Avval kursni tanlang" />
+            </Form.Item>
+          )}
+          {canBrowseTeachers && (
+            <Form.Item name="teacherEmployeeId" label="O'qituvchi (ixtiyoriy)" style={{ marginBottom: 0 }}>
+              <Select
+                allowClear
+                showSearch
+                optionFilterProp="label"
+                options={teachersQuery.data?.items.map((t) => ({ value: t.employeeId, label: t.employee.fullName }))}
+              />
+            </Form.Item>
+          )}
+        </FormSection>
+
+        <FormSection title="Baholash">
+          <Form.Item name="date" label="Sana" rules={[{ required: true }]}>
+            <DatePicker style={{ width: '100%' }} />
           </Form.Item>
-        )}
-        {canBrowseTeachers && (
-          <Form.Item name="teacherEmployeeId" label="O'qituvchi (ixtiyoriy)">
-            <Select
-              allowClear
-              showSearch
-              optionFilterProp="label"
-              options={teachersQuery.data?.items.map((t) => ({ value: t.employeeId, label: t.employee.fullName }))}
-            />
+          <Form.Item name="type" label="Turi" rules={[{ required: true }]}>
+            <Select options={TYPE_OPTIONS} />
           </Form.Item>
-        )}
-        <Form.Item name="date" label="Sana" rules={[{ required: true }]}>
-          <DatePicker style={{ width: '100%' }} />
-        </Form.Item>
-        <Form.Item name="type" label="Turi" rules={[{ required: true }]}>
-          <Select options={TYPE_OPTIONS} />
-        </Form.Item>
-        <Form.Item name="maxScore" label="Maksimal ball" rules={[{ required: true }]}>
-          <InputNumber min={1} style={{ width: '100%' }} />
-        </Form.Item>
-        <Form.Item name="passingScore" label="O'tish balli" rules={[{ required: true }]}>
-          <InputNumber min={0} style={{ width: '100%' }} />
-        </Form.Item>
-        <Form.Item name="notes" label="Izoh">
-          <Input.TextArea />
-        </Form.Item>
+          <Form.Item name="maxScore" label="Maksimal ball" rules={[{ required: true }]}>
+            <InputNumber min={1} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="passingScore" label="O'tish balli" rules={[{ required: true }]}>
+            <InputNumber min={0} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="notes" label="Izoh" style={{ marginBottom: 0 }}>
+            <Input.TextArea />
+          </Form.Item>
+        </FormSection>
       </Form>
     </Modal>
   );

@@ -1,11 +1,13 @@
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Button, Popconfirm, Select, Space, Table, Tag, Typography } from 'antd';
+import { App, Button, Popconfirm, Select, Table, Tag } from 'antd';
 import { useState } from 'react';
 import { deleteCompensation, listCompensation } from '../../api/compensation';
 import { listEmployees } from '../../api/employees';
 import { CreateCompensationModal } from '../../components/CreateCompensationModal';
+import { FilterBar } from '../../components/FilterBar';
 import { PageErrorState } from '../../components/PageErrorState';
+import { PageHeader } from '../../components/PageHeader';
 import { useAuthStore } from '../../store/auth.store';
 import type { EmployeeCompensation, SalaryType } from '../../types';
 
@@ -55,18 +57,18 @@ export function CompensationPage() {
 
   return (
     <div>
-      <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
-        <Typography.Title level={4} style={{ margin: 0 }}>
-          Xodimlar maoshi
-        </Typography.Title>
-        {canCreate && (
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
-            Yangi yozuv
-          </Button>
-        )}
-      </Space>
+      <PageHeader
+        title="Xodimlar maoshi"
+        extra={
+          canCreate && (
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
+              Yangi yozuv
+            </Button>
+          )
+        }
+      />
 
-      <Space style={{ marginBottom: 16 }}>
+      <FilterBar>
         <Select
           placeholder="Xodim bo'yicha filtrlash"
           allowClear
@@ -79,7 +81,7 @@ export function CompensationPage() {
             setPage(1);
           }}
         />
-      </Space>
+      </FilterBar>
 
       <Table<EmployeeCompensation>
         rowKey="id"

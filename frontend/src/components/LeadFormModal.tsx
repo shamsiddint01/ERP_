@@ -6,6 +6,7 @@ import { listBranches } from '../api/branches';
 import { listCourses } from '../api/courses';
 import { listEmployees } from '../api/employees';
 import { createLead, updateLead, type LeadPayload } from '../api/leads';
+import { FormSection } from './FormSection';
 import type { LeadDetail } from '../types';
 
 interface LeadFormModalProps {
@@ -101,49 +102,54 @@ export function LeadFormModal({ open, onClose, lead, onSaved }: LeadFormModalPro
       width={560}
     >
       <Form form={form} layout="vertical" onFinish={(values) => mutation.mutate(values)}>
-        <Form.Item name="fullName" label="F.I.Sh." rules={[{ required: true }]}>
-          <Input />
-        </Form.Item>
-        <Form.Item name="phone" label="Telefon" rules={[{ required: true }]}>
-          <Input placeholder="+998901234567" />
-        </Form.Item>
-        <Form.Item name="email" label="Email">
-          <Input />
-        </Form.Item>
-        <Form.Item name="source" label="Manba">
-          <Input placeholder="Masalan: Instagram, tavsiya, sayt, ko'cha reklamasi" />
-        </Form.Item>
-        <Form.Item name="preferredCourseId" label="Qiziqqan kurs">
-          <Select
-            allowClear
-            showSearch
-            loading={coursesQuery.isLoading}
-            filterOption={(input, option) => ((option?.label as string) ?? '').toLowerCase().includes(input.toLowerCase())}
-            options={coursesQuery.data?.items.map((c) => ({ value: c.id, label: c.name }))}
-          />
-        </Form.Item>
-        <Form.Item name="preferredBranchId" label="Qiziqqan filial">
-          <Select
-            allowClear
-            loading={branchesQuery.isLoading}
-            options={branchesQuery.data?.items.map((b) => ({ value: b.id, label: b.name }))}
-          />
-        </Form.Item>
-        <Form.Item name="assignedEmployeeId" label="Mas'ul xodim">
-          <Select
-            allowClear
-            showSearch
-            loading={employeesQuery.isLoading}
-            filterOption={(input, option) => ((option?.label as string) ?? '').toLowerCase().includes(input.toLowerCase())}
-            options={employeesQuery.data?.items.map((e) => ({ value: e.id, label: e.fullName }))}
-          />
-        </Form.Item>
-        <Form.Item name="nextFollowUpAt" label="Keyingi aloqa sanasi">
-          <DatePicker showTime style={{ width: '100%' }} />
-        </Form.Item>
-        <Form.Item name="notes" label="Izoh">
-          <Input.TextArea />
-        </Form.Item>
+        <FormSection title="Shaxsiy ma'lumotlar">
+          <Form.Item name="fullName" label="F.I.Sh." rules={[{ required: true }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item name="phone" label="Telefon" rules={[{ required: true }]}>
+            <Input placeholder="+998901234567" />
+          </Form.Item>
+          <Form.Item name="email" label="Email">
+            <Input />
+          </Form.Item>
+          <Form.Item name="source" label="Manba">
+            <Input placeholder="Masalan: Instagram, tavsiya, sayt, ko'cha reklamasi" />
+          </Form.Item>
+        </FormSection>
+
+        <FormSection title="Qiziqish va mas'uliyat">
+          <Form.Item name="preferredCourseId" label="Qiziqqan kurs">
+            <Select
+              allowClear
+              showSearch
+              loading={coursesQuery.isLoading}
+              filterOption={(input, option) => ((option?.label as string) ?? '').toLowerCase().includes(input.toLowerCase())}
+              options={coursesQuery.data?.items.map((c) => ({ value: c.id, label: c.name }))}
+            />
+          </Form.Item>
+          <Form.Item name="preferredBranchId" label="Qiziqqan filial">
+            <Select
+              allowClear
+              loading={branchesQuery.isLoading}
+              options={branchesQuery.data?.items.map((b) => ({ value: b.id, label: b.name }))}
+            />
+          </Form.Item>
+          <Form.Item name="assignedEmployeeId" label="Mas'ul xodim">
+            <Select
+              allowClear
+              showSearch
+              loading={employeesQuery.isLoading}
+              filterOption={(input, option) => ((option?.label as string) ?? '').toLowerCase().includes(input.toLowerCase())}
+              options={employeesQuery.data?.items.map((e) => ({ value: e.id, label: e.fullName }))}
+            />
+          </Form.Item>
+          <Form.Item name="nextFollowUpAt" label="Keyingi aloqa sanasi">
+            <DatePicker showTime style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="notes" label="Izoh" style={{ marginBottom: 0 }}>
+            <Input.TextArea />
+          </Form.Item>
+        </FormSection>
       </Form>
     </Modal>
   );

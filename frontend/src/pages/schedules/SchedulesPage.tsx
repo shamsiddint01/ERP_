@@ -1,14 +1,16 @@
 import { CalendarOutlined, PlusOutlined, SearchOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Button, Input, Popconfirm, Select, Space, Table, Tag, Typography } from 'antd';
+import { App, Button, Input, Popconfirm, Select, Space, Table, Tag } from 'antd';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { listBranches } from '../../api/branches';
 import { listGroups } from '../../api/groups';
 import { cancelSchedule, listSchedules } from '../../api/schedules';
 import { listTeachers } from '../../api/teachers';
+import { FilterBar } from '../../components/FilterBar';
 import { GenerateLessonsModal } from '../../components/GenerateLessonsModal';
 import { PageErrorState } from '../../components/PageErrorState';
+import { PageHeader } from '../../components/PageHeader';
 import { ScheduleFormModal } from '../../components/ScheduleFormModal';
 import { useAuthStore } from '../../store/auth.store';
 import type { ScheduleDayOfWeek, ScheduleDetail, ScheduleStatus } from '../../types';
@@ -85,23 +87,23 @@ export function SchedulesPage() {
 
   return (
     <div>
-      <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
-        <Typography.Title level={4} style={{ margin: 0 }}>
-          Dars jadvallari
-        </Typography.Title>
-        <Space>
-          <Button icon={<CalendarOutlined />} onClick={() => navigate('/schedules/calendar')}>
-            Taqvim ko'rinishi
-          </Button>
-          {canCreate && (
-            <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
-              Yangi jadval
+      <PageHeader
+        title="Dars jadvallari"
+        extra={
+          <>
+            <Button icon={<CalendarOutlined />} onClick={() => navigate('/schedules/calendar')}>
+              Taqvim ko'rinishi
             </Button>
-          )}
-        </Space>
-      </Space>
+            {canCreate && (
+              <Button type="primary" icon={<PlusOutlined />} onClick={openCreate}>
+                Yangi jadval
+              </Button>
+            )}
+          </>
+        }
+      />
 
-      <Space style={{ marginBottom: 16 }} wrap>
+      <FilterBar>
         <Input
           placeholder="Qidirish: guruh, o'qituvchi, izoh"
           prefix={<SearchOutlined />}
@@ -172,7 +174,7 @@ export function SchedulesPage() {
             setPage(1);
           }}
         />
-      </Space>
+      </FilterBar>
 
       <Table<ScheduleDetail>
         rowKey="id"

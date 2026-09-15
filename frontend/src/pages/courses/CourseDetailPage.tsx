@@ -1,12 +1,15 @@
-import { ArrowLeftOutlined, EditOutlined, GroupOutlined, StopOutlined, WalletOutlined } from '@ant-design/icons';
+import { EditOutlined, GroupOutlined, StopOutlined, WalletOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Button, Card, Col, Descriptions, Popconfirm, Row, Space, Spin, Tag, Typography } from 'antd';
+import { App, Button, Popconfirm, Spin, Tag } from 'antd';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { deactivateCourse, getCourse } from '../../api/courses';
+import { ActionBar } from '../../components/ActionBar';
 import { CourseFormModal } from '../../components/CourseFormModal';
+import { DetailHeader } from '../../components/DetailHeader';
+import { InfoGrid } from '../../components/InfoGrid';
 import { PageErrorState } from '../../components/PageErrorState';
-import { StatCard } from '../../components/StatCard';
+import { SummaryCard } from '../../components/SummaryCard';
 import { palette } from '../../theme';
 import { useAuthStore } from '../../store/auth.store';
 import type { CourseLevel, CourseStatus } from '../../types';
@@ -64,63 +67,55 @@ export function CourseDetailPage() {
 
   return (
     <div>
-      <Button icon={<ArrowLeftOutlined />} type="text" onClick={() => navigate('/courses')} style={{ marginBottom: 8 }}>
-        Kurslar ro'yxatiga qaytish
-      </Button>
-
-      <Card style={{ marginBottom: 24 }}>
-        <Row justify="space-between" align="middle">
-          <Col>
-            <Typography.Title level={3} style={{ margin: 0 }}>
-              {course.name} <Tag>{course.code}</Tag>
-            </Typography.Title>
-            <Typography.Text type="secondary">{course.category?.name ?? 'Kategoriyasiz'}</Typography.Text>
-          </Col>
-          <Col>
-            <Space>
-              <Tag color={STATUS_COLORS[course.status]}>{STATUS_LABELS[course.status]}</Tag>
-              {canEdit && (
-                <Button icon={<EditOutlined />} onClick={() => setEditOpen(true)}>
-                  Tahrirlash
+      <DetailHeader
+        backLabel="Kurslar ro'yxatiga qaytish"
+        onBack={() => navigate('/courses')}
+        title={
+          <>
+            {course.name} <Tag>{course.code}</Tag>
+          </>
+        }
+        subtitle={course.category?.name ?? 'Kategoriyasiz'}
+        actions={
+          <ActionBar>
+            <Tag color={STATUS_COLORS[course.status]}>{STATUS_LABELS[course.status]}</Tag>
+            {canEdit && (
+              <Button icon={<EditOutlined />} onClick={() => setEditOpen(true)}>
+                Tahrirlash
+              </Button>
+            )}
+            {canEdit && course.status !== 'INACTIVE' && (
+              <Popconfirm title="Kursni nofaol qilishni tasdiqlaysizmi?" onConfirm={() => deactivateMutation.mutate()}>
+                <Button loading={deactivateMutation.isPending} danger icon={<StopOutlined />}>
+                  Nofaol qilish
                 </Button>
-              )}
-              {canEdit && course.status !== 'INACTIVE' && (
-                <Popconfirm title="Kursni nofaol qilishni tasdiqlaysizmi?" onConfirm={() => deactivateMutation.mutate()}>
-                  <Button loading={deactivateMutation.isPending} danger icon={<StopOutlined />}>
-                    Nofaol qilish
-                  </Button>
-                </Popconfirm>
-              )}
-            </Space>
-          </Col>
-        </Row>
+              </Popconfirm>
+            )}
+          </ActionBar>
+        }
+      >
+        <InfoGrid
+          items={[
+            { label: 'Daraja', value: course.level ? LEVEL_LABELS[course.level] : undefined },
+            { label: 'Davomiyligi', value: course.durationWeeks ? `${course.durationWeeks} hafta` : undefined },
+            { label: 'Dars davomiyligi', value: `${course.lessonDurationMinutes} daqiqa` },
+            ...(course.description ? [{ label: 'Tavsif', value: course.description, span: 3 }] : []),
+          ]}
+        />
+      </DetailHeader>
 
-        <Descriptions column={{ xs: 1, sm: 2, md: 3 }} style={{ marginTop: 16 }}>
-          <Descriptions.Item label="Daraja">{course.level ? LEVEL_LABELS[course.level] : '—'}</Descriptions.Item>
-          <Descriptions.Item label="Davomiyligi">{course.durationWeeks ? `${course.durationWeeks} hafta` : '—'}</Descriptions.Item>
-          <Descriptions.Item label="Dars davomiyligi">{course.lessonDurationMinutes} daqiqa</Descriptions.Item>
-          {course.description && (
-            <Descriptions.Item label="Tavsif" span={3}>
-              {course.description}
-            </Descriptions.Item>
-          )}
-        </Descriptions>
-      </Card>
-
-      <Row gutter={16}>
-        <Col xs={12} sm={8}>
-          <StatCard
-            icon={<WalletOutlined />}
-            color={palette.primary}
-            title="Standart to'lov summasi"
-            value={Number(course.defaultTuition)}
-            formatter={(v) => `${v.toLocaleString('uz-UZ')} so'm`}
-          />
-        </Col>
-        <Col xs={12} sm={8}>
-          <StatCard icon={<GroupOutlined />} color={palette.info} title="Guruhlar soni" value={course._count.studentGroups} />
-        </Col>
-      </Row>
+      <SummaryCard
+        items={[
+          {
+            icon: <WalletOutlined />,
+            color: palette.primary,
+            label: "Standart to'lov summasi",
+            value: Number(course.defaultTuition),
+            formatter: (v) => `${v.toLocaleString('uz-UZ')} so'm`,
+          },
+          { icon: <GroupOutlined />, color: palette.info, label: 'Guruhlar soni', value: course._count.studentGroups },
+        ]}
+      />
 
       <CourseFormModal open={editOpen} onClose={() => setEditOpen(false)} course={course} />
     </div>

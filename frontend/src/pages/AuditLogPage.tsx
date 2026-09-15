@@ -1,8 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
-import { Table, Tag, Typography } from 'antd';
+import { Input, Select, Table, Tag } from 'antd';
 import { useState } from 'react';
 import { listAuditLogs, type AuditLogEntry } from '../api/auditLog';
+import { listUsers } from '../api/users';
+import { FilterBar } from '../components/FilterBar';
 import { PageErrorState } from '../components/PageErrorState';
+import { PageHeader } from '../components/PageHeader';
 import { formatDateTime } from '../utils/format';
 
 const ACTION_COLORS: Record<string, string> = {
@@ -19,8 +22,14 @@ const ACTION_COLORS: Record<string, string> = {
 
 export function AuditLogPage() {
   const [page, setPage] = useState(1);
+  const [entityType, setEntityType] = useState('');
+  const [actorUserId, setActorUserId] = useState<string | undefined>();
   const pageSize = 25;
-  const auditQuery = useQuery({ queryKey: ['audit-logs', page], queryFn: () => listAuditLogs(page, pageSize) });
+  const usersQuery = useQuery({ queryKey: ['users'], queryFn: listUsers });
+  const auditQuery = useQuery({
+    queryKey: ['audit-logs', page, entityType, actorUserId],
+    queryFn: () => listAuditLogs(page, pageSize, { entityType: entityType || undefined, actorUserId }),
+  });
 
   if (auditQuery.isError && !auditQuery.data) {
     return <PageErrorState onRetry={() => auditQuery.refetch()} />;
@@ -28,7 +37,32 @@ export function AuditLogPage() {
 
   return (
     <div>
-      <Typography.Title level={4}>Audit jurnali</Typography.Title>
+      <PageHeader title="Audit jurnali" />
+
+      <FilterBar>
+        <Input
+          placeholder="Obyekt turi (masalan: Lesson, Exam)"
+          allowClear
+          style={{ width: 220 }}
+          onChange={(e) => {
+            setEntityType(e.target.value);
+            setPage(1);
+          }}
+        />
+        <Select
+          placeholder="Kim"
+          allowClear
+          showSearch
+          style={{ width: 220 }}
+          options={usersQuery.data?.map((u) => ({ value: u.id, label: u.fullName }))}
+          filterOption={(input, option) => ((option?.label as string) ?? '').toLowerCase().includes(input.toLowerCase())}
+          onChange={(value) => {
+            setActorUserId(value);
+            setPage(1);
+          }}
+        />
+      </FilterBar>
+
       <Table<AuditLogEntry>
         rowKey="id"
         loading={auditQuery.isLoading}

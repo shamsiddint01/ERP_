@@ -3,6 +3,7 @@ import { App, Form, Input, InputNumber, Modal, Select } from 'antd';
 import { useEffect } from 'react';
 import { listCourseCategories } from '../api/courseCategories';
 import { createCourse, updateCourse, type CoursePayload } from '../api/courses';
+import { FormSection } from './FormSection';
 import type { CourseDetail, CourseLevel, CourseStatus } from '../types';
 
 interface CourseFormModalProps {
@@ -99,39 +100,44 @@ export function CourseFormModal({ open, onClose, course }: CourseFormModalProps)
       width={600}
     >
       <Form form={form} layout="vertical" onFinish={(values) => mutation.mutate(values)} initialValues={{ lessonDurationMinutes: 90 }}>
-        <Form.Item name="categoryId" label="Kategoriya">
-          <Select
-            allowClear
-            loading={categoriesQuery.isLoading}
-            options={categoriesQuery.data?.items.map((c) => ({ value: c.id, label: c.name }))}
-          />
-        </Form.Item>
-        <Form.Item name="name" label="Nomi" rules={[{ required: true }]}>
-          <Input />
-        </Form.Item>
-        <Form.Item name="code" label="Kod" rules={[{ required: true }]}>
-          <Input placeholder="Masalan: ENG-GEN" />
-        </Form.Item>
-        <Form.Item name="description" label="Tavsif">
-          <Input.TextArea />
-        </Form.Item>
-        <Form.Item name="level" label="Daraja">
-          <Select allowClear options={LEVEL_OPTIONS} />
-        </Form.Item>
-        <Form.Item name="durationWeeks" label="Davomiyligi (hafta)">
-          <InputNumber min={1} style={{ width: '100%' }} />
-        </Form.Item>
-        <Form.Item name="lessonDurationMinutes" label="Dars davomiyligi (daqiqa)" rules={[{ required: true }]}>
-          <InputNumber min={1} style={{ width: '100%' }} />
-        </Form.Item>
-        <Form.Item name="defaultTuition" label="Standart to'lov summasi (so'm)">
-          <InputNumber min={0} style={{ width: '100%' }} />
-        </Form.Item>
-        {isEdit && (
-          <Form.Item name="status" label="Status">
-            <Select options={STATUS_OPTIONS} />
+        <FormSection title="Asosiy ma'lumotlar">
+          <Form.Item name="categoryId" label="Kategoriya">
+            <Select
+              allowClear
+              loading={categoriesQuery.isLoading}
+              options={categoriesQuery.data?.items.map((c) => ({ value: c.id, label: c.name }))}
+            />
           </Form.Item>
-        )}
+          <Form.Item name="name" label="Nomi" rules={[{ required: true }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item name="code" label="Kod" rules={[{ required: true }]}>
+            <Input placeholder="Masalan: ENG-GEN" />
+          </Form.Item>
+          <Form.Item name="description" label="Tavsif" style={{ marginBottom: 0 }}>
+            <Input.TextArea />
+          </Form.Item>
+        </FormSection>
+
+        <FormSection title="Konfiguratsiya">
+          <Form.Item name="level" label="Daraja">
+            <Select allowClear options={LEVEL_OPTIONS} />
+          </Form.Item>
+          <Form.Item name="durationWeeks" label="Davomiyligi (hafta)">
+            <InputNumber min={1} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="lessonDurationMinutes" label="Dars davomiyligi (daqiqa)" rules={[{ required: true }]}>
+            <InputNumber min={1} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="defaultTuition" label="Standart to'lov summasi (so'm)" style={{ marginBottom: isEdit ? undefined : 0 }}>
+            <InputNumber min={0} style={{ width: '100%' }} />
+          </Form.Item>
+          {isEdit && (
+            <Form.Item name="status" label="Status" style={{ marginBottom: 0 }}>
+              <Select options={STATUS_OPTIONS} />
+            </Form.Item>
+          )}
+        </FormSection>
       </Form>
     </Modal>
   );

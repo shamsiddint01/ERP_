@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { App, Form, Input, Modal, Select } from 'antd';
 import { useEffect } from 'react';
 import { createGuardian, updateGuardian, type GuardianPayload } from '../api/guardians';
+import { FormSection } from './FormSection';
 import type { GuardianDetail, GuardianRelationship, GuardianStatus } from '../types';
 
 interface GuardianFormModalProps {
@@ -84,29 +85,34 @@ export function GuardianFormModal({ open, onClose, guardian, onSaved }: Guardian
       width={560}
     >
       <Form form={form} layout="vertical" onFinish={(values) => mutation.mutate(values)}>
-        <Form.Item name="fullName" label="F.I.Sh." rules={[{ required: true }]}>
-          <Input />
-        </Form.Item>
-        <Form.Item name="phone" label="Telefon" rules={[{ required: true }]}>
-          <Input placeholder="+998901234567" />
-        </Form.Item>
-        <Form.Item name="email" label="Email">
-          <Input />
-        </Form.Item>
-        <Form.Item name="relationshipType" label="Qarindoshlik turi">
-          <Select allowClear options={RELATIONSHIP_OPTIONS} />
-        </Form.Item>
-        <Form.Item name="address" label="Manzil">
-          <Input />
-        </Form.Item>
-        {isEdit && (
-          <Form.Item name="status" label="Status">
-            <Select options={[{ value: 'ACTIVE', label: 'Faol' }, { value: 'INACTIVE', label: 'Nofaol' }]} />
+        <FormSection title="Shaxsiy ma'lumotlar">
+          <Form.Item name="fullName" label="F.I.Sh." rules={[{ required: true }]}>
+            <Input />
           </Form.Item>
-        )}
-        <Form.Item name="notes" label="Izoh">
-          <Input.TextArea />
-        </Form.Item>
+          <Form.Item name="phone" label="Telefon" rules={[{ required: true }]}>
+            <Input placeholder="+998901234567" />
+          </Form.Item>
+          <Form.Item name="email" label="Email">
+            <Input />
+          </Form.Item>
+        </FormSection>
+
+        <FormSection title="Qo'shimcha">
+          <Form.Item name="relationshipType" label="Qarindoshlik turi">
+            <Select allowClear options={RELATIONSHIP_OPTIONS} />
+          </Form.Item>
+          <Form.Item name="address" label="Manzil">
+            <Input />
+          </Form.Item>
+          {isEdit && (
+            <Form.Item name="status" label="Status">
+              <Select options={[{ value: 'ACTIVE', label: 'Faol' }, { value: 'INACTIVE', label: 'Nofaol' }]} />
+            </Form.Item>
+          )}
+          <Form.Item name="notes" label="Izoh" style={{ marginBottom: 0 }}>
+            <Input.TextArea />
+          </Form.Item>
+        </FormSection>
       </Form>
     </Modal>
   );

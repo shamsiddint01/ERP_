@@ -1,10 +1,12 @@
 import { SearchOutlined, SplitCellsOutlined, UndoOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Button, Input, Popconfirm, Select, Space, Table, Tag, Typography } from 'antd';
+import { App, Button, Input, Popconfirm, Select, Space, Table, Tag } from 'antd';
 import { useState } from 'react';
 import { listPayments, refundPayment, type PaymentQuery } from '../../api/payments';
 import { AllocatePaymentModal } from '../../components/AllocatePaymentModal';
+import { FilterBar } from '../../components/FilterBar';
 import { PageErrorState } from '../../components/PageErrorState';
+import { PageHeader } from '../../components/PageHeader';
 import { useAuthStore } from '../../store/auth.store';
 import type { Payment, PaymentMethod, PaymentStatus } from '../../types';
 
@@ -73,9 +75,9 @@ export function PaymentsPage() {
 
   return (
     <div>
-      <Typography.Title level={4}>To'lovlar</Typography.Title>
+      <PageHeader title="To'lovlar" />
 
-      <Space style={{ marginBottom: 16 }} wrap>
+      <FilterBar>
         <Input
           placeholder="Qidirish: to'lov raqami"
           prefix={<SearchOutlined />}
@@ -121,7 +123,7 @@ export function PaymentsPage() {
             setPage(1);
           }}
         />
-      </Space>
+      </FilterBar>
 
       <Table<Payment>
         rowKey="id"

@@ -1,6 +1,6 @@
 import { PlusOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
-import { Button, DatePicker, Select, Space, Table, Tag, Typography } from 'antd';
+import { Button, DatePicker, Select, Table, Tag } from 'antd';
 import dayjs from 'dayjs';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -11,7 +11,9 @@ import { listGroups } from '../../api/groups';
 import { listStudents } from '../../api/students';
 import { listTeachers } from '../../api/teachers';
 import { EnrollmentFormModal } from '../../components/EnrollmentFormModal';
+import { FilterBar } from '../../components/FilterBar';
 import { PageErrorState } from '../../components/PageErrorState';
+import { PageHeader } from '../../components/PageHeader';
 import { useAuthStore } from '../../store/auth.store';
 import type { EnrollmentListItem, EnrollmentStatus } from '../../types';
 
@@ -66,18 +68,18 @@ export function EnrollmentsPage() {
 
   return (
     <div>
-      <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
-        <Typography.Title level={4} style={{ margin: 0 }}>
-          Yozilishlar
-        </Typography.Title>
-        {hasPermission('enrollments', 'CREATE') && (
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
-            Yangi yozilish
-          </Button>
-        )}
-      </Space>
+      <PageHeader
+        title="Yozilishlar"
+        extra={
+          hasPermission('enrollments', 'CREATE') && (
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
+              Yangi yozilish
+            </Button>
+          )
+        }
+      />
 
-      <Space style={{ marginBottom: 16 }} wrap>
+      <FilterBar>
         {canStudents && (
           <Select
             showSearch
@@ -158,7 +160,7 @@ export function EnrollmentsPage() {
             setPage(1);
           }}
         />
-      </Space>
+      </FilterBar>
 
       <Table<EnrollmentListItem>
         rowKey="id"

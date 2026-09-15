@@ -3,6 +3,7 @@ import { App, Form, Input, Modal, Select } from 'antd';
 import { useEffect, useState } from 'react';
 import { listEmployees } from '../api/employees';
 import { createBranch, updateBranch, type BranchPayload } from '../api/branches';
+import { FormSection } from './FormSection';
 import type { BranchDetail, BranchStatus } from '../types';
 
 interface BranchFormModalProps {
@@ -86,43 +87,48 @@ export function BranchFormModal({ open, onClose, branch }: BranchFormModalProps)
       width={600}
     >
       <Form form={form} layout="vertical" onFinish={(values) => mutation.mutate(values)}>
-        <Form.Item name="name" label="Nomi" rules={[{ required: true }]}>
-          <Input />
-        </Form.Item>
-        <Form.Item name="code" label="Kod" rules={[{ required: true }]}>
-          <Input placeholder="Masalan: BR-MAIN" />
-        </Form.Item>
-        <Form.Item name="address" label="Manzil">
-          <Input />
-        </Form.Item>
-        <Form.Item name="phone" label="Telefon">
-          <Input placeholder="+998710000000" />
-        </Form.Item>
-        <Form.Item name="email" label="Email" rules={[{ type: 'email' }]}>
-          <Input />
-        </Form.Item>
-        <Form.Item name="managerEmployeeId" label="Filial rahbari">
-          <Select
-            allowClear
-            showSearch
-            loading={employeesQuery.isLoading}
-            filterOption={false}
-            onSearch={setManagerSearch}
-            options={employeesQuery.data?.items.map((e) => ({ value: e.id, label: e.fullName }))}
-            placeholder="Ism bo'yicha qidiring"
-          />
-        </Form.Item>
-        <Form.Item name="workingHours" label="Ish vaqti">
-          <Input placeholder="Masalan: Mon-Sat 08:00-21:00" />
-        </Form.Item>
-        <Form.Item name="notes" label="Izoh">
-          <Input.TextArea />
-        </Form.Item>
-        {isEdit && (
-          <Form.Item name="status" label="Status">
-            <Select options={[{ value: 'ACTIVE', label: 'Faol' }, { value: 'INACTIVE', label: 'Nofaol' }]} />
+        <FormSection title="Asosiy ma'lumotlar">
+          <Form.Item name="name" label="Nomi" rules={[{ required: true }]}>
+            <Input />
           </Form.Item>
-        )}
+          <Form.Item name="code" label="Kod" rules={[{ required: true }]}>
+            <Input placeholder="Masalan: BR-MAIN" />
+          </Form.Item>
+          <Form.Item name="address" label="Manzil">
+            <Input />
+          </Form.Item>
+          <Form.Item name="phone" label="Telefon">
+            <Input placeholder="+998710000000" />
+          </Form.Item>
+          <Form.Item name="email" label="Email" rules={[{ type: 'email' }]} style={{ marginBottom: 0 }}>
+            <Input />
+          </Form.Item>
+        </FormSection>
+
+        <FormSection title="Qo'shimcha">
+          <Form.Item name="managerEmployeeId" label="Filial rahbari">
+            <Select
+              allowClear
+              showSearch
+              loading={employeesQuery.isLoading}
+              filterOption={false}
+              onSearch={setManagerSearch}
+              options={employeesQuery.data?.items.map((e) => ({ value: e.id, label: e.fullName }))}
+              placeholder="Ism bo'yicha qidiring"
+            />
+          </Form.Item>
+          <Form.Item name="workingHours" label="Ish vaqti">
+            <Input placeholder="Masalan: Mon-Sat 08:00-21:00" />
+          </Form.Item>
+          <Form.Item name="notes" label="Izoh">
+            <Input.TextArea />
+          </Form.Item>
+          {isEdit && (
+            <Form.Item name="status" label="Status" style={{ marginBottom: 0 }}>
+              <Select options={[{ value: 'ACTIVE', label: 'Faol' }, { value: 'INACTIVE', label: 'Nofaol' }]} />
+            </Form.Item>
+          )}
+        </FormSection>
       </Form>
     </Modal>
   );

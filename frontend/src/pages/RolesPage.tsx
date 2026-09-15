@@ -1,9 +1,10 @@
 import { PlusOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Button, Checkbox, Drawer, Form, Input, Modal, Space, Table, Tag, Typography } from 'antd';
+import { App, Button, Checkbox, Drawer, Form, Input, Modal, Table, Tag } from 'antd';
 import { useEffect, useState } from 'react';
 import { createRole, getPermissionCatalog, getRole, listRoles, updateRolePermissions } from '../api/roles';
 import { PageErrorState } from '../components/PageErrorState';
+import { PageHeader } from '../components/PageHeader';
 import { useAuthStore } from '../store/auth.store';
 import type { PermissionActionValue, RoleListItem } from '../types';
 
@@ -85,16 +86,16 @@ export function RolesPage() {
 
   return (
     <div>
-      <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
-        <Typography.Title level={4} style={{ margin: 0 }}>
-          Rollar va ruxsatlar
-        </Typography.Title>
-        {canCreate && (
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
-            Yangi rol
-          </Button>
-        )}
-      </Space>
+      <PageHeader
+        title="Rollar va ruxsatlar"
+        extra={
+          canCreate && (
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreateOpen(true)}>
+              Yangi rol
+            </Button>
+          )
+        }
+      />
 
       <Table<RoleListItem>
         rowKey="id"

@@ -1,11 +1,13 @@
 import { PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Input, Select, Space, Table, Tag, Typography } from 'antd';
+import { Button, Input, Select, Table, Tag } from 'antd';
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { listBranches } from '../../api/branches';
 import { listTeachers } from '../../api/teachers';
+import { FilterBar } from '../../components/FilterBar';
 import { PageErrorState } from '../../components/PageErrorState';
+import { PageHeader } from '../../components/PageHeader';
 import { TeacherFormModal } from '../../components/TeacherFormModal';
 import { useAuthStore } from '../../store/auth.store';
 import type { TeacherListItem, TeacherProfileStatus } from '../../types';
@@ -37,18 +39,18 @@ export function TeachersPage() {
 
   return (
     <div>
-      <Space style={{ marginBottom: 16, width: '100%', justifyContent: 'space-between' }}>
-        <Typography.Title level={4} style={{ margin: 0 }}>
-          O'qituvchilar
-        </Typography.Title>
-        {hasPermission('teachers', 'CREATE') && (
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
-            Yangi o'qituvchi profili
-          </Button>
-        )}
-      </Space>
+      <PageHeader
+        title="O'qituvchilar"
+        extra={
+          hasPermission('teachers', 'CREATE') && (
+            <Button type="primary" icon={<PlusOutlined />} onClick={() => setModalOpen(true)}>
+              Yangi o'qituvchi profili
+            </Button>
+          )
+        }
+      />
 
-      <Space style={{ marginBottom: 16 }} wrap>
+      <FilterBar>
         <Input
           placeholder="Qidirish: F.I.Sh., telefon, mutaxassislik"
           prefix={<SearchOutlined />}
@@ -82,7 +84,7 @@ export function TeachersPage() {
             setPage(1);
           }}
         />
-      </Space>
+      </FilterBar>
 
       <Table<TeacherListItem>
         rowKey="id"
