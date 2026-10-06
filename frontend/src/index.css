@@ -16,10 +16,25 @@
    * Level 0 (page background) has no shadow — see theme.ts's own doc comment
    * for the full level1-4 breakdown.
    */
-  --elevation-1: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.05);
-  --elevation-2: 0 4px 10px rgba(16, 24, 40, 0.08), 0 2px 4px rgba(16, 24, 40, 0.08);
-  --elevation-3: 0 8px 24px rgba(16, 24, 40, 0.12), 0 3px 6px rgba(16, 24, 40, 0.08);
-  --elevation-4: 0 24px 48px rgba(16, 24, 40, 0.18), 0 8px 16px rgba(16, 24, 40, 0.1);
+  --elevation-1: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 6px 18px rgba(0, 0, 0, 0.28);
+  --elevation-2: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 12px 28px rgba(0, 0, 0, 0.38);
+  --elevation-3: 0 14px 36px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.35);
+  --elevation-4: 0 28px 64px rgba(0, 0, 0, 0.6), 0 8px 18px rgba(0, 0, 0, 0.4);
+
+  /* Colour tokens — mirror theme.ts's `palette` for the few places plain CSS needs them. */
+  --color-bg: #17181c;
+  --color-sidebar: #131417;
+  --color-surface: #202126;
+  --color-surface-raised: #27282e;
+  --color-border: rgba(255, 255, 255, 0.07);
+  --color-text: #ececef;
+  --color-text-secondary: #9b9da8;
+  --color-text-muted: #6e707b;
+  --color-accent: #f5a524;
+  --color-ember: #ef5b34;
+  --gradient-accent: linear-gradient(135deg, #ef5b34 0%, #f5a524 100%);
+
+  color-scheme: dark;
 }
 
 * {
@@ -36,6 +51,54 @@ body,
 body {
   font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
+  background: var(--color-bg);
+  color: var(--color-text);
+}
+
+/*
+ * The content area's backdrop: two very faint warm glows in the corners —
+ * an echo of the accent gradient, never strong enough to compete with the
+ * cards sitting on top of it.
+ */
+.app-content-bg {
+  background:
+    radial-gradient(1200px 520px at 100% -10%, rgba(239, 91, 52, 0.07), transparent 60%),
+    radial-gradient(900px 480px at -10% 110%, rgba(245, 165, 36, 0.05), transparent 60%),
+    var(--color-bg);
+}
+
+/*
+ * Login backdrop: the dark page with two bold, hard-edged diagonal warm
+ * panels behind the card — the same motif as the app's accent. Painted with
+ * plain gradients (no huge transformed layers), so it costs nothing to render.
+ */
+.login-backdrop {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background:
+    linear-gradient(118deg, #ef5b34 0%, #e8693f 30%, transparent 30.1%),
+    linear-gradient(298deg, #f5a524 0%, #f5c25e 24%, transparent 24.1%),
+    #1b1c20;
+}
+
+/* Small uppercase, letter-spaced label — section titles, card titles, KPI captions. */
+.eyebrow {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-text-muted);
+}
+
+/* Gradient text for the few figures that should pop (dashboard hero). */
+.text-gradient {
+  background: var(--gradient-accent);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 /* Subtle modern scrollbar — visible on hover, never intrusive. */
@@ -47,16 +110,16 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(17, 24, 39, 0.15);
+  background: rgba(255, 255, 255, 0.08);
   border-radius: 8px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(17, 24, 39, 0.28);
+  background: rgba(255, 255, 255, 0.16);
 }
 
 /* Accessible focus ring — only for keyboard users, never for mouse clicks. */
 :focus-visible {
-  outline: 2px solid #4f46e5;
+  outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
 
@@ -68,10 +131,52 @@ body {
  * would give a full-height/full-width bar.
  */
 .ant-layout-sider {
-  box-shadow: 2px 0 8px rgba(16, 24, 40, 0.08);
+  box-shadow: 1px 0 0 var(--color-border), 8px 0 24px rgba(0, 0, 0, 0.25);
 }
-.ant-layout-header {
-  box-shadow: 0 2px 6px rgba(16, 24, 40, 0.04);
+
+/* Sidebar active item: a short accent bar on the left edge, like a lit indicator. */
+.app-sidebar-menu .ant-menu-item-selected {
+  position: relative;
+  font-weight: 600;
+}
+.app-sidebar-menu .ant-menu-item-selected::before {
+  content: '';
+  position: absolute;
+  left: -12px;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--gradient-accent);
+  box-shadow: 0 0 12px rgba(245, 165, 36, 0.6);
+}
+
+/* Tab strip that sits on top of a grouped section (To'lovlar, Davomat, Sozlamalar). */
+.section-hub-tabs.ant-tabs {
+  margin-bottom: 8px;
+}
+.section-hub-tabs > .ant-tabs-nav::before {
+  border-bottom-color: var(--color-border) !important;
+}
+
+/* Cards: hairline border so surfaces stay distinct even where shadows are invisible on dark. */
+.ant-card {
+  border-color: var(--color-border) !important;
+}
+.ant-card .ant-card-head {
+  border-bottom-color: var(--color-border);
+}
+.ant-card .ant-card-head-title {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+.ant-table-thead > tr > th {
+  font-size: 11px !important;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 /* Page-enter transition: fade + small translateY, keyed by route in AppLayout. */
@@ -125,7 +230,7 @@ body {
 }
 .hover-lift:hover {
   transform: translateY(-1px);
-  border-color: rgba(79, 70, 229, 0.35);
+  border-color: rgba(245, 165, 36, 0.35) !important;
   box-shadow: var(--elevation-2);
 }
 
@@ -214,7 +319,7 @@ body {
   transition: background-color var(--motion-fast) var(--motion-ease);
 }
 .notification-panel .ant-list-item:hover {
-  background-color: rgba(79, 70, 229, 0.06);
+  background-color: rgba(245, 165, 36, 0.06);
 }
 
 /*

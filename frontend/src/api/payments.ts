@@ -5,18 +5,17 @@ export interface PaymentQuery {
   page?: number;
   pageSize?: number;
   search?: string;
-  customerId?: string;
   method?: PaymentMethod;
   status?: PaymentStatus;
   from?: string;
   to?: string;
-  referenceType?: 'ORDER' | 'INVOICE' | 'PURCHASE_ORDER' | 'EXPENSE' | 'OTHER' | 'TUITION_CHARGE';
+  referenceType?: 'TUITION_CHARGE';
   referenceId?: string;
 }
 
 export interface CreatePaymentPayload {
-  referenceType: 'ORDER' | 'INVOICE' | 'PURCHASE_ORDER' | 'TUITION_CHARGE';
-  /** For TUITION_CHARGE this is the payer Student's id, not a specific charge — see AllocatePaymentPayload for per-charge assignment. */
+  referenceType: 'TUITION_CHARGE';
+  /** The payer Student's id, not a specific charge — see AllocatePaymentPayload for per-charge assignment. */
   referenceId: string;
   amount: number;
   method: PaymentMethod;

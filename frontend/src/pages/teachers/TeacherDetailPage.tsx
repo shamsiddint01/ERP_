@@ -3,25 +3,22 @@ import {
   CheckCircleOutlined,
   ClockCircleOutlined,
   CloseCircleOutlined,
-  DollarOutlined,
   EditOutlined,
   GroupOutlined,
   InfoCircleOutlined,
   PercentageOutlined,
   StopOutlined,
   TeamOutlined,
-  WalletOutlined,
 } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Avatar, Button, Card, Descriptions, Popconfirm, Spin, Table, Tabs, Tag, Typography } from 'antd';
+import { App, Avatar, Button, Card, Descriptions, Popconfirm, Spin, Table, Tabs, Tag } from 'antd';
 import { EmptyState } from '../../components/EmptyState';
 import { useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { listEnrollments } from '../../api/enrollments';
-import { listPayroll } from '../../api/payroll';
 import { listSchedules } from '../../api/schedules';
 import { getAttendanceSummary } from '../../api/studentAttendance';
-import { deactivateTeacher, getTeacher, getTeacherCompensationPreview } from '../../api/teachers';
+import { deactivateTeacher, getTeacher } from '../../api/teachers';
 import { ActionBar } from '../../components/ActionBar';
 import { DetailHeader } from '../../components/DetailHeader';
 import { PageErrorState } from '../../components/PageErrorState';
@@ -31,8 +28,8 @@ import { StatusTag } from '../../components/StatusTag';
 import { TeacherFormModal } from '../../components/TeacherFormModal';
 import { palette } from '../../theme';
 import { useAuthStore } from '../../store/auth.store';
-import { formatCurrency, formatDate, formatNumber } from '../../utils/format';
-import type { ScheduleDayOfWeek, SalaryType, StudentGroupStatus, TeacherProfileStatus } from '../../types';
+import { formatDate } from '../../utils/format';
+import type { ScheduleDayOfWeek, StudentGroupStatus, TeacherProfileStatus } from '../../types';
 
 const STATUS_COLORS: Record<TeacherProfileStatus, string> = { ACTIVE: 'green', INACTIVE: 'default' };
 const STATUS_LABELS: Record<TeacherProfileStatus, string> = { ACTIVE: 'Faol', INACTIVE: 'Nofaol' };
@@ -46,15 +43,6 @@ const DAY_LABELS: Record<ScheduleDayOfWeek, string> = {
   SATURDAY: 'Shanba',
   SUNDAY: 'Yakshanba',
 };
-const SALARY_TYPE_LABELS: Record<SalaryType, string> = {
-  HOURLY: 'Soatbay',
-  DAILY: 'Kunlik',
-  MONTHLY: 'Oylik (fiksed)',
-  PER_LESSON: 'Dars uchun',
-  PER_GROUP: 'Guruh uchun',
-  MIXED: 'Aralash',
-};
-
 export function TeacherDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -68,8 +56,6 @@ export function TeacherDetailPage() {
   const setActiveTab = (key: string) => setSearchParams(key === 'overview' ? {} : { tab: key }, { replace: true });
 
   const canEdit = hasPermission('teachers', 'EDIT');
-  const canViewCompensation = hasPermission('compensation', 'VIEW');
-  const canViewPayroll = hasPermission('payroll', 'VIEW');
   const canViewSchedules = hasPermission('schedules', 'VIEW');
   const canViewAttendance = hasPermission('student_attendance', 'VIEW');
   const canViewStudents = hasPermission('enrollments', 'VIEW');
@@ -91,16 +77,6 @@ export function TeacherDetailPage() {
     queryKey: ['attendance-summary', { teacherEmployeeId: employeeId, forTeacherTab: true }],
     queryFn: () => getAttendanceSummary({ teacherEmployeeId: employeeId }),
     enabled: !!employeeId && canViewAttendance && activeTab === 'attendance',
-  });
-  const compensationQuery = useQuery({
-    queryKey: ['teacher-compensation', id],
-    queryFn: () => getTeacherCompensationPreview(id!),
-    enabled: !!id && canViewCompensation && activeTab === 'compensation',
-  });
-  const payrollQuery = useQuery({
-    queryKey: ['payroll', { employeeId, forTeacherTab: true }],
-    queryFn: () => listPayroll({ employeeId, pageSize: 20 }),
-    enabled: !!employeeId && canViewPayroll && activeTab === 'payroll',
   });
 
   const deactivateMutation = useMutation({
@@ -137,16 +113,16 @@ export function TeacherDetailPage() {
       label: 'Umumiy',
       children: (
         <>
-          <Descriptions column={{ xs: 1, sm: 2, md: 3 }} title="Xodim ma'lumotlari">
+          <Descriptions column={{ xs: 1, sm: 2, md: 3 }} title="Aloqa">
             <Descriptions.Item label="Telefon">{teacher.employee.phone}</Descriptions.Item>
             <Descriptions.Item label="Email">{teacher.employee.email ?? '—'}</Descriptions.Item>
-            <Descriptions.Item label="Bo'lim">{teacher.employee.department?.name ?? '—'}</Descriptions.Item>
+            <Descriptions.Item label="Ishga kirgan">{formatDate(teacher.employee.hireDate)}</Descriptions.Item>
           </Descriptions>
 
           <Descriptions column={{ xs: 1, sm: 2, md: 3 }} style={{ marginTop: 16 }} title="O'qituvchi profili">
             <Descriptions.Item label="Malaka">{teacher.qualification ?? '—'}</Descriptions.Item>
             <Descriptions.Item label="Tajriba">{teacher.experienceYears !== null ? `${teacher.experienceYears} yil` : '—'}</Descriptions.Item>
-            <Descriptions.Item label="Soatlik stavka">{teacher.hourlyRate ? formatNumber(teacher.hourlyRate, 2) : '—'}</Descriptions.Item>
+            <Descriptions.Item label="Mutaxassislik">{teacher.specialization ?? '—'}</Descriptions.Item>
             {teacher.bio && (
               <Descriptions.Item label="Bio" span={3}>
                 {teacher.bio}
@@ -257,81 +233,6 @@ export function TeacherDetailPage() {
                     ? palette.warning
                     : palette.error,
             },
-          ]}
-        />
-      ),
-    },
-    canViewCompensation && {
-      key: 'compensation',
-      label: 'Maosh',
-      children: compensationQuery.isLoading ? (
-        <Spin />
-      ) : compensationQuery.isError ? (
-        <PageErrorState onRetry={() => compensationQuery.refetch()} />
-      ) : !compensationQuery.data ? null : (
-        <>
-          <Descriptions column={{ xs: 1, sm: 2 }} title="Joriy shartnoma" style={{ marginBottom: 16 }}>
-            <Descriptions.Item label="Turi">
-              {compensationQuery.data.currentCompensation ? SALARY_TYPE_LABELS[compensationQuery.data.currentCompensation.salaryType] : 'Belgilanmagan'}
-            </Descriptions.Item>
-            <Descriptions.Item label="Bazaviy summa">
-              {compensationQuery.data.currentCompensation ? formatNumber(compensationQuery.data.currentCompensation.baseSalary, 2) : '—'}
-            </Descriptions.Item>
-            <Descriptions.Item label="Soatlik stavka">{compensationQuery.data.rates.hourlyRate !== null ? formatNumber(compensationQuery.data.rates.hourlyRate, 2) : '—'}</Descriptions.Item>
-            <Descriptions.Item label="Dars uchun stavka">
-              {compensationQuery.data.rates.perLessonRate !== null ? formatNumber(compensationQuery.data.rates.perLessonRate, 2) : '—'}
-            </Descriptions.Item>
-            <Descriptions.Item label="Guruh uchun stavka">
-              {compensationQuery.data.rates.perGroupRate !== null ? formatNumber(compensationQuery.data.rates.perGroupRate, 2) : '—'}
-            </Descriptions.Item>
-          </Descriptions>
-
-          <Typography.Paragraph type="secondary">
-            Davr: {formatDate(compensationQuery.data.period.start)} — {formatDate(compensationQuery.data.period.end)}
-          </Typography.Paragraph>
-
-          <SummaryCard
-            items={[
-              { icon: <CheckCircleOutlined />, label: 'Yakunlangan darslar', value: compensationQuery.data.completedLessons, color: palette.success },
-              { icon: <GroupOutlined />, label: 'Faol guruhlar', value: compensationQuery.data.activeGroups, color: palette.primary },
-              {
-                icon: <DollarOutlined />,
-                label: "Darslar bo'yicha (taxminiy)",
-                value: compensationQuery.data.estimatedLessonPay ?? 0,
-                color: palette.info,
-                formatter: () => (compensationQuery.data!.estimatedLessonPay === null ? '—' : formatNumber(compensationQuery.data!.estimatedLessonPay, 2)),
-              },
-              {
-                icon: <WalletOutlined />,
-                label: "Guruhlar bo'yicha (taxminiy)",
-                value: compensationQuery.data.estimatedGroupPay ?? 0,
-                color: palette.info,
-                formatter: () => (compensationQuery.data!.estimatedGroupPay === null ? '—' : formatNumber(compensationQuery.data!.estimatedGroupPay, 2)),
-              },
-            ]}
-          />
-        </>
-      ),
-    },
-    canViewPayroll && {
-      key: 'payroll',
-      label: 'Ish haqi (Payroll)',
-      children: (
-        <Table
-          rowKey="id"
-          size="small"
-          loading={payrollQuery.isLoading}
-          dataSource={payrollQuery.data?.items}
-          pagination={false}
-          locale={{ emptyText: "Hali ish haqi hisoblanmagan" }}
-          onRow={(record) => ({ onClick: () => navigate(`/payroll/${record.id}`), style: { cursor: 'pointer' } })}
-          columns={[
-            { title: 'Raqam', dataIndex: 'payrollNumber' },
-            { title: 'Davr', render: (_, record) => record.period.name },
-            { title: 'Jami (Gross)', dataIndex: 'grossSalary', render: (v: string) => formatCurrency(v) },
-            { title: 'Ushlab qolish', dataIndex: 'deductionAmount', render: (v: string) => formatCurrency(v) },
-            { title: 'Sof (Net)', dataIndex: 'netSalary', render: (v: string) => formatCurrency(v) },
-            { title: 'Status', dataIndex: 'status', render: (v: string) => <StatusTag value={v} /> },
           ]}
         />
       ),

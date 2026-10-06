@@ -4,8 +4,6 @@ import { ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { CurrentUser } from '../../shared/decorators/current-user.decorator.js';
 import { RequirePermission } from '../../shared/decorators/require-permission.decorator.js';
-import { permissionKey, type PermissionModule } from '../../shared/constants/permission-modules.constant.js';
-import { RolePermissionsCacheService } from '../../shared/rbac/role-permissions-cache.service.js';
 import type { AuthenticatedUser } from '../../shared/types/authenticated-request.js';
 import { toCsv } from './report-export.util.js';
 import { EducationReportQueryDto } from './dto/education-report-query.dto.js';
@@ -17,15 +15,8 @@ import { ReportPdfService } from './report-pdf.service.js';
 export class EducationReportsController {
   constructor(
     private readonly educationReportsService: EducationReportsService,
-    private readonly permissionsCache: RolePermissionsCacheService,
     private readonly reportPdfService: ReportPdfService,
   ) {}
-
-  /** Programmatic version of what PermissionsGuard checks on a route — used here to conditionally include a slice of a response (compensation figures) rather than gate the whole endpoint. */
-  private async hasPermission(user: AuthenticatedUser, module: PermissionModule, action: PermissionAction): Promise<boolean> {
-    const granted = await this.permissionsCache.getPermissionsForRole(user.roleId);
-    return granted.includes(permissionKey(module, action));
-  }
 
   @Get('students')
   @RequirePermission('students', PermissionAction.VIEW)
@@ -160,9 +151,8 @@ export class EducationReportsController {
 
   @Get('teachers')
   @RequirePermission('teachers', PermissionAction.VIEW)
-  async teachers(@Query() query: EducationReportQueryDto, @Query('format') format: string | undefined, @CurrentUser() user: AuthenticatedUser, @Res() res: Response) {
-    const includeCompensation = await this.hasPermission(user, 'compensation', PermissionAction.VIEW);
-    const report = await this.educationReportsService.getTeachersReport(query, includeCompensation);
+  async teachers(@Query() query: EducationReportQueryDto, @Query('format') format: string | undefined, @Res() res: Response) {
+    const report = await this.educationReportsService.getTeachersReport(query);
     if (format === 'csv') {
       const rows = report.items.map((t) => ({
         employeeCode: t.employeeCode,
@@ -204,14 +194,6 @@ export class EducationReportsController {
       res.setHeader('Content-Disposition', 'inline; filename="education-teachers.pdf"');
       return res.send(buffer);
     }
-    return res.json(report);
-  }
-
-  @Get('admissions')
-  @RequirePermission('leads', PermissionAction.VIEW)
-  async admissions(@Query() query: EducationReportQueryDto, @Query('format') format: string | undefined, @Res() res: Response) {
-    const report = await this.educationReportsService.getAdmissionsReport(query);
-    if (format === 'csv') return this.sendCsv(res, 'education-admissions', report.leadSource);
     return res.json(report);
   }
 

@@ -2,7 +2,6 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException }
 import type { Prisma, TuitionChargeStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AuditEntityRegistryService } from '../../shared/audit/audit-entity-registry.service.js';
-import { FinanceLedgerService } from '../../shared/finance/finance-ledger.service.js';
 import type { PaginatedResult } from '../../shared/types/paginated-result.js';
 import type { CreateTuitionChargeDto } from './dto/create-tuition-charge.dto.js';
 import type { QueryTuitionChargeDto } from './dto/query-tuition-charge.dto.js';
@@ -10,7 +9,7 @@ import type { UpdateTuitionChargeDto } from './dto/update-tuition-charge.dto.js'
 
 type TransactionClient = Prisma.TransactionClient;
 
-/** Rounds to 2 decimal places so PERCENTAGE-discount math never produces a sub-cent amount (mirrors payroll-calculation.util.ts's round2). */
+/** Rounds to 2 decimal places so PERCENTAGE-discount math never produces a sub-cent amount. */
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
 }
@@ -44,7 +43,6 @@ const CANCELLED_ENROLLMENT_STATUS = 'CANCELLED';
 export class TuitionChargeService {
   constructor(
     private readonly prisma: PrismaService,
-    private readonly financeLedger: FinanceLedgerService,
     registry: AuditEntityRegistryService,
   ) {
     registry.register('TuitionCharge', (id) => this.prisma.tuitionCharge.findUnique({ where: { id } }));
@@ -95,7 +93,7 @@ export class TuitionChargeService {
    * later has zero effect on this charge, by design). Posts Dr Accounts
    * Receivable / Cr Tuition Revenue for the resulting netAmount.
    */
-  async create(dto: CreateTuitionChargeDto, userId: string) {
+  async create(dto: CreateTuitionChargeDto) {
     const enrollment = await this.prisma.enrollment.findUnique({ where: { id: dto.enrollmentId } });
     if (!enrollment) throw new NotFoundException('Enrollment not found');
     if (enrollment.studentId !== dto.studentId) {
@@ -150,13 +148,6 @@ export class TuitionChargeService {
         include: TUITION_CHARGE_INCLUDE,
       });
 
-      if (netAmount > 0) {
-        await this.financeLedger.recordTuitionCharge(
-          { netAmount, chargeId: charge.id, studentName: student.fullName, billingPeriod: dto.billingPeriod, createdByUserId: userId },
-          tx,
-        );
-      }
-
       return charge;
     });
   }
@@ -178,13 +169,12 @@ export class TuitionChargeService {
   /**
    * Only reachable while nothing has been allocated against this charge yet
    * — once a payment has touched it, cancelling would leave that money
-   * allocated to a charge that officially never happened. Reverses the
-   * original billing entry (Dr Tuition Revenue / Cr Accounts Receivable).
+   * allocated to a charge that officially never happened.
    */
-  async cancel(id: string, userId: string) {
+  async cancel(id: string) {
     const charge = await this.prisma.tuitionCharge.findUnique({
       where: { id },
-      include: { student: { select: { fullName: true } }, allocations: { select: { id: true } } },
+      include: { allocations: { select: { id: true } } },
     });
     if (!charge) throw new NotFoundException('Tuition charge not found');
     if (charge.status === 'CANCELLED') throw new ConflictException('This charge is already cancelled');
@@ -195,13 +185,6 @@ export class TuitionChargeService {
     return this.prisma.$transaction(async (tx) => {
       const result = await tx.tuitionCharge.updateMany({ where: { id, status: charge.status }, data: { status: 'CANCELLED' } });
       if (result.count === 0) throw new ConflictException('This charge was changed concurrently — please retry');
-
-      if (Number(charge.netAmount) > 0) {
-        await this.financeLedger.recordTuitionChargeCancellation(
-          { netAmount: Number(charge.netAmount), chargeId: charge.id, studentName: charge.student.fullName, billingPeriod: charge.billingPeriod, createdByUserId: userId },
-          tx,
-        );
-      }
 
       return tx.tuitionCharge.findUniqueOrThrow({ where: { id }, include: TUITION_CHARGE_INCLUDE });
     });

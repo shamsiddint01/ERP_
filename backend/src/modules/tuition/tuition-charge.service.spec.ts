@@ -41,68 +41,63 @@ function createService(opts: { enrollment?: unknown; student?: unknown; tx?: Ret
     },
     $transaction: vi.fn().mockImplementation((cb: (tx: unknown) => unknown) => cb(tx)),
   };
-  const financeLedger = { recordTuitionCharge: vi.fn().mockResolvedValue(undefined), recordTuitionChargeCancellation: vi.fn().mockResolvedValue(undefined) };
   const registry = new AuditEntityRegistryService();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const service = new TuitionChargeService(prisma as any, financeLedger as any, registry);
-  return { service, prisma, tx, financeLedger };
+  const service = new TuitionChargeService(prisma as any, registry);
+  return { service, prisma, tx };
 }
 
 const baseDto = { studentId: 'student1', enrollmentId: 'enr1', billingPeriod: '2026-09', dueDate: '2026-09-30T00:00:00.000Z' };
 
 describe('TuitionChargeService.create', () => {
   it('creates a charge defaulting amount from enrollment.agreedTuition, with no discount', async () => {
-    const { service, financeLedger } = createService();
-    const charge = await service.create(baseDto as never, 'user1');
+    const { service } = createService();
+    const charge = await service.create(baseDto as never);
 
     expect(charge).toMatchObject({ amount: 500, discountAmount: 0, netAmount: 500, studentId: 'student1', enrollmentId: 'enr1' });
-    expect(financeLedger.recordTuitionCharge).toHaveBeenCalledWith(
-      expect.objectContaining({ netAmount: 500, studentName: 'Test Student', billingPeriod: '2026-09' }),
-      expect.anything(),
-    );
   });
 
   it('throws NotFoundException when the enrollment does not exist', async () => {
     const { service } = createService({ enrollment: null });
-    await expect(service.create(baseDto as never, 'user1')).rejects.toThrow(NotFoundException);
+    await expect(service.create(baseDto as never)).rejects.toThrow(NotFoundException);
   });
 
   it('throws BadRequestException when the enrollment does not belong to the given student', async () => {
     const { service } = createService({ enrollment: fakeEnrollment({ studentId: 'someone-else' }) });
-    await expect(service.create(baseDto as never, 'user1')).rejects.toThrow(BadRequestException);
+    await expect(service.create(baseDto as never)).rejects.toThrow(BadRequestException);
   });
 
   it('throws ConflictException when billing a cancelled enrollment', async () => {
     const { service } = createService({ enrollment: fakeEnrollment({ status: 'CANCELLED' }) });
-    await expect(service.create(baseDto as never, 'user1')).rejects.toThrow(ConflictException);
+    await expect(service.create(baseDto as never)).rejects.toThrow(ConflictException);
   });
 
   it('throws NotFoundException when the student does not exist', async () => {
     const { service } = createService({ student: null });
-    await expect(service.create(baseDto as never, 'user1')).rejects.toThrow(NotFoundException);
+    await expect(service.create(baseDto as never)).rejects.toThrow(NotFoundException);
   });
 
   it('throws BadRequestException when no amount is given and the enrollment has no agreedTuition', async () => {
     const { service } = createService({ enrollment: fakeEnrollment({ agreedTuition: null }) });
-    await expect(service.create(baseDto as never, 'user1')).rejects.toThrow(BadRequestException);
+    await expect(service.create(baseDto as never)).rejects.toThrow(BadRequestException);
   });
 
   it('uses an explicit amount over the enrollment default', async () => {
     const { service } = createService();
-    const charge = await service.create({ ...baseDto, amount: 750 } as never, 'user1');
+    const charge = await service.create({ ...baseDto, amount: 750 } as never);
     expect(charge).toMatchObject({ amount: 750, netAmount: 750 });
   });
 
   it('rejects duplicate billing for the same enrollment + billingPeriod', async () => {
     const tx = createTx({ tuitionCharge: { findFirst: vi.fn().mockResolvedValue({ id: 'existing' }) } });
     const { service } = createService({ tx });
-    await expect(service.create(baseDto as never, 'user1')).rejects.toThrow(ConflictException);
+    await expect(service.create(baseDto as never)).rejects.toThrow(ConflictException);
   });
 
   it('allows duplicate billing when allowDuplicate is set, bypassing the findFirst check entirely', async () => {
     const tx = createTx({ tuitionCharge: { findFirst: vi.fn().mockResolvedValue({ id: 'existing' }) } });
     const { service } = createService({ tx });
-    const charge = await service.create({ ...baseDto, allowDuplicate: true } as never, 'user1');
+    const charge = await service.create({ ...baseDto, allowDuplicate: true } as never);
     expect(charge).toMatchObject({ netAmount: 500 });
     expect(tx.tuitionCharge.findFirst).not.toHaveBeenCalled();
   });
@@ -110,23 +105,22 @@ describe('TuitionChargeService.create', () => {
   it('takes a transaction-scoped advisory lock keyed on enrollment + billingPeriod before checking duplicates', async () => {
     const tx = createTx();
     const { service } = createService({ tx });
-    await service.create(baseDto as never, 'user1');
+    await service.create(baseDto as never);
     expect(tx.$executeRaw).toHaveBeenCalled();
   });
 
-  it('applies a flat StudentDiscount grant, reducing netAmount and recording the smaller journal entry', async () => {
+  it('applies a flat StudentDiscount grant, reducing netAmount', async () => {
     const tx = createTx({ studentDiscount: { findMany: vi.fn().mockResolvedValue([{ discount: { isActive: true, type: 'FIXED', value: '100' } }]) } });
-    const { service, financeLedger } = createService({ tx });
-    const charge = await service.create(baseDto as never, 'user1');
+    const { service } = createService({ tx });
+    const charge = await service.create(baseDto as never);
 
     expect(charge).toMatchObject({ amount: 500, discountAmount: 100, netAmount: 400 });
-    expect(financeLedger.recordTuitionCharge).toHaveBeenCalledWith(expect.objectContaining({ netAmount: 400 }), expect.anything());
   });
 
   it('applies a PERCENTAGE StudentDiscount grant as a % of amount', async () => {
     const tx = createTx({ studentDiscount: { findMany: vi.fn().mockResolvedValue([{ discount: { isActive: true, type: 'PERCENTAGE', value: '20' } }]) } });
     const { service } = createService({ tx });
-    const charge = await service.create(baseDto as never, 'user1');
+    const charge = await service.create(baseDto as never);
     expect(charge).toMatchObject({ discountAmount: 100, netAmount: 400 });
   });
 
@@ -134,7 +128,7 @@ describe('TuitionChargeService.create', () => {
     const tx = createTx({ studentDiscount: { findMany: vi.fn().mockResolvedValue([{ discount: { isActive: true, type: 'PERCENTAGE', value: '33.33' } }]) } });
     const { service } = createService({ tx });
     // 333333 * 33.33 / 100 = 111099.8889 unrounded — must come out as 111099.89, and netAmount must be the exact 2dp complement.
-    const charge = await service.create({ ...baseDto, amount: 333333 } as never, 'user1');
+    const charge = await service.create({ ...baseDto, amount: 333333 } as never);
     expect(charge).toMatchObject({ discountAmount: 111099.89, netAmount: 222233.11 });
   });
 
@@ -148,23 +142,17 @@ describe('TuitionChargeService.create', () => {
       },
     });
     const { service } = createService({ tx });
-    const charge = await service.create(baseDto as never, 'user1');
+    const charge = await service.create(baseDto as never);
     expect(charge).toMatchObject({ discountAmount: 500, netAmount: 0 });
   });
 
   it('ignores a StudentDiscount grant whose underlying Discount catalog entry has since been deactivated', async () => {
     const tx = createTx({ studentDiscount: { findMany: vi.fn().mockResolvedValue([{ discount: { isActive: false, type: 'FIXED', value: '100' } }]) } });
     const { service } = createService({ tx });
-    const charge = await service.create(baseDto as never, 'user1');
+    const charge = await service.create(baseDto as never);
     expect(charge).toMatchObject({ discountAmount: 0, netAmount: 500 });
   });
 
-  it('does not post a journal entry when the discount fully covers the charge (netAmount 0)', async () => {
-    const tx = createTx({ studentDiscount: { findMany: vi.fn().mockResolvedValue([{ discount: { isActive: true, type: 'FIXED', value: '999' } }]) } });
-    const { service, financeLedger } = createService({ tx });
-    await service.create(baseDto as never, 'user1');
-    expect(financeLedger.recordTuitionCharge).not.toHaveBeenCalled();
-  });
 });
 
 describe('TuitionChargeService.update', () => {
@@ -190,46 +178,37 @@ describe('TuitionChargeService.cancel', () => {
       tuitionCharge: { findUnique: vi.fn().mockResolvedValue(charge) },
       $transaction: vi.fn().mockImplementation((cb: (tx: unknown) => unknown) => cb(tx)),
     };
-    const financeLedger = { recordTuitionCharge: vi.fn(), recordTuitionChargeCancellation: vi.fn().mockResolvedValue(undefined) };
     const registry = new AuditEntityRegistryService();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const service = new TuitionChargeService(prisma as any, financeLedger as any, registry);
-    return { service, tx, financeLedger };
+    const service = new TuitionChargeService(prisma as any, registry);
+    return { service, tx };
   }
 
   it('refuses to cancel a charge that already has allocations', async () => {
     const { service } = createCancelService({ id: 'charge1', status: 'PENDING', netAmount: '500', student: { fullName: 'X' }, allocations: [{ id: 'a1' }] });
-    await expect(service.cancel('charge1', 'user1')).rejects.toThrow(ConflictException);
+    await expect(service.cancel('charge1')).rejects.toThrow(ConflictException);
   });
 
   it('refuses to cancel an already-cancelled charge', async () => {
     const { service } = createCancelService({ id: 'charge1', status: 'CANCELLED', netAmount: '500', student: { fullName: 'X' }, allocations: [] });
-    await expect(service.cancel('charge1', 'user1')).rejects.toThrow(ConflictException);
+    await expect(service.cancel('charge1')).rejects.toThrow(ConflictException);
   });
 
   it('throws NotFoundException for a non-existent charge', async () => {
     const tx = createTx();
     const prisma = { tuitionCharge: { findUnique: vi.fn().mockResolvedValue(null) }, $transaction: vi.fn().mockImplementation((cb: (tx: unknown) => unknown) => cb(tx)) };
     const registry = new AuditEntityRegistryService();
-    const financeLedger = { recordTuitionCharge: vi.fn(), recordTuitionChargeCancellation: vi.fn() };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const freshService = new TuitionChargeService(prisma as any, financeLedger as any, registry);
-    await expect(freshService.cancel('missing', 'user1')).rejects.toThrow(NotFoundException);
+    const freshService = new TuitionChargeService(prisma as any, registry);
+    await expect(freshService.cancel('missing')).rejects.toThrow(NotFoundException);
   });
 
-  it('posts a reversing journal entry (Dr Tuition Revenue / Cr AR) when netAmount > 0', async () => {
-    const { service, financeLedger } = createCancelService({ id: 'charge1', status: 'PENDING', netAmount: '500', student: { fullName: 'Test Student' }, allocations: [] });
-    await service.cancel('charge1', 'user1');
-    expect(financeLedger.recordTuitionChargeCancellation).toHaveBeenCalledWith(
-      expect.objectContaining({ netAmount: 500, studentName: 'Test Student' }),
-      expect.anything(),
-    );
-  });
 
-  it('skips the journal entry entirely when netAmount is 0 (fully discounted charge)', async () => {
-    const { service, financeLedger } = createCancelService({ id: 'charge1', status: 'PENDING', netAmount: '0', student: { fullName: 'Test Student' }, allocations: [] });
-    await service.cancel('charge1', 'user1');
-    expect(financeLedger.recordTuitionChargeCancellation).not.toHaveBeenCalled();
+  it('marks the charge CANCELLED via a status-guarded update', async () => {
+    const { service, tx } = createCancelService({ id: 'charge1', status: 'PENDING', netAmount: '500', allocations: [] });
+    const result = await service.cancel('charge1');
+    expect(tx.tuitionCharge.updateMany).toHaveBeenCalledWith({ where: { id: 'charge1', status: 'PENDING' }, data: { status: 'CANCELLED' } });
+    expect(result).toMatchObject({ status: 'CANCELLED' });
   });
 
   it('throws ConflictException on a concurrent status change (CAS failure)', async () => {
@@ -238,10 +217,9 @@ describe('TuitionChargeService.cancel', () => {
     const charge = { id: 'charge1', status: 'PENDING', netAmount: '500', student: { fullName: 'X' }, allocations: [] };
     const prisma = { tuitionCharge: { findUnique: vi.fn().mockResolvedValue(charge) }, $transaction: vi.fn().mockImplementation((cb: (tx: unknown) => unknown) => cb(tx)) };
     const registry = new AuditEntityRegistryService();
-    const financeLedger = { recordTuitionCharge: vi.fn(), recordTuitionChargeCancellation: vi.fn() };
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const service = new TuitionChargeService(prisma as any, financeLedger as any, registry);
-    await expect(service.cancel('charge1', 'user1')).rejects.toThrow(ConflictException);
+    const service = new TuitionChargeService(prisma as any, registry);
+    await expect(service.cancel('charge1')).rejects.toThrow(ConflictException);
   });
 });
 

@@ -3,6 +3,7 @@ import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AuditEntityRegistryService } from '../../shared/audit/audit-entity-registry.service.js';
 import type { PaginatedResult } from '../../shared/types/paginated-result.js';
+import { generateDocumentNumber } from '../../shared/utils/document-number.util.js';
 import type { CreateTeacherDto } from './dto/create-teacher.dto.js';
 import type { QueryTeacherDto } from './dto/query-teacher.dto.js';
 import type { UpdateTeacherDto } from './dto/update-teacher.dto.js';
@@ -16,9 +17,12 @@ const EMPLOYEE_SUMMARY_SELECT = {
   phone: true,
   email: true,
   status: true,
-  department: { select: { id: true, name: true } },
-  position: { select: { id: true, title: true } },
+  hireDate: true,
 } satisfies Prisma.EmployeeSelect;
+
+function buildFullName(firstName: string, middleName: string | undefined, lastName: string): string {
+  return [firstName, middleName, lastName].filter((part) => part && part.trim()).join(' ');
+}
 
 @Injectable()
 export class TeachersService {
@@ -34,7 +38,6 @@ export class TeachersService {
     const pageSize = query.pageSize ?? 20;
 
     const employeeFilter: Prisma.EmployeeWhereInput = {};
-    if (query.departmentId) employeeFilter.departmentId = query.departmentId;
     if (query.branchId) employeeFilter.taughtGroups = { some: { branchId: query.branchId } };
 
     const where: Prisma.TeacherProfileWhereInput = {
@@ -99,30 +102,38 @@ export class TeachersService {
   }
 
   async create(dto: CreateTeacherDto) {
-    const employee = await this.prisma.employee.findUnique({ where: { id: dto.employeeId } });
-    if (!employee || employee.deletedAt) throw new NotFoundException('Employee not found');
+    return this.prisma.$transaction(async (tx) => {
+      const employeeCode = await generateDocumentNumber('TCH', () => tx.employee.count());
+      const employee = await tx.employee.create({
+        data: {
+          employeeCode,
+          firstName: dto.firstName,
+          lastName: dto.lastName,
+          middleName: dto.middleName,
+          fullName: buildFullName(dto.firstName, dto.middleName, dto.lastName),
+          phone: dto.phone,
+          email: dto.email,
+          hireDate: dto.hireDate ? new Date(dto.hireDate) : new Date(),
+        },
+      });
 
-    const existing = await this.prisma.teacherProfile.findUnique({ where: { employeeId: dto.employeeId } });
-    if (existing) throw new ConflictException('This employee already has a teacher profile');
-
-    return this.prisma.teacherProfile.create({
-      data: {
-        employeeId: dto.employeeId,
-        bio: dto.bio,
-        specialization: dto.specialization,
-        qualification: dto.qualification,
-        experienceYears: dto.experienceYears,
-        hourlyRate: dto.hourlyRate,
-        perLessonRate: dto.perLessonRate,
-        perGroupRate: dto.perGroupRate,
-        status: dto.status,
-      },
-      include: { employee: { select: EMPLOYEE_SUMMARY_SELECT } },
+      return tx.teacherProfile.create({
+        data: {
+          employeeId: employee.id,
+          bio: dto.bio,
+          specialization: dto.specialization,
+          qualification: dto.qualification,
+          experienceYears: dto.experienceYears,
+          status: dto.status,
+        },
+        include: { employee: { select: EMPLOYEE_SUMMARY_SELECT } },
+      });
     });
   }
 
   async update(id: string, dto: UpdateTeacherDto) {
-    const profile = await this.getProfileOrThrow(id);
+    const profile = await this.prisma.teacherProfile.findUnique({ where: { id }, include: { employee: true } });
+    if (!profile) throw new NotFoundException('Teacher profile not found');
 
     if (dto.status === 'INACTIVE') {
       const openGroupsCount = await this.prisma.studentGroup.count({
@@ -133,6 +144,22 @@ export class TeachersService {
       }
     }
 
+    const nameChanged = dto.firstName !== undefined || dto.middleName !== undefined || dto.lastName !== undefined;
+    const employeeData: Prisma.EmployeeUpdateInput = {
+      firstName: dto.firstName,
+      lastName: dto.lastName,
+      middleName: dto.middleName,
+      phone: dto.phone,
+      email: dto.email,
+      ...(nameChanged && {
+        fullName: buildFullName(
+          dto.firstName ?? profile.employee.firstName,
+          dto.middleName ?? profile.employee.middleName ?? undefined,
+          dto.lastName ?? profile.employee.lastName,
+        ),
+      }),
+    };
+
     return this.prisma.teacherProfile.update({
       where: { id },
       data: {
@@ -140,10 +167,8 @@ export class TeachersService {
         specialization: dto.specialization,
         qualification: dto.qualification,
         experienceYears: dto.experienceYears,
-        hourlyRate: dto.hourlyRate,
-        perLessonRate: dto.perLessonRate,
-        perGroupRate: dto.perGroupRate,
         status: dto.status,
+        employee: { update: employeeData },
       },
       include: { employee: { select: EMPLOYEE_SUMMARY_SELECT } },
     });
@@ -152,11 +177,5 @@ export class TeachersService {
   /** No hard delete — an inactive profile keeps the teaching history intact while making the employee ineligible for new group assignments (Phase D §26). */
   async remove(id: string) {
     return this.update(id, { status: 'INACTIVE' });
-  }
-
-  private async getProfileOrThrow(id: string) {
-    const profile = await this.prisma.teacherProfile.findUnique({ where: { id } });
-    if (!profile) throw new NotFoundException('Teacher profile not found');
-    return profile;
   }
 }

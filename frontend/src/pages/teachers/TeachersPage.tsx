@@ -97,7 +97,6 @@ export function TeachersPage() {
           { title: 'Kod', render: (_, record) => record.employee.employeeCode },
           { title: 'Telefon', render: (_, record) => record.employee.phone },
           { title: 'Mutaxassislik', dataIndex: 'specialization', render: (v: string | null) => v ?? '—' },
-          { title: "Bo'lim", render: (_, record) => record.employee.department?.name ?? '—' },
           { title: 'Guruhlar', render: (_, record) => record.employee._count.taughtGroups },
           { title: 'Status', dataIndex: 'status', render: (v: TeacherProfileStatus) => <Tag color={STATUS_COLORS[v]}>{STATUS_LABELS[v]}</Tag> },
         ]}

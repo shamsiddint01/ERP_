@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { App, Form, Input, Modal, Select } from 'antd';
 import { useEffect, useState } from 'react';
-import { listEmployees } from '../api/employees';
 import { createBranch, updateBranch, type BranchPayload } from '../api/branches';
+import { listTeachers } from '../api/teachers';
+import { useAuthStore } from '../store/auth.store';
 import { FormSection } from './FormSection';
 import type { BranchDetail, BranchStatus } from '../types';
 
@@ -30,13 +31,14 @@ export function BranchFormModal({ open, onClose, branch }: BranchFormModalProps)
   const [form] = Form.useForm<FormValues>();
   const [managerSearch, setManagerSearch] = useState('');
   const isEdit = !!branch;
+  const canViewTeachers = useAuthStore((state) => state.hasPermission('teachers', 'VIEW'));
 
-  // Search-as-you-type instead of loading every employee — the manager
-  // selector only ever needs a small, relevant slice (Phase C spec §23).
-  const employeesQuery = useQuery({
-    queryKey: ['employees', { search: managerSearch || undefined, pageSize: 20, forBranchManagerSelect: true }],
-    queryFn: () => listEmployees({ search: managerSearch || undefined, pageSize: 20 }),
-    enabled: open,
+  // Search-as-you-type instead of loading every teacher — the manager
+  // selector only ever needs a small, relevant slice.
+  const managersQuery = useQuery({
+    queryKey: ['teachers', { search: managerSearch || undefined, pageSize: 20, forBranchManagerSelect: true }],
+    queryFn: () => listTeachers({ search: managerSearch || undefined, pageSize: 20 }),
+    enabled: open && canViewTeachers,
   });
 
   useEffect(() => {
@@ -106,17 +108,19 @@ export function BranchFormModal({ open, onClose, branch }: BranchFormModalProps)
         </FormSection>
 
         <FormSection title="Qo'shimcha">
-          <Form.Item name="managerEmployeeId" label="Filial rahbari">
-            <Select
-              allowClear
-              showSearch
-              loading={employeesQuery.isLoading}
-              filterOption={false}
-              onSearch={setManagerSearch}
-              options={employeesQuery.data?.items.map((e) => ({ value: e.id, label: e.fullName }))}
-              placeholder="Ism bo'yicha qidiring"
-            />
-          </Form.Item>
+          {canViewTeachers && (
+            <Form.Item name="managerEmployeeId" label="Filial rahbari">
+              <Select
+                allowClear
+                showSearch
+                loading={managersQuery.isLoading}
+                filterOption={false}
+                onSearch={setManagerSearch}
+                options={managersQuery.data?.items.map((t) => ({ value: t.employee.id, label: t.employee.fullName }))}
+                placeholder="Ism bo'yicha qidiring"
+              />
+            </Form.Item>
+          )}
           <Form.Item name="workingHours" label="Ish vaqti">
             <Input placeholder="Masalan: Mon-Sat 08:00-21:00" />
           </Form.Item>

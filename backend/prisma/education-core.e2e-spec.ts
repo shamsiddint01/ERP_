@@ -18,7 +18,6 @@ let categoryId: string;
 let courseId: string;
 let groupId: string;
 let studentId: string;
-let guardianId: string;
 
 beforeAll(async () => {
   const branch = await prisma.branch.create({ data: { code: `${P}BR`, name: 'E2E Branch' } });
@@ -37,16 +36,10 @@ beforeAll(async () => {
     data: { studentCode: `${P}STU`, firstName: 'E2E', lastName: 'Student', fullName: 'E2E Student', branchId, status: 'ACTIVE' },
   });
   studentId = student.id;
-  const guardian = await prisma.guardian.create({ data: { fullName: 'E2E Guardian', phone: '+998900000000', relationshipType: 'FATHER' } });
-  guardianId = guardian.id;
 });
 
 afterAll(async () => {
   await prisma.enrollment.deleteMany({ where: { student: { studentCode: { startsWith: P } } } });
-  await prisma.leadActivity.deleteMany({ where: { lead: { fullName: { startsWith: 'E2E ' } } } });
-  await prisma.lead.deleteMany({ where: { fullName: { startsWith: 'E2E ' } } });
-  await prisma.studentGuardian.deleteMany({ where: { student: { studentCode: { startsWith: P } } } });
-  await prisma.guardian.deleteMany({ where: { fullName: { startsWith: 'E2E ' } } });
   await prisma.student.deleteMany({ where: { studentCode: { startsWith: P } } });
   await prisma.studentGroup.deleteMany({ where: { code: { startsWith: P } } });
   await prisma.course.deleteMany({ where: { code: { startsWith: P } } });
@@ -74,19 +67,6 @@ describe('Education core domain (Phase A)', () => {
     expect(c.defaultTuition.toFixed(2)).toBe('500000.50');
   });
 
-  it('links a student to a guardian many-to-many and back', async () => {
-    await prisma.studentGuardian.create({ data: { studentId, guardianId, relationship: 'FATHER', isPrimary: true } });
-    const s = await prisma.student.findUniqueOrThrow({ where: { id: studentId }, include: { guardians: { include: { guardian: true } } } });
-    expect(s.guardians).toHaveLength(1);
-    expect(s.guardians[0].guardian.fullName).toBe('E2E Guardian');
-    const gu = await prisma.guardian.findUniqueOrThrow({ where: { id: guardianId }, include: { students: true } });
-    expect(gu.students).toHaveLength(1);
-  });
-
-  it('rejects a duplicate student↔guardian pair (composite PK)', async () => {
-    await expect(prisma.studentGuardian.create({ data: { studentId, guardianId } })).rejects.toThrow();
-  });
-
   it('an enrollment connects a student and a group', async () => {
     const e = await prisma.enrollment.create({ data: { studentId, groupId, startDate: new Date('2026-09-01'), agreedTuition: '500000.00' } });
     expect(e.status).toBe('ACTIVE');
@@ -111,26 +91,6 @@ describe('Education core domain (Phase A)', () => {
     const other = await prisma.branch.create({ data: { code: `${P}BR2`, name: 'E2E Branch 2' } });
     const okRoom = await prisma.classroom.create({ data: { branchId: other.id, name: 'ok', roomNumber: 'E2E-1', capacity: 5 } });
     expect(okRoom.id).toBeTruthy();
-  });
-
-  it('a lead links to a preferred course and branch and carries activities', async () => {
-    const lead = await prisma.lead.create({
-      data: { fullName: 'E2E Lead', phone: '+998911111111', preferredCourseId: courseId, preferredBranchId: branchId, status: 'CONTACTED' },
-    });
-    await prisma.leadActivity.create({ data: { leadId: lead.id, type: 'CALL', description: 'intro call' } });
-    const withRels = await prisma.lead.findUniqueOrThrow({
-      where: { id: lead.id },
-      include: { preferredCourse: true, preferredBranch: true, activities: true },
-    });
-    expect(withRels.preferredCourse?.code).toBe(`${P}CRS`);
-    expect(withRels.preferredBranch?.code).toBe(`${P}BR`);
-    expect(withRels.activities).toHaveLength(1);
-    expect(withRels.status).toBe('CONTACTED');
-  });
-
-  it('a lead is not automatically a student (no Phase A conversion)', async () => {
-    const students = await prisma.student.count({ where: { fullName: 'E2E Lead' } });
-    expect(students).toBe(0);
   });
 
   it('rejects a required-field violation (student without a code)', async () => {

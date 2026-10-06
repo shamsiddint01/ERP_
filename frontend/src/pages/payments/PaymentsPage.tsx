@@ -1,23 +1,15 @@
 import { SearchOutlined, SplitCellsOutlined, UndoOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { App, Button, Input, Popconfirm, Select, Space, Table, Tag } from 'antd';
+import { Link } from 'react-router-dom';
 import { useState } from 'react';
-import { listPayments, refundPayment, type PaymentQuery } from '../../api/payments';
+import { listPayments, refundPayment } from '../../api/payments';
 import { AllocatePaymentModal } from '../../components/AllocatePaymentModal';
 import { FilterBar } from '../../components/FilterBar';
 import { PageErrorState } from '../../components/PageErrorState';
 import { PageHeader } from '../../components/PageHeader';
 import { useAuthStore } from '../../store/auth.store';
 import type { Payment, PaymentMethod, PaymentStatus } from '../../types';
-
-const REFERENCE_TYPE_LABELS: Record<NonNullable<PaymentQuery['referenceType']>, string> = {
-  ORDER: 'Sotuv',
-  INVOICE: 'Hisob-faktura',
-  PURCHASE_ORDER: 'Xarid',
-  EXPENSE: 'Xarajat',
-  OTHER: 'Boshqa',
-  TUITION_CHARGE: "O'quv to'lovi",
-};
 
 const METHOD_LABELS: Record<PaymentMethod, string> = {
   CASH: 'Naqd',
@@ -41,13 +33,12 @@ export function PaymentsPage() {
   const [search, setSearch] = useState('');
   const [method, setMethod] = useState<PaymentMethod | undefined>();
   const [status, setStatus] = useState<PaymentStatus | undefined>();
-  const [referenceType, setReferenceType] = useState<PaymentQuery['referenceType']>();
   const [page, setPage] = useState(1);
   const [allocatingPayment, setAllocatingPayment] = useState<Payment | null>(null);
 
   const paymentsQuery = useQuery({
-    queryKey: ['payments', { search, method, status, referenceType, page }],
-    queryFn: () => listPayments({ search: search || undefined, method, status, referenceType, page, pageSize: 20 }),
+    queryKey: ['payments', { search, method, status, page }],
+    queryFn: () => listPayments({ search: search || undefined, method, status, page, pageSize: 20 }),
     placeholderData: (prev) => prev,
   });
 
@@ -56,9 +47,8 @@ export function PaymentsPage() {
     onSuccess: () => {
       message.success("To'lov qaytarildi");
       queryClient.invalidateQueries({ queryKey: ['payments'] });
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      queryClient.invalidateQueries({ queryKey: ['orders'] });
-      queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['tuition'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard'] });
     },
     onError: (error: unknown) => {
       const detail = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
@@ -113,16 +103,6 @@ export function PaymentsPage() {
             setPage(1);
           }}
         />
-        <Select
-          placeholder="Manba turi"
-          allowClear
-          style={{ width: 180 }}
-          options={Object.entries(REFERENCE_TYPE_LABELS).map(([value, label]) => ({ value, label }))}
-          onChange={(value) => {
-            setReferenceType(value);
-            setPage(1);
-          }}
-        />
       </FilterBar>
 
       <Table<Payment>
@@ -133,11 +113,9 @@ export function PaymentsPage() {
         columns={[
           { title: 'Raqam', dataIndex: 'paymentNumber' },
           {
-            title: "Mijoz / O'quvchi",
-            render: (_, record) =>
-              record.payerCustomer?.companyName ?? record.payerCustomer?.name ?? (record.referenceType === 'TUITION_CHARGE' ? "O'quvchi to'lovi" : '—'),
+            title: "O'quvchi",
+            render: (_, record) => (record.student ? <Link to={`/students/${record.student.id}?tab=finance`}>{record.student.fullName}</Link> : '—'),
           },
-          { title: 'Manba', dataIndex: 'referenceType', render: (v: Payment['referenceType']) => (v ? (REFERENCE_TYPE_LABELS[v] ?? v) : '—') },
           { title: 'Summa', dataIndex: 'amount', render: (v: string) => Number(v).toLocaleString('uz-UZ') },
           { title: 'Usul', dataIndex: 'method', render: (v: PaymentMethod) => METHOD_LABELS[v] },
           { title: 'Sana', dataIndex: 'createdAt', render: (v: string) => new Date(v).toLocaleString('uz-UZ') },
@@ -147,7 +125,7 @@ export function PaymentsPage() {
             title: 'Amallar',
             render: (_, record) => (
               <Space>
-                {canAllocate && record.referenceType === 'TUITION_CHARGE' && record.status === 'COMPLETED' && (
+                {canAllocate && record.status === 'COMPLETED' && (
                   <Button size="small" icon={<SplitCellsOutlined />} onClick={() => setAllocatingPayment(record)}>
                     Taqsimlash
                   </Button>

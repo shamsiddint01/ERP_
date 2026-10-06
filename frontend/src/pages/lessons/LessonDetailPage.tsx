@@ -108,7 +108,7 @@ export function LessonDetailPage() {
     <div>
       <DetailHeader
         backLabel="Darslar ro'yxatiga qaytish"
-        onBack={() => navigate('/lessons')}
+        onBack={() => navigate('/attendance')}
         title={<Typography.Link onClick={() => navigate(`/groups/${lesson.group.id}`)}>{lesson.group.name}</Typography.Link>}
         subtitle={
           <>

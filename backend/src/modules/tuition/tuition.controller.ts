@@ -2,9 +2,7 @@ import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query } from 
 import { PermissionAction } from '@prisma/client';
 import { ApiTags } from '@nestjs/swagger';
 import { Audited } from '../../shared/decorators/audited.decorator.js';
-import { CurrentUser } from '../../shared/decorators/current-user.decorator.js';
 import { RequirePermission } from '../../shared/decorators/require-permission.decorator.js';
-import type { AuthenticatedUser } from '../../shared/types/authenticated-request.js';
 import { CreateTuitionChargeDto } from './dto/create-tuition-charge.dto.js';
 import { QueryTuitionChargeDto } from './dto/query-tuition-charge.dto.js';
 import { UpdateTuitionChargeDto } from './dto/update-tuition-charge.dto.js';
@@ -30,8 +28,8 @@ export class TuitionController {
   @Post()
   @RequirePermission('tuition', PermissionAction.CREATE)
   @Audited('TuitionCharge')
-  create(@Body() dto: CreateTuitionChargeDto, @CurrentUser() user: AuthenticatedUser) {
-    return this.tuitionChargeService.create(dto, user.id);
+  create(@Body() dto: CreateTuitionChargeDto) {
+    return this.tuitionChargeService.create(dto);
   }
 
   @Patch(':id')
@@ -44,7 +42,7 @@ export class TuitionController {
   @Post(':id/cancel')
   @RequirePermission('tuition', PermissionAction.APPROVE)
   @Audited('TuitionCharge', 'CANCEL')
-  cancel(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
-    return this.tuitionChargeService.cancel(id, user.id);
+  cancel(@Param('id', ParseUUIDPipe) id: string) {
+    return this.tuitionChargeService.cancel(id);
   }
 }

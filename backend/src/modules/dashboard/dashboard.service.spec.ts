@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { DashboardService } from './dashboard.service.js';
 
-const ALL_MODULES = ['students', 'groups', 'teachers', 'lessons', 'student_attendance', 'tuition', 'finance', 'payroll', 'leads', 'exams', 'expenses'];
+const ALL_MODULES = ['students', 'groups', 'teachers', 'lessons', 'student_attendance', 'tuition', 'payments', 'exams'];
 
 function permissionsFor(modules: string[]) {
   return modules.flatMap((m) => [`${m}:VIEW`]);
@@ -16,17 +16,13 @@ function createPrismaMock(opts: {
   lessonsToday?: number;
   scheduleRows?: unknown[];
   attendanceRecords?: { status: string }[];
-  payrollApprovedSum?: number | null;
-  payrollCalculatedCount?: number;
-  expensesPendingCount?: number;
-  leadCounts?: { newThisMonth?: number; enrolled?: number; total?: number; byStatus?: { status: string; _count: { _all: number } }[] };
   upcomingExamsCount?: number;
   paymentSumThisMonth?: number | null;
   branches?: { id: string; name: string }[];
   enrollmentsForCourse?: { studentId: string; group: { courseId: string; course: { name: string } } }[];
   paymentsForChart?: { createdAt: Date; amount: string }[];
-  journalLines?: { accountId: string; debit: string; credit: string; journalEntry: { entryDate: Date } }[];
-  accounts?: { id: string; category: string }[];
+  recentPayments?: { id: string; paymentNumber: string; amount: string; method: string; status: string; paidAt: Date | null; createdAt: Date; referenceId: string | null }[];
+  studentsByIdForPayments?: { id: string; fullName: string }[];
   assessments?: { percentage: string; evaluatedAt: Date }[];
   enrollmentGrowth?: Date[];
 } = {}) {
@@ -55,23 +51,10 @@ function createPrismaMock(opts: {
       findMany: vi.fn().mockResolvedValue(opts.scheduleRows ?? []),
     },
     studentAttendance: { findMany: vi.fn().mockResolvedValue(opts.attendanceRecords ?? []) },
-    payroll: {
-      aggregate: vi.fn().mockResolvedValue({ _sum: { netSalary: opts.payrollApprovedSum ?? null } }),
-      count: vi.fn().mockResolvedValue(opts.payrollCalculatedCount ?? 0),
-    },
-    expense: { count: vi.fn().mockResolvedValue(opts.expensesPendingCount ?? 0) },
-    lead: {
-      count: vi
-        .fn()
-        .mockResolvedValueOnce(opts.leadCounts?.newThisMonth ?? 0)
-        .mockResolvedValueOnce(opts.leadCounts?.enrolled ?? 0)
-        .mockResolvedValueOnce(opts.leadCounts?.total ?? 0),
-      groupBy: vi.fn().mockResolvedValue(opts.leadCounts?.byStatus ?? []),
-    },
     exam: { count: vi.fn().mockResolvedValue(opts.upcomingExamsCount ?? 0) },
     payment: {
       aggregate: vi.fn().mockResolvedValue({ _sum: { amount: opts.paymentSumThisMonth ?? null } }),
-      findMany: vi.fn().mockResolvedValue(opts.paymentsForChart ?? []),
+      findMany: vi.fn().mockImplementation((args: { take?: number }) => Promise.resolve(args.take ? (opts.recentPayments ?? []) : (opts.paymentsForChart ?? []))),
     },
     branch: { findMany: vi.fn().mockResolvedValue(opts.branches ?? []) },
     enrollment: {
@@ -80,8 +63,6 @@ function createPrismaMock(opts: {
         .mockResolvedValueOnce((opts.enrollmentGrowth ?? []).map((startDate) => ({ startDate })))
         .mockResolvedValueOnce(opts.enrollmentsForCourse ?? []),
     },
-    account: { findMany: vi.fn().mockResolvedValue(opts.accounts ?? []) },
-    journalLine: { findMany: vi.fn().mockResolvedValue(opts.journalLines ?? []) },
     assessment: { findMany: vi.fn().mockResolvedValue(opts.assessments ?? []) },
   };
 }
@@ -91,7 +72,6 @@ function createService(prisma: ReturnType<typeof createPrismaMock>, grantedModul
   const reportsService = {
     tuitionOutstanding: vi.fn().mockResolvedValue({ rows: [], totalOutstanding: 0 }),
     tuitionOverdue: vi.fn().mockResolvedValue({ rows: [], totalOverdue: 0 }),
-    profitAndLoss: vi.fn().mockResolvedValue({ totalRevenue: 0, totalExpense: 0, netIncome: 0 }),
     ...serviceOverrides.reportsService,
   };
   const notificationsService = { unreadCount: vi.fn().mockResolvedValue({ count: 0 }), ...serviceOverrides.notificationsService };
@@ -168,57 +148,18 @@ describe('DashboardService.getOverview', () => {
     expect(result.kpis.tuitionCollectedThisMonth).toBe(750000);
   });
 
-  it('sources Monthly Expenses/Monthly Profit from ReportsService.profitAndLoss for the current month, never a separate calculation path', async () => {
-    const prisma = createPrismaMock({});
-    const { service, reportsService } = createService(prisma, ['finance'], {
-      reportsService: { profitAndLoss: vi.fn().mockResolvedValue({ totalRevenue: 1000, totalExpense: 400, netIncome: 600 }) },
-    });
 
-    const result = await service.getOverview('user1');
-
-    expect(reportsService.profitAndLoss).toHaveBeenCalledWith(expect.objectContaining({ from: expect.any(String), to: expect.any(String) }));
-    expect(result.kpis.monthlyExpenses).toBe(400);
-    expect(result.kpis.monthlyProfit).toBe(600);
-  });
-
-  it('computes Payroll Payable as the sum of APPROVED payrolls\' netSalary', async () => {
-    const prisma = createPrismaMock({ payrollApprovedSum: 3_200_000 });
-    const { service } = createService(prisma, ['payroll']);
-
-    const result = await service.getOverview('user1');
-
-    expect(prisma.payroll.aggregate).toHaveBeenCalledWith({ where: { status: 'APPROVED' }, _sum: { netSalary: true } });
-    expect(result.kpis.payrollPayable).toBe(3_200_000);
-  });
 
   it('treats a null aggregate sum (no rows at all) as 0, not NaN — zero-data case', async () => {
-    const prisma = createPrismaMock({ payrollApprovedSum: null, paymentSumThisMonth: null });
-    const { service } = createService(prisma, ['payroll', 'tuition']);
+    const prisma = createPrismaMock({ paymentSumThisMonth: null });
+    const { service } = createService(prisma, ['tuition']);
 
     const result = await service.getOverview('user1');
 
-    expect(result.kpis.payrollPayable).toBe(0);
     expect(result.kpis.tuitionCollectedThisMonth).toBe(0);
   });
 
-  it('computes Lead Conversion Rate as ENROLLED / total leads, and New Leads as leads created this month', async () => {
-    const prisma = createPrismaMock({ leadCounts: { newThisMonth: 3, enrolled: 5, total: 20 } });
-    const { service } = createService(prisma, ['leads']);
 
-    const result = await service.getOverview('user1');
-
-    expect(result.kpis.newLeads).toBe(3);
-    expect(result.kpis.leadConversionRate).toBe(25);
-  });
-
-  it('reports 0% lead conversion (not NaN) when there are no leads at all', async () => {
-    const prisma = createPrismaMock({ leadCounts: { newThisMonth: 0, enrolled: 0, total: 0 } });
-    const { service } = createService(prisma, ['leads']);
-
-    const result = await service.getOverview('user1');
-
-    expect(result.kpis.leadConversionRate).toBe(0);
-  });
 
   it('narrows Upcoming Exams to the caller\'s own teacherEmployeeId when teacher-scoped', async () => {
     const prisma = createPrismaMock({ employeeId: 'emp1', teacherProfileStatus: 'ACTIVE', upcomingExamsCount: 1 });
@@ -253,18 +194,17 @@ describe('DashboardService.getOverview', () => {
 
   it('builds actionRequired cards only for KPIs with a positive value, each with a navigation target', async () => {
     const prisma = createPrismaMock({
-      leadCounts: { newThisMonth: 2, enrolled: 0, total: 5 },
       attendanceRecords: [{ status: 'ABSENT' }],
       upcomingExamsCount: 1,
     });
-    const { service } = createService(prisma, ['leads', 'student_attendance', 'exams'], {
+    const { service } = createService(prisma, ['student_attendance', 'exams'], {
       notificationsService: { unreadCount: vi.fn().mockResolvedValue({ count: 0 }) },
     });
 
     const result = await service.getOverview('user1');
 
     const keys = result.actionRequired.map((c) => c.key);
-    expect(keys).toEqual(expect.arrayContaining(['absentStudentsToday', 'upcomingExams', 'newLeads']));
+    expect(keys).toEqual(expect.arrayContaining(['absentStudentsToday', 'upcomingExams']));
     expect(keys).not.toContain('unreadNotifications');
     for (const card of result.actionRequired) {
       expect(card.to).toMatch(/^\//);
@@ -324,6 +264,35 @@ describe('DashboardService.getToday', () => {
     const result = await service.getToday('user1');
 
     expect(result.attendance).toMatchObject({ present: 1, absent: 1, total: 2, attendancePercentage: 50 });
+  });
+});
+
+describe('DashboardService.getToday — recent payments', () => {
+  it('omits recent payments without payments:VIEW', async () => {
+    const prisma = createPrismaMock({});
+    const { service } = createService(prisma, ['lessons']);
+
+    const result = await service.getToday('user1');
+
+    expect(result.recentPayments).toEqual([]);
+  });
+
+  it('resolves each payment\'s student name from its referenceId', async () => {
+    const prisma = createPrismaMock({
+      recentPayments: [
+        { id: 'p1', paymentNumber: 'PAY-1', amount: '450000', method: 'CASH', status: 'COMPLETED', paidAt: new Date(), createdAt: new Date(), referenceId: 's1' },
+        { id: 'p2', paymentNumber: 'PAY-2', amount: '600000', method: 'CARD', status: 'COMPLETED', paidAt: new Date(), createdAt: new Date(), referenceId: 'missing' },
+      ],
+    });
+    prisma.student.findMany = vi.fn().mockResolvedValue([{ id: 's1', fullName: 'Muattar Abdulkhamitova' }]);
+    const { service } = createService(prisma, ['payments']);
+
+    const result = await service.getToday('user1');
+
+    expect(result.recentPayments).toEqual([
+      expect.objectContaining({ id: 'p1', amount: 450000, studentId: 's1', studentName: 'Muattar Abdulkhamitova' }),
+      expect.objectContaining({ id: 'p2', amount: 600000, studentId: 'missing', studentName: null }),
+    ]);
   });
 });
 
@@ -401,31 +370,7 @@ describe('DashboardService.getCharts', () => {
     expect(thisMonthBucket?.amount).toBe(150000);
   });
 
-  it('buckets incomeVsExpenses by month from the ledger, crediting REVENUE and debiting EXPENSE accounts correctly', async () => {
-    const now = new Date();
-    const prisma = createPrismaMock({
-      accounts: [{ id: 'rev1', category: 'REVENUE' }, { id: 'exp1', category: 'EXPENSE' }],
-      journalLines: [
-        { accountId: 'rev1', debit: '0', credit: '1000', journalEntry: { entryDate: now } },
-        { accountId: 'exp1', debit: '400', credit: '0', journalEntry: { entryDate: now } },
-      ],
-    });
-    const { service } = createService(prisma, ['finance']);
 
-    const result = await service.getCharts('user1');
-
-    const thisMonthBucket = (result.incomeVsExpenses as { month: string; income: number; expenses: number }[]).find((r) => r.month === now.toISOString().slice(0, 7));
-    expect(thisMonthBucket).toEqual({ month: now.toISOString().slice(0, 7), income: 1000, expenses: 400 });
-  });
-
-  it('groups leadConversionFunnel by lead status', async () => {
-    const prisma = createPrismaMock({ leadCounts: { byStatus: [{ status: 'NEW', _count: { _all: 4 } }, { status: 'ENROLLED', _count: { _all: 2 } }] } });
-    const { service } = createService(prisma, ['leads']);
-
-    const result = await service.getCharts('user1');
-
-    expect(result.leadConversionFunnel).toEqual([{ status: 'NEW', count: 4 }, { status: 'ENROLLED', count: 2 }]);
-  });
 
   it('buckets academicPerformance average score by month and narrows to teacher scope', async () => {
     const now = new Date();
@@ -436,6 +381,8 @@ describe('DashboardService.getCharts', () => {
 
     const thisMonthBucket = (result.academicPerformance as { month: string; averageScore: number }[]).find((r) => r.month === now.toISOString().slice(0, 7));
     expect(thisMonthBucket?.averageScore).toBe(70);
+    const emptyMonths = (result.academicPerformance as { month: string; averageScore: number | null }[]).filter((r) => r !== thisMonthBucket);
+    expect(emptyMonths.every((r) => r.averageScore === null)).toBe(true);
     expect(prisma.assessment.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ exam: { teacherEmployeeId: 'emp1' } }) }));
   });
 });

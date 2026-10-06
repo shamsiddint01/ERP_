@@ -60,8 +60,8 @@ export function NotificationBell() {
   }, [unreadQuery.data]);
 
   const panel = (
-    <div className="notification-panel" style={{ width: 380, background: '#fff', borderRadius: 8, overflow: 'hidden' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderBottom: '1px solid #f0f0f0' }}>
+    <div className="notification-panel" style={{ width: 380, background: 'var(--color-surface-raised)', border: '1px solid var(--color-border)', borderRadius: 12, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderBottom: '1px solid var(--color-border)' }}>
         <Typography.Text strong>Bildirishnomalar</Typography.Text>
         <Button
           type="link"
@@ -88,7 +88,7 @@ export function NotificationBell() {
             renderItem={(item) => (
               <List.Item
                 onClick={() => openNotification(item)}
-                style={{ padding: '10px 14px', cursor: 'pointer', background: item.isRead ? undefined : '#f0f7ff', alignItems: 'flex-start' }}
+                style={{ padding: '10px 14px', cursor: 'pointer', background: item.isRead ? undefined : 'rgba(245, 165, 36, 0.06)', alignItems: 'flex-start' }}
               >
                 <List.Item.Meta
                   title={
@@ -102,7 +102,7 @@ export function NotificationBell() {
                   description={
                     <>
                       <div style={{ fontSize: 12 }}>{item.message}</div>
-                      <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>{formatRelativeTime(item.createdAt)}</div>
+                      <div style={{ fontSize: 11, color: 'var(--color-text-muted)', marginTop: 2 }}>{formatRelativeTime(item.createdAt)}</div>
                     </>
                   }
                 />
@@ -112,7 +112,7 @@ export function NotificationBell() {
         )}
       </div>
 
-      <div style={{ borderTop: '1px solid #f0f0f0', padding: '8px 14px', textAlign: 'center' }}>
+      <div style={{ borderTop: '1px solid var(--color-border)', padding: '8px 14px', textAlign: 'center' }}>
         <Button type="link" size="small" onClick={() => navigate('/notifications')}>
           Barchasini ko'rish
         </Button>

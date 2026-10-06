@@ -1,8 +1,7 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Form, Input, InputNumber, Modal, Select } from 'antd';
-import { useEffect, useState } from 'react';
-import { listEmployees } from '../api/employees';
-import { createTeacher, updateTeacher, type CreateTeacherPayload } from '../api/teachers';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { App, Col, Form, Input, InputNumber, Modal, Row, Select } from 'antd';
+import { useEffect } from 'react';
+import { createTeacher, updateTeacher } from '../api/teachers';
 import { FormSection } from './FormSection';
 import type { TeacherDetail, TeacherProfileStatus } from '../types';
 
@@ -13,14 +12,14 @@ interface TeacherFormModalProps {
 }
 
 interface FormValues {
-  employeeId: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email?: string;
   bio?: string;
   specialization?: string;
   qualification?: string;
   experienceYears?: number;
-  hourlyRate?: number;
-  perLessonRate?: number;
-  perGroupRate?: number;
   status?: TeacherProfileStatus;
 }
 
@@ -28,28 +27,20 @@ export function TeacherFormModal({ open, onClose, teacher }: TeacherFormModalPro
   const { message } = App.useApp();
   const queryClient = useQueryClient();
   const [form] = Form.useForm<FormValues>();
-  const [employeeSearch, setEmployeeSearch] = useState('');
   const isEdit = !!teacher;
-
-  // Search-as-you-type instead of loading every employee (Phase D §6).
-  const employeesQuery = useQuery({
-    queryKey: ['employees', { search: employeeSearch || undefined, pageSize: 20, forTeacherSelect: true }],
-    queryFn: () => listEmployees({ search: employeeSearch || undefined, pageSize: 20 }),
-    enabled: open && !isEdit,
-  });
 
   useEffect(() => {
     if (!open) return;
     if (teacher) {
       form.setFieldsValue({
-        employeeId: teacher.employeeId,
+        firstName: teacher.employee.firstName,
+        lastName: teacher.employee.lastName,
+        phone: teacher.employee.phone,
+        email: teacher.employee.email ?? undefined,
         bio: teacher.bio ?? undefined,
         specialization: teacher.specialization ?? undefined,
         qualification: teacher.qualification ?? undefined,
         experienceYears: teacher.experienceYears ?? undefined,
-        hourlyRate: teacher.hourlyRate ? Number(teacher.hourlyRate) : undefined,
-        perLessonRate: teacher.perLessonRate ? Number(teacher.perLessonRate) : undefined,
-        perGroupRate: teacher.perGroupRate ? Number(teacher.perGroupRate) : undefined,
         status: teacher.status,
       });
     } else {
@@ -59,14 +50,11 @@ export function TeacherFormModal({ open, onClose, teacher }: TeacherFormModalPro
 
   const mutation = useMutation({
     mutationFn: (values: FormValues) => {
-      if (isEdit) {
-        const { employeeId: _employeeId, ...updatePayload } = values;
-        return updateTeacher(teacher!.id, updatePayload);
-      }
-      return createTeacher(values as CreateTeacherPayload);
+      const payload = { ...values, email: values.email || undefined };
+      return isEdit ? updateTeacher(teacher!.id, payload) : createTeacher(payload);
     },
     onSuccess: () => {
-      message.success(isEdit ? "O'qituvchi profili yangilandi" : "O'qituvchi profili yaratildi");
+      message.success(isEdit ? "O'qituvchi ma'lumotlari yangilandi" : "O'qituvchi qo'shildi");
       queryClient.invalidateQueries({ queryKey: ['teachers'] });
       if (isEdit) queryClient.invalidateQueries({ queryKey: ['teacher', teacher!.id] });
       form.resetFields();
@@ -74,13 +62,13 @@ export function TeacherFormModal({ open, onClose, teacher }: TeacherFormModalPro
     },
     onError: (error: unknown) => {
       const detail = (error as { response?: { data?: { message?: string } } })?.response?.data?.message;
-      message.error(detail ?? "O'qituvchi profilini saqlab bo'lmadi");
+      message.error(detail ?? "O'qituvchini saqlab bo'lmadi");
     },
   });
 
   return (
     <Modal
-      title={isEdit ? "O'qituvchi profilini tahrirlash" : "Yangi o'qituvchi profili"}
+      title={isEdit ? "O'qituvchini tahrirlash" : "Yangi o'qituvchi"}
       open={open}
       onCancel={onClose}
       onOk={() => form.submit()}
@@ -89,20 +77,30 @@ export function TeacherFormModal({ open, onClose, teacher }: TeacherFormModalPro
       width={600}
     >
       <Form form={form} layout="vertical" onFinish={(values) => mutation.mutate(values)}>
-        {!isEdit && (
-          <FormSection title="Xodim">
-            <Form.Item name="employeeId" label="Xodim" rules={[{ required: true, message: 'Xodimni tanlang' }]} style={{ marginBottom: 0 }}>
-              <Select
-                showSearch
-                loading={employeesQuery.isLoading}
-                filterOption={false}
-                onSearch={setEmployeeSearch}
-                options={employeesQuery.data?.items.map((e) => ({ value: e.id, label: `${e.fullName} (${e.employeeCode})` }))}
-                placeholder="Ism bo'yicha qidiring"
-              />
-            </Form.Item>
-          </FormSection>
-        )}
+        <FormSection title="Shaxsiy ma'lumotlar">
+          <Row gutter={12}>
+            <Col xs={24} sm={12}>
+              <Form.Item name="firstName" label="Ism" rules={[{ required: true, message: 'Ismni kiriting' }]}>
+                <Input />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="lastName" label="Familiya" rules={[{ required: true, message: 'Familiyani kiriting' }]}>
+                <Input />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="phone" label="Telefon" rules={[{ required: true, message: 'Telefon raqamini kiriting' }]} style={{ marginBottom: 0 }}>
+                <Input placeholder="+998 90 123 45 67" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Form.Item name="email" label="Email" rules={[{ type: 'email', message: "Email noto'g'ri" }]} style={{ marginBottom: 0 }}>
+                <Input />
+              </Form.Item>
+            </Col>
+          </Row>
+        </FormSection>
 
         <FormSection title="Kasbiy ma'lumotlar">
           <Form.Item name="specialization" label="Mutaxassislik">
@@ -114,20 +112,8 @@ export function TeacherFormModal({ open, onClose, teacher }: TeacherFormModalPro
           <Form.Item name="experienceYears" label="Ish tajribasi (yil)">
             <InputNumber min={0} style={{ width: '100%' }} />
           </Form.Item>
-          <Form.Item name="bio" label="Bio" style={{ marginBottom: 0 }}>
+          <Form.Item name="bio" label="Bio" style={{ marginBottom: isEdit ? undefined : 0 }}>
             <Input.TextArea />
-          </Form.Item>
-        </FormSection>
-
-        <FormSection title="Stavkalar">
-          <Form.Item name="hourlyRate" label="Soatlik stavka (so'm)">
-            <InputNumber min={0} style={{ width: '100%' }} />
-          </Form.Item>
-          <Form.Item name="perLessonRate" label="Dars uchun stavka (so'm)">
-            <InputNumber min={0} style={{ width: '100%' }} />
-          </Form.Item>
-          <Form.Item name="perGroupRate" label="Guruh uchun stavka (so'm)" style={{ marginBottom: isEdit ? undefined : 0 }}>
-            <InputNumber min={0} style={{ width: '100%' }} />
           </Form.Item>
           {isEdit && (
             <Form.Item name="status" label="Status" style={{ marginBottom: 0 }}>

@@ -8,7 +8,6 @@ import { Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieCh
 import {
   downloadEducationReportExport,
   getAcademicReport,
-  getAdmissionsReport,
   getAttendanceReport,
   getBranchesReport,
   getGroupsReport,
@@ -24,12 +23,12 @@ import { listGroups } from '../../api/groups';
 import { listStudents } from '../../api/students';
 import { listTeachers } from '../../api/teachers';
 import { useAuthStore } from '../../store/auth.store';
-import { palette } from '../../theme';
-import type { LeadStatus, StudentGroupStatus, StudentStatus } from '../../types';
+import { attendanceChartColors, chartAxisTick, chartGridStroke, chartTooltipLabelStyle, chartTooltipStyle, palette } from '../../theme';
+import type { StudentGroupStatus, StudentStatus } from '../../types';
 import { formatNumber } from '../../utils/format';
 
 const { RangePicker } = DatePicker;
-const PIE_COLORS = ['#1677ff', '#f5222d', '#faad14', '#52c41a', '#722ed1', '#13c2c2'];
+const ATTENDANCE_COLORS = [attendanceChartColors.present, attendanceChartColors.absent, attendanceChartColors.late, attendanceChartColors.excused];
 
 const STUDENT_STATUS_LABELS: Record<StudentStatus, string> = {
   ACTIVE: 'Faol',
@@ -45,15 +44,6 @@ const GROUP_STATUS_LABELS: Record<StudentGroupStatus, string> = {
   PAUSED: 'Muzlatilgan',
   COMPLETED: 'Yakunlangan',
   CANCELLED: 'Bekor qilingan',
-};
-
-const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
-  NEW: 'Yangi',
-  CONTACTED: "Bog'lanildi",
-  TRIAL_SCHEDULED: 'Sinov darsi belgilandi',
-  TRIAL_COMPLETED: "Sinov darsi o'tdi",
-  ENROLLED: "O'quvchiga aylandi",
-  LOST: "Yo'qotildi",
 };
 
 const money = (value: number) => formatNumber(value, 2);
@@ -72,7 +62,6 @@ export function EducationReportsPage() {
   const canAcademic = hasPermission('grades', 'VIEW');
   const canTuition = hasPermission('tuition', 'VIEW');
   const canTeachers = hasPermission('teachers', 'VIEW');
-  const canAdmissions = hasPermission('leads', 'VIEW');
   const canBranches = hasPermission('branches', 'VIEW');
   const canCourses = hasPermission('courses', 'VIEW');
 
@@ -86,7 +75,6 @@ export function EducationReportsPage() {
 
   const [studentStatus, setStudentStatus] = useState<StudentStatus>();
   const [groupStatus, setGroupStatus] = useState<StudentGroupStatus>();
-  const [leadStatus, setLeadStatus] = useState<LeadStatus>();
 
   const [studentsPage, setStudentsPage] = useState(1);
   const [groupsPage, setGroupsPage] = useState(1);
@@ -136,11 +124,6 @@ export function EducationReportsPage() {
     queryKey: ['education-reports', 'teachers', base, teachersPage],
     queryFn: () => getTeachersReport({ ...base, page: teachersPage, pageSize: 10 }),
     enabled: canTeachers,
-  });
-  const admissionsQuery = useQuery({
-    queryKey: ['education-reports', 'admissions', base, leadStatus],
-    queryFn: () => getAdmissionsReport({ ...base, status: leadStatus }),
-    enabled: canAdmissions,
   });
   const branchesQuery = useQuery({
     queryKey: ['education-reports', 'branches', base],
@@ -245,11 +228,11 @@ export function EducationReportsPage() {
           <Card title="Yangi o'quvchilar (davr bo'yicha)" style={{ marginBottom: 16 }}>
             <ResponsiveContainer width="100%" height={220}>
               <LineChart data={studentsQuery.data?.newStudentsByPeriod ?? []}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="period" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                <Tooltip />
-                <Line type="monotone" dataKey="count" stroke="#1677ff" strokeWidth={2} />
+                <CartesianGrid vertical={false} stroke={chartGridStroke} />
+                <XAxis dataKey="period" tick={chartAxisTick} />
+                <YAxis tick={chartAxisTick} allowDecimals={false} />
+                <Tooltip contentStyle={chartTooltipStyle} labelStyle={chartTooltipLabelStyle} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+                <Line type="monotone" dataKey="count" stroke={palette.primary} strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
           </Card>
@@ -336,11 +319,11 @@ export function EducationReportsPage() {
           <Card title="Guruhlar to'ldirilishi (%)" style={{ marginBottom: 16 }}>
             <ResponsiveContainer width="100%" height={240}>
               <BarChart data={groupsQuery.data?.capacityUtilization ?? []}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip />
-                <Bar dataKey="utilizationPercentage" fill="#1677ff" />
+                <CartesianGrid vertical={false} stroke={chartGridStroke} />
+                <XAxis dataKey="name" tick={chartAxisTick} />
+                <YAxis tick={chartAxisTick} />
+                <Tooltip contentStyle={chartTooltipStyle} labelStyle={chartTooltipLabelStyle} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+                <Bar dataKey="utilizationPercentage" fill={palette.primary} radius={[4, 4, 0, 0]} maxBarSize={36} />
               </BarChart>
             </ResponsiveContainer>
           </Card>
@@ -414,11 +397,11 @@ export function EducationReportsPage() {
                   outerRadius={80}
                   label
                 >
-                  {PIE_COLORS.map((color) => (
-                    <Cell key={color} fill={color} />
+                  {ATTENDANCE_COLORS.map((color) => (
+                    <Cell key={color} fill={color} stroke={palette.surface} strokeWidth={2} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltip contentStyle={chartTooltipStyle} labelStyle={chartTooltipLabelStyle} itemStyle={{ color: palette.text }} />
                 <Legend />
               </PieChart>
             </ResponsiveContainer>
@@ -536,11 +519,11 @@ export function EducationReportsPage() {
               <Card title="Kurslar bo'yicha o'rtacha ball" style={{ marginBottom: 16 }}>
                 <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={academicQuery.data?.coursePerformance ?? []}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="courseName" tick={{ fontSize: 10 }} />
-                    <YAxis tick={{ fontSize: 11 }} />
-                    <Tooltip />
-                    <Bar dataKey="average" fill="#722ed1" />
+                    <CartesianGrid vertical={false} stroke={chartGridStroke} />
+                    <XAxis dataKey="courseName" tick={chartAxisTick} />
+                    <YAxis tick={chartAxisTick} />
+                    <Tooltip contentStyle={chartTooltipStyle} labelStyle={chartTooltipLabelStyle} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+                    <Bar dataKey="average" fill={palette.primary} radius={[4, 4, 0, 0]} maxBarSize={36} />
                   </BarChart>
                 </ResponsiveContainer>
               </Card>
@@ -600,11 +583,11 @@ export function EducationReportsPage() {
           <Card title="Davr bo'yicha hisoblangan summa" style={{ marginBottom: 16 }}>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={tuitionQuery.data?.billed.rows ?? []}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="billingPeriod" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} />
+                <CartesianGrid vertical={false} stroke={chartGridStroke} />
+                <XAxis dataKey="billingPeriod" tick={chartAxisTick} />
+                <YAxis tick={chartAxisTick} />
                 <Tooltip formatter={(v) => money(Number(v))} />
-                <Bar dataKey="netAmount" fill="#1677ff" />
+                <Bar dataKey="netAmount" fill={palette.primary} radius={[4, 4, 0, 0]} maxBarSize={36} />
               </BarChart>
             </ResponsiveContainer>
           </Card>
@@ -640,11 +623,11 @@ export function EducationReportsPage() {
           <Card title="Dars soatlari" style={{ marginBottom: 16 }}>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={teachersQuery.data?.items ?? []}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="name" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip />
-                <Bar dataKey="hours" fill="#13c2c2" />
+                <CartesianGrid vertical={false} stroke={chartGridStroke} />
+                <XAxis dataKey="name" tick={chartAxisTick} />
+                <YAxis tick={chartAxisTick} />
+                <Tooltip contentStyle={chartTooltipStyle} labelStyle={chartTooltipLabelStyle} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+                <Bar dataKey="hours" fill={palette.primary} radius={[4, 4, 0, 0]} maxBarSize={36} />
               </BarChart>
             </ResponsiveContainer>
           </Card>
@@ -667,53 +650,6 @@ export function EducationReportsPage() {
         </>
       ),
     },
-    canAdmissions && {
-      key: 'admissions',
-      label: 'Lidlar',
-      children: (
-        <>
-          <Space style={{ marginBottom: 12 }}>
-            <Select placeholder="Status" allowClear style={{ width: 200 }} options={Object.entries(LEAD_STATUS_LABELS).map(([value, label]) => ({ value, label }))} onChange={setLeadStatus} />
-            <Button icon={<DownloadOutlined />} onClick={() => handleExport('admissions', 'csv', 'education-admissions')}>
-              CSV
-            </Button>
-          </Space>
-          <Row gutter={16} style={{ marginBottom: 16 }}>
-            <Col span={6}>
-              <Card size="small">
-                <Statistic title="Jami lidlar" value={admissionsQuery.data?.leads ?? 0} loading={admissionsQuery.isLoading} />
-              </Card>
-            </Col>
-            <Col span={6}>
-              <Card size="small">
-                <Statistic title="Konversiya %" value={admissionsQuery.data?.conversionRate ?? 0} suffix="%" loading={admissionsQuery.isLoading} styles={{ content: { color: palette.success } }} />
-              </Card>
-            </Col>
-            <Col span={6}>
-              <Card size="small">
-                <Statistic title="Muddati o'tgan follow-up" value={admissionsQuery.data?.followUpStatus.overdue ?? 0} loading={admissionsQuery.isLoading} styles={{ content: { color: palette.error } }} />
-              </Card>
-            </Col>
-            <Col span={6}>
-              <Card size="small">
-                <Statistic title="Rejalashtirilmagan" value={admissionsQuery.data?.followUpStatus.notScheduled ?? 0} loading={admissionsQuery.isLoading} />
-              </Card>
-            </Col>
-          </Row>
-          <Card title="Manba bo'yicha" style={{ marginBottom: 16 }}>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={admissionsQuery.data?.leadSource ?? []}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="source" tick={{ fontSize: 10 }} />
-                <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                <Tooltip />
-                <Bar dataKey="count" fill="#faad14" />
-              </BarChart>
-            </ResponsiveContainer>
-          </Card>
-        </>
-      ),
-    },
     canBranches && {
       key: 'branches',
       label: 'Filiallar',
@@ -727,11 +663,11 @@ export function EducationReportsPage() {
           <Card title="Filial bo'yicha o'quvchilar" style={{ marginBottom: 16 }}>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={branchesQuery.data?.items ?? []}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="branchName" tick={{ fontSize: 11 }} />
-                <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-                <Tooltip />
-                <Bar dataKey="students" fill="#1677ff" />
+                <CartesianGrid vertical={false} stroke={chartGridStroke} />
+                <XAxis dataKey="branchName" tick={chartAxisTick} />
+                <YAxis tick={chartAxisTick} allowDecimals={false} />
+                <Tooltip contentStyle={chartTooltipStyle} labelStyle={chartTooltipLabelStyle} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+                <Bar dataKey="students" fill={palette.primary} radius={[4, 4, 0, 0]} maxBarSize={36} />
               </BarChart>
             </ResponsiveContainer>
           </Card>

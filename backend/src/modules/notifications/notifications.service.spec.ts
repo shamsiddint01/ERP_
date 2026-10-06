@@ -36,23 +36,23 @@ describe('NotificationsService', () => {
       const prisma = createPrismaMock();
       const result = await service(prisma).notify({
         recipientUserId: 'user1',
-        type: 'INVOICE_OVERDUE',
+        type: 'TUITION_OVERDUE',
         title: 'Overdue',
-        message: 'An invoice is overdue',
-        referenceId: 'inv1',
+        message: 'A tuition charge is overdue',
+        referenceId: 'charge1',
       });
 
       expect(prisma.notification.create).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ recipientUserId: 'user1', type: 'INVOICE_OVERDUE', severity: 'CRITICAL' }) }),
+        expect.objectContaining({ data: expect.objectContaining({ recipientUserId: 'user1', type: 'TUITION_OVERDUE', severity: 'CRITICAL' }) }),
       );
-      expect(result).toMatchObject({ recipientUserId: 'user1', type: 'INVOICE_OVERDUE' });
+      expect(result).toMatchObject({ recipientUserId: 'user1', type: 'TUITION_OVERDUE' });
     });
 
     it('skips creation when an unread notification with the same (recipient, type, referenceId) already exists', async () => {
       const prisma = createPrismaMock({ notification: { findFirst: vi.fn().mockResolvedValue({ id: 'existing' }) } });
       const result = await service(prisma).notify({
         recipientUserId: 'user1',
-        type: 'EXPENSE_PENDING',
+        type: 'TUITION_DUE',
         title: 'Pending',
         message: 'x',
         referenceId: 'exp1',
@@ -83,8 +83,8 @@ describe('NotificationsService', () => {
         user: { findMany: vi.fn().mockResolvedValue([{ id: 'u1' }, { id: 'u2' }, { id: 'u1' }]) },
       });
 
-      const sent = await service(prisma).notifyByPermission('expenses', 'APPROVE', {
-        type: 'EXPENSE_PENDING',
+      const sent = await service(prisma).notifyByPermission('tuition', 'APPROVE', {
+        type: 'TUITION_DUE',
         title: 't',
         message: 'm',
         referenceId: 'exp1',
@@ -100,7 +100,7 @@ describe('NotificationsService', () => {
 
     it('is a no-op (never throws) when no role grants the permission', async () => {
       const prisma = createPrismaMock();
-      const sent = await service(prisma).notifyByPermission('expenses', 'APPROVE', { type: 'EXPENSE_PENDING', title: 't', message: 'm' });
+      const sent = await service(prisma).notifyByPermission('tuition', 'APPROVE', { type: 'TUITION_DUE', title: 't', message: 'm' });
       expect(sent).toBe(0);
       expect(prisma.notification.create).not.toHaveBeenCalled();
     });
@@ -109,7 +109,7 @@ describe('NotificationsService', () => {
       const prisma = createPrismaMock({
         rolePermission: { findMany: vi.fn().mockRejectedValue(new Error('db down')) },
       });
-      await expect(service(prisma).notifyByPermission('expenses', 'APPROVE', { type: 'EXPENSE_PENDING', title: 't', message: 'm' })).resolves.toBe(0);
+      await expect(service(prisma).notifyByPermission('tuition', 'APPROVE', { type: 'TUITION_DUE', title: 't', message: 'm' })).resolves.toBe(0);
     });
   });
 

@@ -4,18 +4,10 @@ import { PaginationQueryDto } from '../../../shared/dto/pagination-query.dto.js'
 
 export class QueryPaymentDto extends PaginationQueryDto {
   @IsOptional()
-  @IsUUID()
-  customerId?: string;
-
-  @IsOptional()
-  @IsUUID()
-  supplierId?: string;
-
-  @IsOptional()
   @IsEnum(PaymentReferenceType)
   referenceType?: PaymentReferenceType;
 
-  /** Combined with referenceType: 'TUITION_CHARGE', this filters to one student's payments. */
+  /** Filters to one student's payments. */
   @IsOptional()
   @IsUUID()
   referenceId?: string;

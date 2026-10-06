@@ -54,8 +54,8 @@ export function ClassroomDetailPage() {
 
   return (
     <div>
-      <Button icon={<ArrowLeftOutlined />} type="text" onClick={() => navigate('/classrooms')} style={{ marginBottom: 8 }}>
-        Xonalar ro'yxatiga qaytish
+      <Button icon={<ArrowLeftOutlined />} type="text" onClick={() => navigate(-1)} style={{ marginBottom: 8 }}>
+        Orqaga
       </Button>
 
       <Card style={{ marginBottom: 24 }}>

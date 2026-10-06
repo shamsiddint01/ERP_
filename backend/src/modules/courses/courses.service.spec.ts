@@ -25,10 +25,6 @@ function createPrismaMock(overrides: Record<string, unknown> = {}) {
       count: vi.fn().mockResolvedValue(0),
       ...(overrides.studentGroup as Record<string, unknown>),
     },
-    lead: {
-      count: vi.fn().mockResolvedValue(0),
-      ...(overrides.lead as Record<string, unknown>),
-    },
   };
 }
 
@@ -87,16 +83,6 @@ describe('CoursesService', () => {
       await expect(service.update('course1', { status: 'INACTIVE' })).rejects.toThrow(ConflictException);
     });
 
-    it('refuses to deactivate a course that leads still prefer', async () => {
-      const prisma = createPrismaMock({
-        course: { findUnique: vi.fn().mockResolvedValue(fakeCourse()) },
-        studentGroup: { count: vi.fn().mockResolvedValue(0) },
-        lead: { count: vi.fn().mockResolvedValue(4) },
-      });
-      const service = createService(prisma);
-
-      await expect(service.update('course1', { status: 'INACTIVE' })).rejects.toThrow(ConflictException);
-    });
 
     it('allows deactivating a course with no references', async () => {
       const prisma = createPrismaMock({ course: { findUnique: vi.fn().mockResolvedValue(fakeCourse()) } });

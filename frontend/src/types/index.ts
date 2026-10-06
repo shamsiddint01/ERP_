@@ -50,9 +50,7 @@ export interface CompanySettings {
   currency: string;
   timezone: string;
   defaultLanguage: string;
-  taxSettings: Record<string, unknown> | null;
-  invoiceSettings: Record<string, unknown> | null;
-  notificationSettings: Record<string, unknown> | null;
+  updatedAt: string;
 }
 
 export interface PaginatedResult<T> {
@@ -60,141 +58,6 @@ export interface PaginatedResult<T> {
   total: number;
   page: number;
   pageSize: number;
-}
-
-export type CustomerStatus = 'ACTIVE' | 'INACTIVE';
-
-export interface CustomerListItem {
-  id: string;
-  name: string;
-  companyName: string | null;
-  phone: string;
-  email: string | null;
-  status: CustomerStatus;
-  balance: string;
-  creditLimit: string;
-  createdAt: string;
-  _count: { orders: number };
-}
-
-export interface CustomerDetail extends CustomerListItem {
-  address: string | null;
-  notes: string | null;
-  deletedAt: string | null;
-}
-
-export interface CustomerHistory {
-  orders: Array<{ id: string; orderNumber: string; status: string; grandTotal: string; orderDate: string }>;
-  invoices: Array<{ id: string; invoiceNumber: string; status: string; grandTotal: string; dueDate: string }>;
-  payments: Array<{ id: string; paymentNumber: string; amount: string; method: string; status: string; createdAt: string }>;
-  activity: Array<{
-    id: string;
-    action: string;
-    description: string | null;
-    createdAt: string;
-    actor: { id: string; fullName: string; username: string } | null;
-  }>;
-}
-
-export type StockStatus = 'HEALTHY' | 'LOW_STOCK' | 'OUT_OF_STOCK';
-export type ProductStatus = 'ACTIVE' | 'DISCONTINUED' | 'DRAFT';
-
-export interface Category {
-  id: string;
-  name: string;
-  parentCategoryId: string | null;
-  _count?: { products: number; subcategories: number };
-}
-
-export interface ProductListItem {
-  id: string;
-  name: string;
-  sku: string;
-  barcode: string | null;
-  categoryId: string | null;
-  category: { id: string; name: string } | null;
-  salePrice: string;
-  costPrice: string;
-  unit: string;
-  minStockLevel: string;
-  status: ProductStatus;
-  totalStock: number;
-  stockStatus: StockStatus;
-  createdAt: string;
-  images: Array<{ id: string; imageUrl: string }>;
-}
-
-export interface ProductDetail extends ProductListItem {
-  description: string | null;
-  inventoryStocks: Array<{
-    id: string;
-    quantityOnHand: string;
-    quantityReserved: string;
-    warehouse: { id: string; name: string; code: string | null };
-  }>;
-}
-
-export interface Warehouse {
-  id: string;
-  name: string;
-  code: string | null;
-  address: string | null;
-  isActive: boolean;
-  _count?: { inventoryStocks: number };
-}
-
-export interface InventoryStockRow {
-  id: string;
-  productId: string;
-  warehouseId: string;
-  quantityOnHand: string;
-  quantityReserved: string;
-  minStockLevel: string | null;
-  stockStatus: StockStatus;
-  product: { id: string; name: string; sku: string; minStockLevel: string };
-  warehouse: { id: string; name: string; code: string | null };
-  lastMovement: StockMovement | null;
-}
-
-export type StockMovementType = 'STOCK_IN' | 'STOCK_OUT' | 'TRANSFER_IN' | 'TRANSFER_OUT' | 'ADJUSTMENT_POSITIVE' | 'ADJUSTMENT_NEGATIVE';
-export type StockReferenceType = 'PURCHASE' | 'SALE' | 'TRANSFER' | 'ADJUSTMENT' | 'RETURN' | 'DAMAGED';
-
-export interface StockMovement {
-  id: string;
-  productId: string;
-  warehouseId: string;
-  movementType: StockMovementType;
-  quantity: string;
-  previousQuantity: string;
-  balanceAfter: string;
-  referenceType: StockReferenceType | null;
-  referenceId: string | null;
-  note: string | null;
-  createdAt: string;
-  product: { id: string; name: string; sku: string };
-  warehouse: { id: string; name: string };
-  performedBy?: { id: string; fullName: string; username: string } | null;
-}
-
-export type StockTransferStatus = 'DRAFT' | 'IN_TRANSIT' | 'COMPLETED' | 'CANCELLED';
-
-export interface StockTransfer {
-  id: string;
-  status: StockTransferStatus;
-  fromWarehouse: { id: string; name: string; code: string | null };
-  toWarehouse: { id: string; name: string; code: string | null };
-  requestedBy: { id: string; fullName: string; username: string } | null;
-  completedAt: string | null;
-  createdAt: string;
-  items: Array<{ id: string; productId: string; quantity: string; product: { id: string; name: string; sku: string } }>;
-}
-
-export interface InventorySummary {
-  totalProducts: number;
-  totalStockQuantity: number;
-  lowStockCount: number;
-  outOfStockCount: number;
-  recentMovements: StockMovement[];
 }
 
 /** Phase J — the education-center executive dashboard. Every key is present only when the caller's own permissions cover it (see DashboardService's doc comment on the backend); the frontend hides whatever's missing rather than showing a placeholder. */
@@ -211,11 +74,6 @@ export interface DashboardOverview {
     overdueTuition?: number;
     outstandingStudentDebt?: number;
     tuitionCollectedThisMonth?: number;
-    monthlyExpenses?: number;
-    monthlyProfit?: number;
-    payrollPayable?: number;
-    newLeads?: number;
-    leadConversionRate?: number;
     upcomingExams?: number;
     unreadNotifications: number;
   };
@@ -236,6 +94,19 @@ export interface DashboardScheduleRow {
 export interface DashboardToday {
   schedule: DashboardScheduleRow[];
   attendance: { present: number; absent: number; late: number; excused: number; total: number; attendancePercentage: number } | null;
+  recentPayments: DashboardRecentPayment[];
+}
+
+export interface DashboardRecentPayment {
+  id: string;
+  paymentNumber: string;
+  amount: number;
+  method: PaymentMethod;
+  status: PaymentStatus;
+  paidAt: string | null;
+  createdAt: string;
+  studentId: string | null;
+  studentName: string | null;
 }
 
 export interface DashboardCharts {
@@ -245,155 +116,10 @@ export interface DashboardCharts {
   groupCapacityUtilization?: { groupId: string; name: string; capacity: number; enrolledCount: number; utilizationPercentage: number }[];
   studentsByCourse?: { courseId: string; courseName: string; studentCount: number }[];
   tuitionCollection?: { month: string; amount: number }[];
-  incomeVsExpenses?: { month: string; income: number; expenses: number }[];
-  attendanceTrend?: { date: string; attendancePercentage: number }[];
-  leadConversionFunnel?: { status: string; count: number }[];
-  academicPerformance?: { month: string; averageScore: number }[];
-}
-
-export type SupplierStatus = 'ACTIVE' | 'INACTIVE';
-
-export interface SupplierListItem {
-  id: string;
-  companyName: string;
-  contactPerson: string;
-  phone: string;
-  email: string | null;
-  status: SupplierStatus;
-  balance: string;
-  createdAt: string;
-  _count: { purchaseOrders: number; supplierProducts: number };
-}
-
-export interface SupplierDetail extends SupplierListItem {
-  address: string | null;
-  notes: string | null;
-}
-
-export interface SupplierHistory {
-  purchaseOrders: Array<{ id: string; poNumber: string; status: PurchaseOrderStatus; grandTotal: string; orderDate: string }>;
-  payments: Array<{ id: string; paymentNumber: string; amount: string; method: string; status: string; createdAt: string }>;
-  products: Array<{ id: string; unitCost: string; supplierSku: string | null; product: { id: string; name: string; sku: string } }>;
-  activity: Array<{
-    id: string;
-    action: string;
-    description: string | null;
-    createdAt: string;
-    actor: { id: string; fullName: string; username: string } | null;
-  }>;
-}
-
-export type PurchaseOrderStatus = 'DRAFT' | 'PENDING' | 'APPROVED' | 'RECEIVED' | 'PARTIALLY_RECEIVED' | 'CANCELLED';
-
-export interface PurchaseOrderItem {
-  id: string;
-  productId: string;
-  quantity: string;
-  unitPrice: string;
-  taxPercent: string;
-  discountAmount: string;
-  lineTotal: string;
-  quantityReceived: string;
-  product: { id: string; name: string; sku: string; unit: string };
-}
-
-export interface PurchaseOrder {
-  id: string;
-  poNumber: string;
-  status: PurchaseOrderStatus;
-  subtotal: string;
-  taxTotal: string;
-  discountTotal: string;
-  grandTotal: string;
-  amountPaid: string;
-  paymentStatus: string;
-  orderDate: string;
-  expectedDate: string | null;
-  receivedAt: string | null;
-  notes: string | null;
-  createdAt: string;
-  supplier: { id: string; companyName: string };
-  warehouse: { id: string; name: string; code: string | null };
-  createdBy: { id: string; fullName: string; username: string } | null;
-  approvedBy: { id: string; fullName: string; username: string } | null;
-  items: PurchaseOrderItem[];
-}
-
-export type OrderStatus = 'DRAFT' | 'CONFIRMED' | 'PROCESSING' | 'COMPLETED' | 'CANCELLED';
-export type OrderPaymentStatus = 'UNPAID' | 'PARTIALLY_PAID' | 'PAID' | 'REFUNDED';
-
-export interface OrderItem {
-  id: string;
-  productId: string;
-  quantity: string;
-  unitPrice: string;
-  taxPercent: string;
-  discountAmount: string;
-  lineTotal: string;
-  product: { id: string; name: string; sku: string; unit: string };
-}
-
-export interface OrderInvoiceRef {
-  id: string;
-  invoiceNumber: string;
-  status: string;
-  grandTotal: string;
-  amountPaid: string;
-}
-
-export interface Order {
-  id: string;
-  orderNumber: string;
-  status: OrderStatus;
-  paymentStatus: OrderPaymentStatus;
-  subtotal: string;
-  discountTotal: string;
-  taxTotal: string;
-  grandTotal: string;
-  amountPaid: string;
-  orderDate: string;
-  confirmedAt: string | null;
-  completedAt: string | null;
-  cancelledAt: string | null;
-  cancellationReason: string | null;
-  notes: string | null;
-  createdAt: string;
-  customer: { id: string; name: string; companyName: string | null };
-  warehouse: { id: string; name: string; code: string | null };
-  responsibleEmployee: { id: string; fullName: string } | null;
-  items: OrderItem[];
-  invoices: OrderInvoiceRef[];
-}
-
-export type InvoiceStatus = 'DRAFT' | 'SENT' | 'PARTIALLY_PAID' | 'PAID' | 'OVERDUE' | 'VOID';
-
-export interface InvoiceItem {
-  id: string;
-  productId: string | null;
-  description: string;
-  quantity: string;
-  unitPrice: string;
-  taxPercent: string;
-  discountAmount: string;
-  lineTotal: string;
-  product: { id: string; name: string; sku: string } | null;
-}
-
-export interface Invoice {
-  id: string;
-  invoiceNumber: string;
-  status: InvoiceStatus;
-  issueDate: string;
-  dueDate: string;
-  subtotal: string;
-  taxTotal: string;
-  discountTotal: string;
-  grandTotal: string;
-  amountPaid: string;
-  createdAt: string;
-  customer: { id: string; name: string; companyName: string | null };
-  order: { id: string; orderNumber: string; status: string } | null;
-  items: InvoiceItem[];
+  /** null = no attendance marked that day (drawn as a gap, never as 0%). */
+  attendanceTrend?: { date: string; attendancePercentage: number | null }[];
+  /** null = no graded assessments that month. */
+  academicPerformance?: { month: string; averageScore: number | null }[];
 }
 
 export type PaymentMethod = 'CASH' | 'CARD' | 'BANK_TRANSFER' | 'ONLINE' | 'CHEQUE';
@@ -407,413 +133,30 @@ export interface Payment {
   currency: string;
   method: PaymentMethod;
   status: PaymentStatus;
-  referenceType: 'ORDER' | 'INVOICE' | 'PURCHASE_ORDER' | 'EXPENSE' | 'OTHER' | 'TUITION_CHARGE' | null;
+  referenceType: 'TUITION_CHARGE' | null;
+  /** The payer Student's id. */
   referenceId: string | null;
+  student: { id: string; studentCode: string; fullName: string } | null;
   paidAt: string | null;
   notes: string | null;
   createdAt: string;
-  payerCustomer: { id: string; name: string; companyName: string | null } | null;
-  payeeSupplier: { id: string; companyName: string } | null;
   recordedBy: { id: string; fullName: string; username: string } | null;
 }
-
-// =========================================================================
-// FINANCE (Chart of Accounts, Expenses, Reports) — Phase 5
-// =========================================================================
-
-export type AccountCategory = 'ASSET' | 'LIABILITY' | 'EQUITY' | 'REVENUE' | 'EXPENSE';
-export type AccountType = 'CASH' | 'BANK' | 'RECEIVABLE' | 'PAYABLE' | 'REVENUE' | 'EXPENSE' | 'EQUITY' | 'INVENTORY';
-
-export interface Account {
-  id: string;
-  code: string;
-  name: string;
-  type: AccountType;
-  category: AccountCategory;
-  parentId: string | null;
-  parent: { id: string; code: string; name: string } | null;
-  description: string | null;
-  isPostable: boolean;
-  isSystemAccount: boolean;
-  currency: string;
-  openingBalance: string;
-  currentBalance: string;
-  isActive: boolean;
-  createdAt: string;
-  children?: Account[];
-}
-
-export interface ExpenseCategoryItem {
-  id: string;
-  name: string;
-  isSystem: boolean;
-  accountId: string | null;
-  account: { id: string; code: string; name: string } | null;
-  _count?: { expenses: number };
-}
-
-export type ExpenseStatus = 'DRAFT' | 'PENDING' | 'APPROVED' | 'PAID' | 'REJECTED' | 'CANCELLED';
-
-export interface Expense {
-  id: string;
-  expenseNumber: string;
-  categoryId: string;
-  category: ExpenseCategoryItem;
-  amount: string;
-  expenseDate: string;
-  description: string | null;
-  vendorSupplierId: string | null;
-  vendorSupplier: { id: string; companyName: string } | null;
-  responsibleEmployeeId: string | null;
-  responsibleEmployee: { id: string; fullName: string } | null;
-  paymentMethod: PaymentMethod;
-  paymentAccountId: string | null;
-  paymentAccount: { id: string; code: string; name: string } | null;
-  status: ExpenseStatus;
-  approvedBy: { id: string; fullName: string; username: string } | null;
-  approvedAt: string | null;
-  paidAt: string | null;
-  receiptAttachmentUrl: string | null;
-  createdBy: { id: string; fullName: string; username: string } | null;
-  createdAt: string;
-}
-
-export interface TrialBalanceRow {
-  accountId: string;
-  code: string;
-  name: string;
-  category: AccountCategory;
-  debit: number;
-  credit: number;
-}
-
-export interface TrialBalanceReport {
-  asOf: string;
-  rows: TrialBalanceRow[];
-  totalDebit: number;
-  totalCredit: number;
-  isBalanced: boolean;
-}
-
-export interface ProfitAndLossLine {
-  accountId: string;
-  code: string;
-  name: string;
-  amount: number;
-}
-
-export interface ProfitAndLossReport {
-  from: string | null;
-  to: string;
-  revenueLines: ProfitAndLossLine[];
-  expenseLines: ProfitAndLossLine[];
-  totalRevenue: number;
-  totalExpense: number;
-  netIncome: number;
-}
-
-export interface BalanceSheetLine {
-  accountId: string | null;
-  code: string | null;
-  name: string;
-  amount: number;
-}
-
-export interface BalanceSheetReport {
-  asOf: string;
-  assetLines: BalanceSheetLine[];
-  liabilityLines: BalanceSheetLine[];
-  equityLines: BalanceSheetLine[];
-  totalAssets: number;
-  totalLiabilities: number;
-  totalEquity: number;
-  isBalanced: boolean;
-}
-
-export interface CashFlowEntry {
-  entryNumber: string;
-  entryDate: string;
-  description: string;
-  referenceType: string | null;
-  account: { id: string; code: string; name: string };
-  debit: number;
-  credit: number;
-}
-
-export interface CashFlowReport {
-  from: string | null;
-  to: string;
-  openingBalance: number;
-  inflows: number;
-  outflows: number;
-  netChange: number;
-  closingBalance: number;
-  entries: CashFlowEntry[];
-}
-
-export interface GeneralLedgerRow {
-  entryNumber: string;
-  entryDate: string;
-  description: string;
-  referenceType: string | null;
-  referenceId: string | null;
-  account: { id: string; code: string; name: string; category: AccountCategory };
-  debit: number;
-  credit: number;
-  runningBalance: number;
-}
-
-export interface GeneralLedgerReport {
-  rows: GeneralLedgerRow[];
-  count: number;
-}
-
-export interface ReconciliationReport {
-  controlBalance: number;
-  subledgerTotal: number;
-  variance: number;
-}
-
-// =========================================================================
-// EMPLOYEES / DEPARTMENTS / POSITIONS / ATTENDANCE — Phase 6
-// =========================================================================
-
-export type DepartmentStatus = 'ACTIVE' | 'INACTIVE';
-export type PositionStatus = 'ACTIVE' | 'INACTIVE';
-export type EmployeeStatus = 'ACTIVE' | 'ON_LEAVE' | 'SUSPENDED' | 'TERMINATED';
-export type AttendanceStatus = 'PRESENT' | 'ABSENT' | 'LATE' | 'HALF_DAY' | 'ON_LEAVE' | 'HOLIDAY';
-export type LeaveType = 'VACATION' | 'SICK' | 'PERSONAL';
-
-export interface DepartmentListItem {
-  id: string;
-  name: string;
-  code: string;
-  description: string | null;
-  status: DepartmentStatus;
-  managerEmployee: { id: string; fullName: string } | null;
-  employeeCount: number;
-  activeEmployeeCount: number;
-  inactiveEmployeeCount: number;
-  createdAt: string;
-}
-
-export interface DepartmentDetail {
-  id: string;
-  name: string;
-  code: string;
-  description: string | null;
-  status: DepartmentStatus;
-  managerEmployee: { id: string; fullName: string } | null;
-  positions: Array<{ id: string; title: string; code: string; status: PositionStatus }>;
-  employees: Array<{ id: string; employeeCode: string; fullName: string; status: EmployeeStatus; position: { id: string; title: string } | null }>;
-}
-
-export interface PositionItem {
-  id: string;
-  title: string;
-  code: string;
-  description: string | null;
-  status: PositionStatus;
-  departmentId: string;
-  department: { id: string; name: string; code: string };
-  _count?: { employees: number };
-}
-
-export interface EmployeeListItem {
-  id: string;
-  employeeCode: string;
-  firstName: string;
-  lastName: string;
-  middleName: string | null;
-  fullName: string;
-  phone: string;
-  email: string | null;
-  status: EmployeeStatus;
-  hireDate: string;
-  department: { id: string; name: string; code: string } | null;
-  position: { id: string; title: string; code: string } | null;
-}
-
-export interface EmployeeDetail extends EmployeeListItem {
-  dateOfBirth: string | null;
-  address: string | null;
-  terminationDate: string | null;
-  salary: string | null;
-  notes: string | null;
-  manager: { id: string; employeeCode: string; fullName: string } | null;
-  directReports: Array<{ id: string; employeeCode: string; fullName: string; status: EmployeeStatus }>;
-  user: { id: string; username: string; fullName: string; status: string; lastActiveAt: string | null } | null;
-}
-
-export interface EmployeeActivity {
-  attendanceRecords: AttendanceRecordItem[];
-  attendanceSummary: { presentCount: number; lateCount: number; absentCount: number; totalOvertimeMinutes: number; recordCount: number };
-  orders: Array<{ id: string; orderNumber: string; status: string; grandTotal: string; orderDate: string }>;
-  expenses: Array<{ id: string; expenseNumber: string; status: string; amount: string; expenseDate: string }>;
-  activity: Array<{ id: string; action: string; description: string | null; createdAt: string; actor: { id: string; fullName: string; username: string } | null }>;
-}
-
-export interface EmployeesOverview {
-  totalEmployees: number;
-  activeCount: number;
-  onLeaveCount: number;
-  suspendedCount: number;
-  terminatedCount: number;
-  departmentCount: number;
-  recentEmployees: EmployeeListItem[];
-}
-
-export interface AttendanceRecordItem {
-  id: string;
-  employeeId: string;
-  workDate: string;
-  checkInAt: string | null;
-  checkOutAt: string | null;
-  hoursWorked: string | null;
-  status: AttendanceStatus;
-  leaveType: LeaveType | null;
-  lateMinutes: number;
-  overtimeMinutes: number;
-  notes: string | null;
-  employee: { id: string; employeeCode: string; fullName: string; department: { id: string; name: string } | null };
-}
-
-export interface AttendanceOverview {
-  totalActiveEmployees: number;
-  presentToday: number;
-  lateToday: number;
-  absentToday: number;
-  onLeaveToday: number;
-  averageWorkingHours: number;
-}
-
-// =========================================================================
-// PAYROLL / ADVANCED HR — Phase 7
-// =========================================================================
-
-export type SalaryType = 'HOURLY' | 'DAILY' | 'MONTHLY' | 'PER_LESSON' | 'PER_GROUP' | 'MIXED';
-export type PayrollPeriodStatus = 'OPEN' | 'CLOSED';
-export type PayrollStatus = 'DRAFT' | 'CALCULATING' | 'CALCULATED' | 'APPROVED' | 'PAID' | 'CANCELLED';
-export type PayrollComponentType = 'BONUS' | 'ALLOWANCE' | 'DEDUCTION';
-export type PayrollLineType = 'BASE' | 'OVERTIME' | 'BONUS' | 'ALLOWANCE' | 'DEDUCTION';
-
-export interface EmployeeCompensation {
-  id: string;
-  employeeId: string;
-  employee: { id: string; employeeCode: string; fullName: string };
-  baseSalary: string;
-  salaryType: SalaryType;
-  overtimeRate: string | null;
-  effectiveFrom: string;
-  effectiveTo: string | null;
-  notes: string | null;
-  createdBy: { id: string; fullName: string; username: string };
-  createdAt: string;
-}
-
-export interface PayrollPeriod {
-  id: string;
-  name: string;
-  periodStart: string;
-  periodEnd: string;
-  status: PayrollPeriodStatus;
-  createdAt: string;
-  _count?: { payrolls: number };
-}
-
-export interface PayrollPeriodSummary {
-  period: PayrollPeriod;
-  employeeCount: number;
-  grossTotal: number;
-  deductionsTotal: number;
-  netTotal: number;
-  draftCount: number;
-  calculatedCount: number;
-  approvedCount: number;
-  paidCount: number;
-  cancelledCount: number;
-}
-
-export interface PayrollComponentItem {
-  id: string;
-  name: string;
-  type: PayrollComponentType;
-  isPercentage: boolean;
-  defaultAmount: string | null;
-  isSystem: boolean;
-  isActive: boolean;
-  _count?: { lines: number };
-}
-
-export interface PayrollLineItem {
-  id: string;
-  payrollId: string;
-  type: PayrollLineType;
-  componentId: string | null;
-  component: { id: string; name: string; type: PayrollComponentType } | null;
-  label: string;
-  amount: string;
-  notes: string | null;
-  createdAt: string;
-}
-
-export interface PayrollListItem {
-  id: string;
-  payrollNumber: string;
-  status: PayrollStatus;
-  grossSalary: string;
-  netSalary: string;
-  deductionAmount: string;
-  period: { id: string; name: string; periodStart: string; periodEnd: string };
-  employee: { id: string; employeeCode: string; fullName: string; department: { id: string; name: string } | null };
-}
-
-export interface PayrollDetail extends PayrollListItem {
-  workedDays: string | null;
-  workedMinutes: number | null;
-  overtimeMinutes: number;
-  unpaidAbsenceDays: string;
-  baseAmount: string;
-  overtimeAmount: string;
-  bonusAmount: string;
-  allowanceAmount: string;
-  compensation: { id: string; baseSalary: string; salaryType: SalaryType; overtimeRate: string | null } | null;
-  calculatedAt: string | null;
-  approvedBy: { id: string; fullName: string; username: string } | null;
-  approvedAt: string | null;
-  paymentAccount: { id: string; code: string; name: string } | null;
-  paidAt: string | null;
-  cancelledAt: string | null;
-  cancellationReason: string | null;
-  createdBy: { id: string; fullName: string; username: string };
-  createdAt: string;
-  lines: PayrollLineItem[];
-}
-
 
 // =========================================================================
 // NOTIFICATIONS (Phase 9)
 // =========================================================================
 
 export type NotificationType =
-  | 'NEW_ORDER'
-  | 'NEW_PAYMENT'
-  | 'LOW_STOCK'
-  | 'INVOICE_DUE'
-  | 'DEBT_REMINDER'
-  | 'NEW_EMPLOYEE'
-  | 'SYSTEM_WARNING'
-  | 'PAYMENT_DUE'
-  | 'INVOICE_OVERDUE'
-  | 'CUSTOMER_BALANCE'
-  | 'SUPPLIER_BALANCE'
-  | 'EXPENSE_PENDING'
-  | 'PAYROLL_PENDING'
-  | 'ATTENDANCE_ALERT'
   | 'SYSTEM'
   | 'STUDENT_ABSENT'
   | 'STUDENT_LATE'
-  | 'STUDENT_REPEATED_ABSENCE';
+  | 'STUDENT_REPEATED_ABSENCE'
+  | 'TUITION_DUE'
+  | 'TUITION_OVERDUE'
+  | 'TUITION_PAYMENT_RECEIVED'
+  | 'EXAM_UPCOMING'
+  | 'GRADES_PUBLISHED';
 
 export type NotificationSeverity = 'INFO' | 'SUCCESS' | 'WARNING' | 'CRITICAL';
 
@@ -846,14 +189,10 @@ export interface NotificationQuery {
 }
 
 // =========================================================================
-// EDUCATION CENTER — STUDENTS / GUARDIANS / ADMISSIONS LEADS — Phase B
+// EDUCATION CENTER — STUDENTS — Phase B
 // =========================================================================
 
 export type StudentStatus = 'ACTIVE' | 'PAUSED' | 'GRADUATED' | 'INACTIVE' | 'LEFT';
-export type GuardianStatus = 'ACTIVE' | 'INACTIVE';
-export type GuardianRelationship = 'MOTHER' | 'FATHER' | 'GRANDPARENT' | 'SIBLING' | 'RELATIVE' | 'LEGAL_GUARDIAN' | 'OTHER';
-export type LeadStatus = 'NEW' | 'CONTACTED' | 'TRIAL_SCHEDULED' | 'TRIAL_COMPLETED' | 'ENROLLED' | 'LOST';
-export type LeadActivityType = 'CALL' | 'MESSAGE' | 'MEETING' | 'TRIAL' | 'NOTE' | 'FOLLOW_UP';
 
 export interface StudentListItem {
   id: string;
@@ -871,16 +210,7 @@ export interface StudentListItem {
   branchId: string | null;
   branch: { id: string; name: string; code: string } | null;
   createdAt: string;
-  _count: { guardians: number; enrollments: number };
-}
-
-export interface StudentGuardianLink {
-  studentId: string;
-  guardianId: string;
-  relationship: GuardianRelationship;
-  isPrimary: boolean;
-  createdAt: string;
-  guardian: { id: string; fullName: string; phone: string; email: string | null; status: GuardianStatus };
+  _count: { enrollments: number };
 }
 
 export interface StudentEnrollmentItem {
@@ -912,73 +242,8 @@ export interface StudentDetail extends StudentListItem {
   notes: string | null;
   userId: string | null;
   user: { id: string; username: string; status: string } | null;
-  convertedFromLeadId: string | null;
-  convertedFromLead: { id: string; fullName: string; source: string | null; createdAt: string } | null;
   updatedAt: string;
-  guardians: StudentGuardianLink[];
   enrollments: StudentEnrollmentItem[];
-}
-
-export interface GuardianListItem {
-  id: string;
-  fullName: string;
-  phone: string;
-  email: string | null;
-  relationshipType: GuardianRelationship;
-  status: GuardianStatus;
-  createdAt: string;
-  _count: { students: number };
-}
-
-export interface GuardianDetail extends Omit<GuardianListItem, '_count'> {
-  address: string | null;
-  notes: string | null;
-  userId: string | null;
-  updatedAt: string;
-  students: Array<{
-    studentId: string;
-    guardianId: string;
-    relationship: GuardianRelationship;
-    isPrimary: boolean;
-    createdAt: string;
-    student: { id: string; studentCode: string; fullName: string; status: StudentStatus; branch: { id: string; name: string } | null };
-  }>;
-}
-
-export interface LeadListItem {
-  id: string;
-  fullName: string;
-  phone: string;
-  email: string | null;
-  status: LeadStatus;
-  source: string | null;
-  nextFollowUpAt: string | null;
-  preferredCourseId: string | null;
-  preferredCourse: { id: string; name: string; code: string } | null;
-  preferredBranchId: string | null;
-  preferredBranch: { id: string; name: string; code: string } | null;
-  assignedEmployeeId: string | null;
-  assignedEmployee: { id: string; fullName: string } | null;
-  createdAt: string;
-  _count: { activities: number };
-}
-
-export interface LeadActivityItem {
-  id: string;
-  leadId: string;
-  type: LeadActivityType;
-  description: string | null;
-  occurredAt: string;
-  createdAt: string;
-  employeeId: string | null;
-  employee: { id: string; fullName: string } | null;
-}
-
-export interface LeadDetail extends LeadListItem {
-  notes: string | null;
-  updatedAt: string;
-  activities: LeadActivityItem[];
-  convertedStudent: { id: string; studentCode: string; fullName: string; status: StudentStatus } | null;
 }
 
 // =========================================================================
@@ -1114,8 +379,7 @@ export interface TeacherEmployeeSummary {
   phone: string;
   email: string | null;
   status: string;
-  department: { id: string; name: string } | null;
-  position: { id: string; title: string } | null;
+  hireDate: string;
 }
 
 export interface TeacherListItem {
@@ -1558,14 +822,3 @@ export interface GroupResults {
   overallPassRate: number;
 }
 
-export interface TeacherCompensationPreview {
-  teacherProfileId: string;
-  employee: { id: string; fullName: string; employeeCode: string };
-  rates: { hourlyRate: number | null; perLessonRate: number | null; perGroupRate: number | null };
-  currentCompensation: { id: string; baseSalary: string; salaryType: SalaryType; overtimeRate: string | null } | null;
-  period: { id: string | null; start: string; end: string };
-  completedLessons: number;
-  activeGroups: number;
-  estimatedLessonPay: number | null;
-  estimatedGroupPay: number | null;
-}

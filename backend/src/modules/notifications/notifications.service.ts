@@ -7,30 +7,13 @@ import type { PaginatedResult } from '../../shared/types/paginated-result.js';
 import type { QueryNotificationDto } from './dto/query-notification.dto.js';
 
 const DEFAULT_SEVERITY: Record<NotificationType, NotificationSeverity> = {
-  NEW_ORDER: NotificationSeverity.INFO,
-  NEW_PAYMENT: NotificationSeverity.INFO,
-  NEW_EMPLOYEE: NotificationSeverity.INFO,
-  SYSTEM_WARNING: NotificationSeverity.WARNING,
-  INVOICE_DUE: NotificationSeverity.WARNING,
-  DEBT_REMINDER: NotificationSeverity.WARNING,
-  LOW_STOCK: NotificationSeverity.WARNING,
-  PAYMENT_DUE: NotificationSeverity.WARNING,
-  INVOICE_OVERDUE: NotificationSeverity.CRITICAL,
-  CUSTOMER_BALANCE: NotificationSeverity.WARNING,
-  SUPPLIER_BALANCE: NotificationSeverity.WARNING,
-  EXPENSE_PENDING: NotificationSeverity.INFO,
-  PAYROLL_PENDING: NotificationSeverity.INFO,
-  ATTENDANCE_ALERT: NotificationSeverity.WARNING,
   SYSTEM: NotificationSeverity.INFO,
-  // Phase F — student attendance, deliberately distinct from ATTENDANCE_ALERT (employee attendance).
   STUDENT_ABSENT: NotificationSeverity.WARNING,
   STUDENT_LATE: NotificationSeverity.INFO,
   STUDENT_REPEATED_ABSENCE: NotificationSeverity.CRITICAL,
-  // Phase G — tuition billing, distinct from the retail PAYMENT_DUE/INVOICE_OVERDUE/NEW_PAYMENT types.
   TUITION_DUE: NotificationSeverity.WARNING,
   TUITION_OVERDUE: NotificationSeverity.CRITICAL,
   TUITION_PAYMENT_RECEIVED: NotificationSeverity.INFO,
-  // Phase H — academic assessment.
   EXAM_UPCOMING: NotificationSeverity.WARNING,
   GRADES_PUBLISHED: NotificationSeverity.INFO,
 };

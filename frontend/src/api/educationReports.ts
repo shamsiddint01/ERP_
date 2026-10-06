@@ -125,21 +125,9 @@ export interface TeachersReportRow {
   hours: number;
   attendance: { total: number; percentage: number };
   workload: { groups: number; students: number; lessonCount: number; hours: number };
-  compensation?: { totalAmount?: number } | null;
 }
 
 export type TeachersReport = Paginated<TeachersReportRow>;
-
-export interface AdmissionsReport {
-  leads: number;
-  byStatus: Record<string, number>;
-  conversionRate: number;
-  enrolled: number;
-  lost: number;
-  leadSource: { source: string; count: number }[];
-  enrollmentConversion: { convertedLeadsCount: number; withRealEnrollment: number; rate: number };
-  followUpStatus: { overdue: number; upcoming: number; notScheduled: number };
-}
 
 export interface BranchesReport {
   items: {
@@ -164,7 +152,6 @@ export interface EducationDashboard {
   tuitionBilled: number;
   tuitionCollected: number;
   tuitionOutstanding: number;
-  leadConversionRate: number;
 }
 
 async function get<T>(path: string, query: EducationReportQuery) {
@@ -178,7 +165,6 @@ export const getAttendanceReport = (query: EducationReportQuery) => get<Attendan
 export const getAcademicReport = (query: EducationReportQuery) => get<AcademicReport>('academic', query);
 export const getTuitionReport = (query: EducationReportQuery) => get<TuitionReport>('tuition', query);
 export const getTeachersReport = (query: EducationReportQuery) => get<TeachersReport>('teachers', query);
-export const getAdmissionsReport = (query: EducationReportQuery) => get<AdmissionsReport>('admissions', query);
 export const getBranchesReport = (query: EducationReportQuery) => get<BranchesReport>('branches', query);
 export const getEducationDashboard = () => get<EducationDashboard>('dashboard', {});
 

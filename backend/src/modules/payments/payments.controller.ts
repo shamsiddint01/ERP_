@@ -37,8 +37,8 @@ export class PaymentsController {
   @Post(':id/refund')
   @RequirePermission('payments', PermissionAction.APPROVE)
   @Audited('Payment', 'REFUND')
-  refund(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
-    return this.paymentsService.refund(id, user.id);
+  refund(@Param('id', ParseUUIDPipe) id: string) {
+    return this.paymentsService.refund(id);
   }
 
   @Post(':id/allocate')

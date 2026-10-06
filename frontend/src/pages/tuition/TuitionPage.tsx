@@ -2,7 +2,7 @@ import { EyeOutlined, PlusOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import { Button, Select, Table, Tag } from 'antd';
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { listTuitionCharges } from '../../api/tuition';
 import { CreateTuitionChargeModal } from '../../components/CreateTuitionChargeModal';
 import { FilterBar } from '../../components/FilterBar';
@@ -30,7 +30,9 @@ const STATUS_LABELS: Record<TuitionChargeStatus, string> = {
 export function TuitionPage() {
   const navigate = useNavigate();
   const hasPermission = useAuthStore((state) => state.hasPermission);
-  const [status, setStatus] = useState<TuitionChargeStatus | undefined>();
+  const [searchParams] = useSearchParams();
+  // Deep links (e.g. the dashboard's overdue card) can preselect a status via ?status=.
+  const [status, setStatus] = useState<TuitionChargeStatus | undefined>(() => (searchParams.get('status') as TuitionChargeStatus | null) ?? undefined);
   const [page, setPage] = useState(1);
   const [createOpen, setCreateOpen] = useState(false);
 
@@ -64,6 +66,7 @@ export function TuitionPage() {
           placeholder="Status"
           allowClear
           style={{ width: 200 }}
+          value={status}
           options={Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label }))}
           onChange={(value) => {
             setStatus(value);

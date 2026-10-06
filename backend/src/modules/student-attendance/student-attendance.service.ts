@@ -564,7 +564,7 @@ export class StudentAttendanceService {
       severity: 'CRITICAL',
       referenceType: 'Student',
       referenceId: studentId,
-      actionUrl: `/students/${studentId}/attendance`,
+      actionUrl: `/students/${studentId}?tab=attendance`,
     });
   }
 

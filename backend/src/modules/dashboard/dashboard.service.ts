@@ -67,9 +67,7 @@ function tally(records: Array<{ status: string }>) {
  * controller applies no @RequirePermission — PermissionsGuard only supports
  * one check per route, so a single blanket gate can't express "different
  * KPIs for different roles"). Instead, EVERY section below is included only
- * when the caller's own granted permissions cover it — exactly the pattern
- * EducationReportsController established in Phase I for the compensation
- * slice of the teachers report, just applied across a whole KPI set. A
+ * when the caller's own granted permissions cover it. A
  * teacher additionally gets several sections *narrowed* to their own
  * groups/lessons via resolveTeacherScope (Phase H/F's existing mechanism,
  * reused verbatim) rather than a hardcoded role-name branch.
@@ -196,36 +194,6 @@ export class DashboardService {
       );
     }
 
-    if (has('finance')) {
-      jobs.push(
-        this.reportsService.profitAndLoss({ from: isoDate(startOfMonth), to: isoDate(new Date()) }).then((pnl) => {
-          kpis.monthlyExpenses = pnl.totalExpense;
-          kpis.monthlyProfit = pnl.netIncome;
-        }),
-      );
-    }
-
-    if (has('payroll')) {
-      jobs.push(
-        this.prisma.payroll.aggregate({ where: { status: 'APPROVED' }, _sum: { netSalary: true } }).then((agg) => {
-          kpis.payrollPayable = round2(toNumber(agg._sum.netSalary));
-        }),
-      );
-    }
-
-    if (has('leads')) {
-      jobs.push(
-        Promise.all([
-          this.prisma.lead.count({ where: { createdAt: { gte: startOfMonth } } }),
-          this.prisma.lead.count({ where: { status: 'ENROLLED' } }),
-          this.prisma.lead.count(),
-        ]).then(([newLeads, enrolled, total]) => {
-          kpis.newLeads = newLeads;
-          kpis.leadConversionRate = percentage(enrolled, total);
-        }),
-      );
-    }
-
     if (has('exams')) {
       jobs.push(
         this.prisma.exam
@@ -235,30 +203,17 @@ export class DashboardService {
     }
 
     // Personal to the caller — never permission-gated, matching the existing Notifications system's own design.
-    const pendingExpenses = has('expenses')
-      ? this.prisma.expense.count({ where: { status: 'PENDING' } })
-      : Promise.resolve(null);
-    const pendingPayroll = has('payroll') ? this.prisma.payroll.count({ where: { status: 'CALCULATED' } }) : Promise.resolve(null);
-
-    const [unread, pendingExpensesCount, pendingPayrollCount] = await Promise.all([
-      this.notificationsService.unreadCount(userId),
-      pendingExpenses,
-      pendingPayroll,
-      ...jobs,
-    ]);
+    const [unread] = await Promise.all([this.notificationsService.unreadCount(userId), ...jobs]);
     kpis.unreadNotifications = unread.count;
 
     // `key` is a stable identifier only — no label here. Every other
-    // enum/key value in this app (LeadStatus, ExamType, ...) is localized on
+    // enum/key value in this app (ExamType, ...) is localized on
     // the frontend, never the backend; action-required cards follow the
     // same split so the UI's language never depends on what the API sends.
     const actionRequired = [
-      kpis.overdueTuition > 0 && { key: 'overdueTuition', value: kpis.overdueTuition, to: '/tuition?status=OVERDUE' },
-      pendingPayrollCount !== null && pendingPayrollCount > 0 && { key: 'pendingPayroll', value: pendingPayrollCount, to: '/payroll' },
-      pendingExpensesCount !== null && pendingExpensesCount > 0 && { key: 'pendingExpenses', value: pendingExpensesCount, to: '/expenses' },
-      kpis.absentStudentsToday > 0 && { key: 'absentStudentsToday', value: kpis.absentStudentsToday, to: '/attendance/student' },
+      kpis.overdueTuition > 0 && { key: 'overdueTuition', value: kpis.overdueTuition, to: '/payments?tab=charges&status=OVERDUE' },
+      kpis.absentStudentsToday > 0 && { key: 'absentStudentsToday', value: kpis.absentStudentsToday, to: '/attendance' },
       kpis.upcomingExams > 0 && { key: 'upcomingExams', value: kpis.upcomingExams, to: '/exams' },
-      kpis.newLeads > 0 && { key: 'newLeads', value: kpis.newLeads, to: '/leads' },
       kpis.unreadNotifications > 0 && { key: 'unreadNotifications', value: kpis.unreadNotifications, to: '/notifications' },
     ].filter((card): card is { key: string; value: number; to: string } => Boolean(card));
 
@@ -300,7 +255,9 @@ export class DashboardService {
         )
       : null;
 
-    return { schedule, attendance };
+    const recentPayments = has('payments') ? await this.recentPayments() : [];
+
+    return { schedule, attendance, recentPayments };
   }
 
   // ---------------------------------------------------------------------------
@@ -361,26 +318,6 @@ export class DashboardService {
       charts.tuitionCollection = [...byMonth.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([month, amount]) => ({ month, amount: round2(amount) }));
     }
 
-    if (has('finance')) {
-      const revenueExpenseAccounts = await this.prisma.account.findMany({ where: { category: { in: ['REVENUE', 'EXPENSE'] }, isPostable: true }, select: { id: true, category: true } });
-      const lines = await this.prisma.journalLine.findMany({
-        where: { accountId: { in: revenueExpenseAccounts.map((a) => a.id) }, journalEntry: { entryDate: { gte: monthsAgo } } },
-        select: { accountId: true, debit: true, credit: true, journalEntry: { select: { entryDate: true } } },
-      });
-      const categoryByAccount = new Map(revenueExpenseAccounts.map((a) => [a.id, a.category]));
-      const byMonth = new Map<string, { income: number; expenses: number }>();
-      for (let i = 0; i < months; i++) byMonth.set(monthKey(new Date(Date.UTC(monthsAgo.getUTCFullYear(), monthsAgo.getUTCMonth() + i, 1))), { income: 0, expenses: 0 });
-      for (const line of lines) {
-        const key = monthKey(line.journalEntry.entryDate);
-        const bucket = byMonth.get(key);
-        if (!bucket) continue;
-        const category = categoryByAccount.get(line.accountId);
-        if (category === 'REVENUE') bucket.income += toNumber(line.credit) - toNumber(line.debit);
-        else if (category === 'EXPENSE') bucket.expenses += toNumber(line.debit) - toNumber(line.credit);
-      }
-      charts.incomeVsExpenses = [...byMonth.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([month, v]) => ({ month, income: round2(v.income), expenses: round2(v.expenses) }));
-    }
-
     if (has('student_attendance')) {
       const records = await this.prisma.studentAttendance.findMany({
         where: { lesson: { scheduledStart: { gte: daysAgo }, teacherEmployeeId: teacherScope ?? undefined } },
@@ -392,12 +329,8 @@ export class DashboardService {
         const key = isoDate(r.lesson.scheduledStart);
         (byDay.get(key) ?? byDay.set(key, []).get(key)!).push({ status: r.status });
       }
-      charts.attendanceTrend = [...byDay.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([date, rows]) => ({ date, attendancePercentage: tally(rows).attendancePercentage }));
-    }
-
-    if (has('leads')) {
-      const bySource = await this.prisma.lead.groupBy({ by: ['status'], _count: { _all: true } });
-      charts.leadConversionFunnel = bySource.map((r) => ({ status: r.status, count: r._count._all }));
+      // null (not 0) for a day with no marked attendance, so a chart draws a gap instead of a false 0%.
+      charts.attendanceTrend = [...byDay.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([date, rows]) => ({ date, attendancePercentage: rows.length ? tally(rows).attendancePercentage : null }));
     }
 
     if (has('grades') || has('exams')) {
@@ -411,10 +344,32 @@ export class DashboardService {
         const key = monthKey(a.evaluatedAt);
         (byMonth.get(key) ?? byMonth.set(key, []).get(key)!).push(toNumber(a.percentage));
       }
-      charts.academicPerformance = [...byMonth.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([month, scores]) => ({ month, averageScore: scores.length ? round2(scores.reduce((s, v) => s + v, 0) / scores.length) : 0 }));
+      // null (not 0) for a month with no graded assessments — "no data" must never read as a score of 0.
+      charts.academicPerformance = [...byMonth.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([month, scores]) => ({ month, averageScore: scores.length ? round2(scores.reduce((s, v) => s + v, 0) / scores.length) : null }));
     }
 
     return charts;
+  }
+
+  /** The latest tuition payments with the payer student's name — a Payment only stores the student's id (referenceId), so names are resolved in one extra query. */
+  private async recentPayments() {
+    const payments = await this.prisma.payment.findMany({
+      where: { referenceType: 'TUITION_CHARGE' },
+      select: { id: true, paymentNumber: true, amount: true, method: true, status: true, paidAt: true, createdAt: true, referenceId: true },
+      orderBy: { createdAt: 'desc' },
+      take: 6,
+    });
+    const studentIds = [...new Set(payments.map((p) => p.referenceId).filter((id): id is string => !!id))];
+    const students = studentIds.length
+      ? await this.prisma.student.findMany({ where: { id: { in: studentIds } }, select: { id: true, fullName: true } })
+      : [];
+    const nameById = new Map(students.map((st) => [st.id, st.fullName]));
+    return payments.map(({ referenceId, amount, ...p }) => ({
+      ...p,
+      amount: round2(toNumber(amount)),
+      studentId: referenceId,
+      studentName: referenceId ? (nameById.get(referenceId) ?? null) : null,
+    }));
   }
 
   /** Buckets a list of dates into `months` consecutive calendar-month counts starting at `since`, zero-filling months with no events. */

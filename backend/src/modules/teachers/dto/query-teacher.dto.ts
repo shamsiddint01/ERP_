@@ -11,8 +11,4 @@ export class QueryTeacherDto extends PaginationQueryDto {
   @IsOptional()
   @IsUUID()
   branchId?: string;
-
-  @IsOptional()
-  @IsUUID()
-  departmentId?: string;
 }

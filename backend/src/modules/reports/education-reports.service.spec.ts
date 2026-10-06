@@ -4,7 +4,7 @@ import { EducationReportsService } from './education-reports.service.js';
 
 function createService(
   prismaOverrides: Record<string, Record<string, ReturnType<typeof vi.fn>>>,
-  serviceOverrides: { reportsService?: Record<string, unknown>; academicProgress?: Record<string, unknown>; compensationService?: Record<string, unknown> } = {},
+  serviceOverrides: { reportsService?: Record<string, unknown>; academicProgress?: Record<string, unknown> } = {},
 ) {
   const prisma = prismaOverrides;
   const reportsService = {
@@ -19,13 +19,9 @@ function createService(
     getStudentProgress: vi.fn().mockResolvedValue({ recentExams: [] }),
     ...serviceOverrides.academicProgress,
   };
-  const compensationService = {
-    getTeacherCompensationPreview: vi.fn().mockResolvedValue({ total: 0 }),
-    ...serviceOverrides.compensationService,
-  };
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const service = new EducationReportsService(prisma as any, reportsService as any, academicProgress as any, compensationService as any);
-  return { service, prisma, reportsService, academicProgress, compensationService };
+  const service = new EducationReportsService(prisma as any, reportsService as any, academicProgress as any);
+  return { service, prisma, reportsService, academicProgress };
 }
 
 describe('EducationReportsService.getStudentsReport', () => {
@@ -509,18 +505,6 @@ describe('EducationReportsService.getTeachersReport', () => {
     };
   }
 
-  it('only includes compensation figures when includeCompensation is true (permission-gated by the caller)', async () => {
-    const prisma = teachersPrisma({ profiles: [{ id: 'p1', employeeId: 't1', employee: { id: 't1', fullName: 'Teacher One', employeeCode: 'EMP-1' } }] });
-    const { service, compensationService } = createService(prisma);
-
-    const withoutComp = await service.getTeachersReport({}, false);
-    expect(withoutComp.items[0]).not.toHaveProperty('compensation');
-    expect(compensationService.getTeacherCompensationPreview).not.toHaveBeenCalled();
-
-    const withComp = await service.getTeachersReport({}, true);
-    expect(withComp.items[0]).toHaveProperty('compensation');
-    expect(compensationService.getTeacherCompensationPreview).toHaveBeenCalledWith('p1');
-  });
 
   it('computes hours from scheduledStart/scheduledEnd of COMPLETED lessons only', async () => {
     const prisma = teachersPrisma({
@@ -532,7 +516,7 @@ describe('EducationReportsService.getTeachersReport', () => {
     });
     const { service } = createService(prisma);
 
-    const report = await service.getTeachersReport({}, false);
+    const report = await service.getTeachersReport({});
 
     expect(report.items[0]).toMatchObject({ lessonCount: 2, hours: 2.5 });
     expect(prisma.lesson.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ status: 'COMPLETED' }) }));
@@ -549,7 +533,7 @@ describe('EducationReportsService.getTeachersReport', () => {
     });
     const { service } = createService(prisma);
 
-    const report = await service.getTeachersReport({}, false);
+    const report = await service.getTeachersReport({});
 
     expect(report.items[0].attendance).toEqual({ total: 20, percentage: 50 });
   });
@@ -558,91 +542,10 @@ describe('EducationReportsService.getTeachersReport', () => {
     const prisma = teachersPrisma({ profiles: [], total: 0 });
     const { service } = createService(prisma);
 
-    const report = await service.getTeachersReport({}, false);
+    const report = await service.getTeachersReport({});
 
     expect(report.items).toEqual([]);
     expect(report.total).toBe(0);
-  });
-});
-
-describe('EducationReportsService.getAdmissionsReport', () => {
-  function admissionsPrisma(opts: {
-    total?: number;
-    byStatus?: { status: string; _count: { _all: number } }[];
-    bySource?: { source: string | null; _count: { _all: number } }[];
-    convertedLeads?: { id: string; convertedStudent: { id: string; enrollments: { id: string }[] } | null }[];
-    overdueFollowUp?: number;
-    upcomingFollowUp?: number;
-    noFollowUp?: number;
-  }) {
-    return {
-      lead: {
-        count: vi.fn().mockResolvedValue(opts.total ?? 0),
-        groupBy: vi.fn().mockImplementation(({ by }: { by: string[] }) => {
-          if (by[0] === 'status') return Promise.resolve(opts.byStatus ?? []);
-          return Promise.resolve(opts.bySource ?? []);
-        }),
-        findMany: vi.fn().mockResolvedValue(opts.convertedLeads ?? []),
-      },
-    };
-  }
-
-  it('rejects an invalid lead status value', async () => {
-    const prisma = admissionsPrisma({});
-    const { service } = createService(prisma);
-    await expect(service.getAdmissionsReport({ status: 'NOT_REAL' })).rejects.toThrow(BadRequestException);
-  });
-
-  it('computes conversionRate as ENROLLED / total leads across ALL statuses', async () => {
-    const prisma = admissionsPrisma({
-      byStatus: [
-        { status: 'ENROLLED', _count: { _all: 5 } },
-        { status: 'LOST', _count: { _all: 3 } },
-        { status: 'NEW', _count: { _all: 2 } },
-      ],
-    });
-    const { service } = createService(prisma);
-
-    const report = await service.getAdmissionsReport({});
-
-    expect(report.enrolled).toBe(5);
-    expect(report.lost).toBe(3);
-    expect(report.conversionRate).toBe(50);
-  });
-
-  it('enrollmentConversion counts only ENROLLED leads whose convertedStudent has a real, non-cancelled Enrollment', async () => {
-    const prisma = admissionsPrisma({
-      convertedLeads: [
-        { id: 'l1', convertedStudent: { id: 's1', enrollments: [{ id: 'e1' }] } },
-        { id: 'l2', convertedStudent: { id: 's2', enrollments: [] } },
-        { id: 'l3', convertedStudent: null },
-      ],
-    });
-    const { service } = createService(prisma);
-
-    const report = await service.getAdmissionsReport({});
-
-    expect(report.enrollmentConversion).toEqual({ convertedLeadsCount: 3, withRealEnrollment: 1, rate: 33.33 });
-  });
-
-  it('leadSource labels a null source as "Unknown" rather than dropping it', async () => {
-    const prisma = admissionsPrisma({ bySource: [{ source: null, _count: { _all: 2 } }, { source: 'REFERRAL', _count: { _all: 4 } }] });
-    const { service } = createService(prisma);
-
-    const report = await service.getAdmissionsReport({});
-
-    expect(report.leadSource).toEqual(expect.arrayContaining([{ source: 'Unknown', count: 2 }, { source: 'REFERRAL', count: 4 }]));
-  });
-
-  it('returns a fully zeroed shape with no leads at all (zero-data case)', async () => {
-    const prisma = admissionsPrisma({});
-    const { service } = createService(prisma);
-
-    const report = await service.getAdmissionsReport({});
-
-    expect(report.leads).toBe(0);
-    expect(report.conversionRate).toBe(0);
-    expect(report.enrollmentConversion).toEqual({ convertedLeadsCount: 0, withRealEnrollment: 0, rate: 0 });
   });
 });
 
@@ -708,7 +611,7 @@ describe('EducationReportsService.getBranchesReport', () => {
 });
 
 describe('EducationReportsService.getDashboardData', () => {
-  it('composes the same six report methods with an empty query and never recomputes a figure a second way', async () => {
+  it('composes the same five report methods with an empty query and never recomputes a figure a second way', async () => {
     const prisma = {
       student: { count: vi.fn().mockResolvedValue(0), groupBy: vi.fn().mockResolvedValue([]), findMany: vi.fn().mockResolvedValue([]) },
       branch: { findMany: vi.fn().mockResolvedValue([]) },
@@ -718,13 +621,12 @@ describe('EducationReportsService.getDashboardData', () => {
       studentAttendance: { findMany: vi.fn().mockResolvedValue([]) },
       exam: { findMany: vi.fn().mockResolvedValue([]), count: vi.fn().mockResolvedValue(0) },
       payment: { groupBy: vi.fn().mockResolvedValue([]) },
-      lead: { count: vi.fn().mockResolvedValue(0), groupBy: vi.fn().mockResolvedValue([]), findMany: vi.fn().mockResolvedValue([]) },
     };
     const { service, academicProgress } = createService(prisma);
 
     const dashboard = await service.getDashboardData();
 
-    expect(dashboard).toMatchObject({ totalStudents: 0, activeStudents: 0, groupCount: 0, attendancePercentage: 0, averageScore: 0, passRate: 0, tuitionBilled: 0, tuitionCollected: 0, tuitionOutstanding: 0, leadConversionRate: 0 });
+    expect(dashboard).toMatchObject({ totalStudents: 0, activeStudents: 0, groupCount: 0, attendancePercentage: 0, averageScore: 0, passRate: 0, tuitionBilled: 0, tuitionCollected: 0, tuitionOutstanding: 0 });
     // the studentId-dependent branch must never be taken for the dashboard's empty query
     expect(academicProgress.getStudentProgress).not.toHaveBeenCalled();
   });

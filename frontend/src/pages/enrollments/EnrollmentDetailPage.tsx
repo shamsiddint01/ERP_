@@ -99,8 +99,8 @@ export function EnrollmentDetailPage() {
   return (
     <div>
       <DetailHeader
-        backLabel="Yozilishlar ro'yxatiga qaytish"
-        onBack={() => navigate('/enrollments')}
+        backLabel="Guruhga qaytish"
+        onBack={() => navigate(`/groups/${enrollment.group.id}`)}
         title={
           <>
             <Typography.Link onClick={() => navigate(`/students/${enrollment.student.id}`)}>{enrollment.student.fullName}</Typography.Link>

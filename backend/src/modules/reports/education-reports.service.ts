@@ -1,7 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { EnrollmentStatus, LeadStatus, PaymentMethod, StudentGroupStatus, StudentStatus, type Prisma } from '@prisma/client';
+import { EnrollmentStatus, PaymentMethod, StudentGroupStatus, StudentStatus, type Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service.js';
-import { CompensationService } from '../compensation/compensation.service.js';
 import { AcademicProgressService } from '../exams/academic-progress.service.js';
 import type { EducationReportQueryDto } from './dto/education-report-query.dto.js';
 import { ReportsService } from './reports.service.js';
@@ -55,7 +54,6 @@ export class EducationReportsService {
     private readonly prisma: PrismaService,
     private readonly reportsService: ReportsService,
     private readonly academicProgress: AcademicProgressService,
-    private readonly compensationService: CompensationService,
   ) {}
 
   // ---------------------------------------------------------------------------
@@ -485,7 +483,7 @@ export class EducationReportsService {
   // TEACHERS
   // ---------------------------------------------------------------------------
 
-  async getTeachersReport(query: EducationReportQueryDto, includeCompensation: boolean) {
+  async getTeachersReport(query: EducationReportQueryDto) {
     const page = query.page ?? 1;
     const pageSize = query.pageSize ?? 20;
     const profileWhere: Prisma.TeacherProfileWhereInput = {
@@ -522,11 +520,6 @@ export class EducationReportsService {
         const attendanceTotal = attendanceCounts.PRESENT + attendanceCounts.ABSENT + attendanceCounts.LATE + attendanceCounts.EXCUSED;
         const attendancePercentage = percentage(attendanceCounts.PRESENT + attendanceCounts.LATE, attendanceTotal);
 
-        let compensation: Awaited<ReturnType<CompensationService['getTeacherCompensationPreview']>> | null = null;
-        if (includeCompensation) {
-          compensation = await this.compensationService.getTeacherCompensationPreview(profile.id).catch(() => null);
-        }
-
         return {
           teacherEmployeeId: employeeId,
           teacherProfileId: profile.id,
@@ -538,71 +531,11 @@ export class EducationReportsService {
           hours,
           attendance: { total: attendanceTotal, percentage: attendancePercentage },
           workload: { groups: groupsCount, students: studentsCount, lessonCount, hours },
-          ...(includeCompensation && { compensation }),
         };
       }),
     );
 
     return { items, total, page, pageSize };
-  }
-
-  // ---------------------------------------------------------------------------
-  // ADMISSIONS
-  // ---------------------------------------------------------------------------
-
-  async getAdmissionsReport(query: EducationReportQueryDto) {
-    const status = query.status ? assertEnumValue(query.status, LeadStatus, 'lead status') : undefined;
-    const createdAt = dateRange(query.from, query.to);
-    const where: Prisma.LeadWhereInput = {
-      preferredBranchId: query.branchId,
-      preferredCourseId: query.courseId,
-      status,
-      createdAt,
-    };
-
-    const [total, byStatusRaw, bySourceRaw] = await Promise.all([
-      this.prisma.lead.count({ where }),
-      this.prisma.lead.groupBy({ by: ['status'], where: { preferredBranchId: query.branchId, preferredCourseId: query.courseId, createdAt }, _count: { _all: true } }),
-      this.prisma.lead.groupBy({ by: ['source'], where, _count: { _all: true } }),
-    ]);
-
-    const byStatus = Object.fromEntries(Object.values(LeadStatus).map((s) => [s, 0])) as Record<LeadStatus, number>;
-    let allLeadsTotal = 0;
-    for (const row of byStatusRaw) {
-      byStatus[row.status] = row._count._all;
-      allLeadsTotal += row._count._all;
-    }
-    const enrolled = byStatus.ENROLLED;
-    const lost = byStatus.LOST;
-    const conversionRate = percentage(enrolled, allLeadsTotal);
-
-    const leadSource = bySourceRaw.map((r) => ({ source: r.source ?? 'Unknown', count: r._count._all }));
-
-    // Enrollment conversion: of ENROLLED leads, how many actually resulted in a real (non-cancelled) Enrollment for the student they converted into.
-    const convertedLeads = await this.prisma.lead.findMany({
-      where: { ...where, status: 'ENROLLED' },
-      select: { id: true, convertedStudent: { select: { id: true, enrollments: { where: { status: { not: 'CANCELLED' } }, select: { id: true } } } } },
-    });
-    const withRealEnrollment = convertedLeads.filter((l) => l.convertedStudent && l.convertedStudent.enrollments.length > 0).length;
-
-    const now = new Date();
-    const followUpWhere: Prisma.LeadWhereInput = { preferredBranchId: query.branchId, preferredCourseId: query.courseId, status: { notIn: ['ENROLLED', 'LOST'] } };
-    const [overdueFollowUp, upcomingFollowUp, noFollowUpScheduled] = await Promise.all([
-      this.prisma.lead.count({ where: { ...followUpWhere, nextFollowUpAt: { lt: now } } }),
-      this.prisma.lead.count({ where: { ...followUpWhere, nextFollowUpAt: { gte: now } } }),
-      this.prisma.lead.count({ where: { ...followUpWhere, nextFollowUpAt: null } }),
-    ]);
-
-    return {
-      leads: total,
-      byStatus,
-      conversionRate,
-      enrolled,
-      lost,
-      leadSource,
-      enrollmentConversion: { convertedLeadsCount: convertedLeads.length, withRealEnrollment, rate: percentage(withRealEnrollment, convertedLeads.length) },
-      followUpStatus: { overdue: overdueFollowUp, upcoming: upcomingFollowUp, notScheduled: noFollowUpScheduled },
-    };
   }
 
   // ---------------------------------------------------------------------------
@@ -659,13 +592,12 @@ export class EducationReportsService {
 
   async getDashboardData() {
     const empty: EducationReportQueryDto = {};
-    const [students, groups, attendance, academic, tuition, admissions] = await Promise.all([
+    const [students, groups, attendance, academic, tuition] = await Promise.all([
       this.getStudentsReport(empty),
       this.getGroupsReport(empty),
       this.getAttendanceReport(empty),
       this.getAcademicReport(empty, ''), // no studentId in `empty`, so the actorUserId-dependent branch is never taken here
       this.getTuitionReport(empty),
-      this.getAdmissionsReport(empty),
     ]);
 
     return {
@@ -679,7 +611,6 @@ export class EducationReportsService {
       tuitionBilled: tuition.billed.totalBilled,
       tuitionCollected: tuition.collected.totalCollected,
       tuitionOutstanding: tuition.outstanding.totalOutstanding,
-      leadConversionRate: admissions.conversionRate,
     };
   }
 }

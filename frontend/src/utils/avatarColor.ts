@@ -1,4 +1,4 @@
-const AVATAR_PALETTE = ['#4F46E5', '#0284C7', '#059669', '#D97706', '#DB2777', '#7C3AED'];
+const AVATAR_PALETTE = ['#EF5B34', '#D9891A', '#3A9E6F', '#4C82D6', '#9466E0', '#C9547E'];
 
 /** Deterministic, pleasant avatar background derived from a name — the same person always gets the same color. */
 export function avatarColor(seed: string): string {

@@ -1,21 +1,19 @@
-import type { ThemeConfig } from 'antd';
+import { theme as antdTheme, type ThemeConfig } from 'antd';
 import type { CSSProperties } from 'react';
 
 /**
- * Central design-token configuration (single source of truth for color,
- * radius, spacing-adjacent control sizing, and shadows) — every AntD
- * component inherits these for free via ConfigProvider, so this file alone
- * is what took the app from "default Ant Design" to a consistent, branded
- * look. Component-level overrides below exist only where a token alone
- * can't express the desired effect (e.g. Menu's active-item indicator).
+ * Central design-token configuration — a dark, warm "charcoal + ember"
+ * system: near-black layered surfaces, soft light-gray text, and a single
+ * orange→amber accent used for anything that should draw the eye (active
+ * navigation, primary actions, key figures, chart highlights). Every AntD
+ * component inherits these via ConfigProvider (on top of AntD's dark
+ * algorithm), so pages pick up the look without per-page styling.
  */
 
 /**
  * Central motion system for our own custom CSS/components (index.css,
  * StatCard, page transitions, etc.) — deliberately separate from AntD's own
- * internal `token.motionDuration*`/`motionEase*` seeds, which are left
- * untouched to avoid destabilizing transitions inside AntD's own components
- * we haven't individually re-tested (Modal, Drawer, Dropdown, Tooltip...).
+ * internal motion seeds, which are left untouched.
  */
 export const motion = {
   fast: '120ms',
@@ -30,77 +28,113 @@ export const motion = {
   scaleHover: 1.08,
 };
 
-/** Shared Recharts <Tooltip contentStyle=...> so every chart tooltip reads as one system, not a default browser box. */
-export const chartTooltipStyle: CSSProperties = {
-  background: '#ffffff',
-  border: '1px solid #EEF0F3',
-  borderRadius: 8,
-  boxShadow: '0 4px 10px rgba(16,24,40,0.08), 0 2px 4px rgba(16,24,40,0.08)',
-  fontSize: 12,
-  padding: '8px 12px',
-};
-export const chartTooltipLabelStyle: CSSProperties = { fontWeight: 600, marginBottom: 4, color: '#111827' };
-
 /**
- * Elevation system — a clear depth hierarchy instead of one shadow reused
- * everywhere. Level 0 (page background) has no shadow at all — separation
- * there comes from the page/card tonal difference alone.
- *
- *   level1 — resting cards, list rows, FormSection, ActionBar: barely-there,
- *            "gently resting on the page" (paired with a light border).
- *   level2 — hover/elevated state of a level1 surface (StatCard hover, etc).
- *   level3 — floating popups anchored to a trigger: Select/Dropdown menus,
- *            Popconfirm/Popover/Tooltip, the notification panel.
- *   level4 — surfaces that float above a dimming mask: Modal, Drawer.
+ * Elevation system. On a dark UI depth reads mostly from surface tone
+ * (each level a step lighter), so shadows here are deep and soft — they
+ * separate a surface from the page rather than "lift" it like on white.
  */
 export const elevation = {
-  level1: '0 1px 2px rgba(16,24,40,0.04), 0 1px 3px rgba(16,24,40,0.05)',
-  level2: '0 4px 10px rgba(16,24,40,0.08), 0 2px 4px rgba(16,24,40,0.08)',
-  level3: '0 8px 24px rgba(16,24,40,0.12), 0 3px 6px rgba(16,24,40,0.08)',
-  level4: '0 24px 48px rgba(16,24,40,0.18), 0 8px 16px rgba(16,24,40,0.10)',
+  level1: '0 1px 0 rgba(255,255,255,0.03) inset, 0 6px 18px rgba(0,0,0,0.28)',
+  level2: '0 1px 0 rgba(255,255,255,0.04) inset, 0 12px 28px rgba(0,0,0,0.38)',
+  level3: '0 14px 36px rgba(0,0,0,0.5), 0 2px 6px rgba(0,0,0,0.35)',
+  level4: '0 28px 64px rgba(0,0,0,0.6), 0 8px 18px rgba(0,0,0,0.4)',
 };
 
 export const palette = {
-  primary: '#4F46E5',
-  primaryHover: '#6366F1',
-  primaryActive: '#4338CA',
-  success: '#059669',
-  warning: '#D97706',
-  error: '#DC2626',
-  info: '#0284C7',
-  sidebarBg: '#111827',
-  sidebarBgHover: 'rgba(255,255,255,0.06)',
-  sidebarBgActive: 'rgba(79,70,229,0.35)',
-  sidebarText: 'rgba(255,255,255,0.65)',
-  sidebarTextActive: '#ffffff',
-  layoutBg: '#F7F8FA',
+  /** Amber — the one accent colour: primary buttons, active nav, focus, highlights. */
+  primary: '#F5A524',
+  primaryHover: '#FFB840',
+  primaryActive: '#DB8D12',
+  /** Ember — the warm red-orange end of the accent gradient. */
+  ember: '#EF5B34',
+  accentGradient: 'linear-gradient(135deg, #EF5B34 0%, #F5A524 100%)',
+  accentGradientSoft: 'linear-gradient(135deg, rgba(239,91,52,0.18) 0%, rgba(245,165,36,0.10) 100%)',
+  success: '#3DD68C',
+  warning: '#F5A524',
+  error: '#F25C4A',
+  info: '#6AA8FF',
+
+  /** Surfaces, darkest to lightest. */
+  layoutBg: '#17181C',
+  sidebarBg: '#131417',
+  surface: '#202126',
+  surfaceRaised: '#27282E',
+  surfaceHover: '#2D2E35',
+  border: 'rgba(255,255,255,0.07)',
+  borderStrong: 'rgba(255,255,255,0.12)',
+
+  text: '#ECECEF',
+  textSecondary: '#9B9DA8',
+  textMuted: '#6E707B',
+
+  sidebarBgHover: 'rgba(255,255,255,0.04)',
+  sidebarBgActive: 'rgba(245,165,36,0.10)',
+  sidebarText: '#8E909B',
+  sidebarTextActive: '#F5A524',
+
   /** @deprecated use `elevation.level1` / `elevation.level2` directly — kept as aliases so existing call sites keep working. */
   cardShadow: elevation.level1,
   cardShadowHover: elevation.level2,
-  /** Soft indigo-tinted band for the dashboard hero — the one place a gradient earns its keep. */
-  heroGradient: 'linear-gradient(135deg, rgba(79,70,229,0.06) 0%, rgba(79,70,229,0.02) 50%, rgba(2,132,199,0.03) 100%)',
+  /** Warm band for the dashboard hero — the one place a large gradient earns its keep. */
+  heroGradient: 'linear-gradient(120deg, rgba(239,91,52,0.22) 0%, rgba(245,165,36,0.12) 45%, rgba(32,33,38,0) 100%)',
 };
 
+/**
+ * Categorical series colours for multi-series charts, in this fixed order
+ * (never cycled, never re-ranked). Stepped for the dark surface and
+ * validated as a set with the dataviz palette validator (lightness band,
+ * chroma, adjacent CVD ΔE >= 8, normal-vision ΔE >= 15, >= 3:1 contrast on
+ * `surface`). Single-series charts use the brand amber (`palette.primary`).
+ */
+export const chartColors = ['#d95926', '#3987e5', '#199e70', '#c98500', '#d55181', '#008300', '#9085e9', '#e66767'];
+
+/** Attendance status colours — always shown with a text label, never colour alone. */
+export const attendanceChartColors = { present: '#3DD68C', late: '#F5A524', absent: '#E5484D', excused: '#7C7F8C' };
+
+/** Shared Recharts <Tooltip contentStyle=...> so every chart tooltip reads as one system. */
+export const chartTooltipStyle: CSSProperties = {
+  background: palette.surfaceRaised,
+  border: `1px solid ${palette.borderStrong}`,
+  borderRadius: 10,
+  boxShadow: elevation.level3,
+  fontSize: 12,
+  padding: '8px 12px',
+  color: palette.text,
+};
+export const chartTooltipLabelStyle: CSSProperties = { fontWeight: 600, marginBottom: 4, color: palette.text };
+/** Axis tick / grid styling shared by every Recharts chart. */
+export const chartAxisTick = { fill: palette.textMuted, fontSize: 11 };
+export const chartGridStroke = 'rgba(255,255,255,0.06)';
+
 export const themeConfig: ThemeConfig = {
+  algorithm: antdTheme.darkAlgorithm,
   token: {
     colorPrimary: palette.primary,
     colorSuccess: palette.success,
     colorWarning: palette.warning,
     colorError: palette.error,
     colorInfo: palette.info,
+    colorLink: palette.primary,
+    colorLinkHover: palette.primaryHover,
+    colorBgBase: palette.layoutBg,
     colorBgLayout: palette.layoutBg,
-    borderRadius: 8,
-    controlHeight: 34,
-    fontFamily:
-      "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+    colorBgContainer: palette.surface,
+    colorBgElevated: palette.surfaceRaised,
+    colorBorder: 'rgba(255,255,255,0.10)',
+    colorBorderSecondary: palette.border,
+    colorText: palette.text,
+    colorTextSecondary: palette.textSecondary,
+    colorTextTertiary: palette.textMuted,
+    colorTextLightSolid: '#17181C',
+    borderRadius: 10,
+    controlHeight: 36,
+    fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
     fontSize: 14,
     fontSizeHeading1: 32,
     fontSizeHeading2: 24,
     fontSizeHeading3: 20,
-    fontSizeHeading4: 16,
+    fontSizeHeading4: 18,
     fontSizeHeading5: 14,
-    // AntD's seed shadow tokens, previously all collapsed onto the same flat
-    // card-level value — now mapped onto the real elevation levels above.
     boxShadow: elevation.level1,
     boxShadowSecondary: elevation.level4,
     boxShadowTertiary: elevation.level3,
@@ -109,61 +143,88 @@ export const themeConfig: ThemeConfig = {
   components: {
     Layout: {
       siderBg: palette.sidebarBg,
-      headerBg: '#ffffff',
+      headerBg: 'transparent',
       bodyBg: palette.layoutBg,
     },
     Menu: {
       darkItemBg: palette.sidebarBg,
       darkSubMenuItemBg: palette.sidebarBg,
+      darkPopupBg: palette.surfaceRaised,
       darkItemColor: palette.sidebarText,
-      darkItemHoverColor: palette.sidebarTextActive,
+      darkItemHoverColor: palette.text,
       darkItemHoverBg: palette.sidebarBgHover,
       darkItemSelectedBg: palette.sidebarBgActive,
       darkItemSelectedColor: palette.sidebarTextActive,
-      darkGroupTitleColor: 'rgba(255,255,255,0.35)',
-      itemBorderRadius: 6,
-      itemMarginInline: 8,
+      darkGroupTitleColor: palette.textMuted,
+      itemBorderRadius: 10,
+      itemMarginInline: 12,
+      itemHeight: 42,
+      iconSize: 16,
     },
     Card: {
-      // Explicit — Card must always read as `level1`, regardless of what the
-      // global tertiary token elsewhere means for Select/Dropdown/Popconfirm.
+      colorBgContainer: palette.surface,
       boxShadowTertiary: elevation.level1,
-      borderRadiusLG: 10,
+      borderRadiusLG: 14,
+      headerFontSize: 13,
     },
     Table: {
-      headerBg: '#FAFAFB',
-      headerColor: 'rgba(17,24,39,0.65)',
-      rowHoverBg: '#F5F6FF',
-      borderColor: '#EEF0F3',
+      headerBg: palette.surface,
+      headerColor: palette.textMuted,
+      headerSplitColor: 'transparent',
+      rowHoverBg: palette.surfaceHover,
+      borderColor: palette.border,
+      colorBgContainer: palette.surface,
     },
     Button: {
-      controlHeight: 34,
-      fontWeight: 500,
-      primaryShadow: 'none',
+      controlHeight: 36,
+      fontWeight: 600,
+      primaryShadow: '0 6px 16px rgba(245,165,36,0.22)',
+      primaryColor: '#17181C',
+      defaultBg: palette.surfaceRaised,
+      defaultBorderColor: 'rgba(255,255,255,0.10)',
+      defaultColor: palette.text,
+    },
+    Input: { colorBgContainer: palette.surfaceRaised, activeShadow: '0 0 0 3px rgba(245,165,36,0.15)' },
+    InputNumber: { colorBgContainer: palette.surfaceRaised, activeShadow: '0 0 0 3px rgba(245,165,36,0.15)' },
+    Select: {
+      colorBgContainer: palette.surfaceRaised,
+      optionSelectedBg: 'rgba(245,165,36,0.14)',
+      optionSelectedColor: palette.primary,
+      boxShadowSecondary: elevation.level3,
+    },
+    DatePicker: { colorBgContainer: palette.surfaceRaised, activeShadow: '0 0 0 3px rgba(245,165,36,0.15)' },
+    Tabs: {
+      itemColor: palette.textSecondary,
+      itemHoverColor: palette.text,
+      itemSelectedColor: palette.primary,
+      inkBarColor: palette.primary,
     },
     Statistic: {
-      titleFontSize: 13,
+      titleFontSize: 12,
     },
-    Select: {
-      boxShadowSecondary: elevation.level3,
+    Tag: {
+      defaultBg: 'rgba(255,255,255,0.06)',
     },
     Dropdown: {
       boxShadowSecondary: elevation.level3,
     },
     Modal: {
-      borderRadiusLG: 12,
+      contentBg: palette.surface,
+      headerBg: palette.surface,
+      borderRadiusLG: 16,
       boxShadow: elevation.level4,
     },
     Drawer: {
+      colorBgElevated: palette.surface,
       paddingLG: 20,
       boxShadow: elevation.level4,
     },
-    // Popover/Popconfirm/Tooltip already ship their own well-designed
-    // 3-layer `filter: drop-shadow(...)` (needed since a plain box-shadow
-    // can't follow the arrow-pointer shape) — confirmed via direct
-    // getComputedStyle inspection that it's untouched by boxShadowSecondary
-    // and already reads as a properly elevated floating layer, so
-    // deliberately left alone rather than fighting it with a token that
-    // has no effect.
+    Descriptions: {
+      labelColor: palette.textMuted,
+    },
+    Segmented: {
+      itemSelectedBg: palette.surfaceHover,
+      trackBg: palette.sidebarBg,
+    },
   },
 };

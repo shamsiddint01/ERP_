@@ -4,11 +4,18 @@ import { AuditEntityRegistryService } from '../../shared/audit/audit-entity-regi
 import { TeachersService } from './teachers.service.js';
 
 function fakeProfile(overrides: Record<string, unknown> = {}) {
-  return { id: 'profile1', employeeId: 'emp1', status: 'ACTIVE', specialization: 'IELTS', ...overrides };
+  return {
+    id: 'profile1',
+    employeeId: 'emp1',
+    status: 'ACTIVE',
+    specialization: 'IELTS',
+    employee: { id: 'emp1', firstName: 'Sarvinoz', middleName: null, lastName: 'Toshkentova' },
+    ...overrides,
+  };
 }
 
 function createPrismaMock(overrides: Record<string, unknown> = {}) {
-  return {
+  const prisma = {
     teacherProfile: {
       findUnique: vi.fn().mockResolvedValue(null),
       findMany: vi.fn().mockResolvedValue([]),
@@ -18,7 +25,8 @@ function createPrismaMock(overrides: Record<string, unknown> = {}) {
       ...(overrides.teacherProfile as Record<string, unknown>),
     },
     employee: {
-      findUnique: vi.fn().mockResolvedValue({ id: 'emp1', deletedAt: null, fullName: 'Test Teacher' }),
+      count: vi.fn().mockResolvedValue(4),
+      create: vi.fn().mockImplementation(({ data }: { data: Record<string, unknown> }) => Promise.resolve({ id: 'emp-new', ...data })),
       ...(overrides.employee as Record<string, unknown>),
     },
     studentGroup: {
@@ -27,7 +35,10 @@ function createPrismaMock(overrides: Record<string, unknown> = {}) {
       ...(overrides.studentGroup as Record<string, unknown>),
     },
     enrollment: { findMany: vi.fn().mockResolvedValue([]), ...(overrides.enrollment as Record<string, unknown>) },
+    $transaction: vi.fn(),
   };
+  prisma.$transaction.mockImplementation((cb: (tx: unknown) => unknown) => cb(prisma));
+  return prisma;
 }
 
 function createService(prisma: ReturnType<typeof createPrismaMock>) {
@@ -36,33 +47,38 @@ function createService(prisma: ReturnType<typeof createPrismaMock>) {
 
 describe('TeachersService', () => {
   describe('create', () => {
-    it('rejects an unknown employee', async () => {
-      const prisma = createPrismaMock({ employee: { findUnique: vi.fn().mockResolvedValue(null) } });
-      const service = createService(prisma);
+    const dto = { firstName: 'Jahongir', lastName: 'Rustamov', phone: '+998901112233', specialization: 'IELTS' };
 
-      await expect(service.create({ employeeId: 'missing' })).rejects.toThrow(NotFoundException);
-    });
-
-    it('rejects a soft-deleted employee', async () => {
-      const prisma = createPrismaMock({ employee: { findUnique: vi.fn().mockResolvedValue({ id: 'emp1', deletedAt: new Date() }) } });
-      const service = createService(prisma);
-
-      await expect(service.create({ employeeId: 'emp1' })).rejects.toThrow(NotFoundException);
-    });
-
-    it('rejects an employee who already has a teacher profile', async () => {
-      const prisma = createPrismaMock({ teacherProfile: { findUnique: vi.fn().mockResolvedValue(fakeProfile()) } });
-      const service = createService(prisma);
-
-      await expect(service.create({ employeeId: 'emp1' })).rejects.toThrow(ConflictException);
-    });
-
-    it('creates a profile for a valid, unassigned employee', async () => {
+    it('creates the underlying employee and the teacher profile together, in one transaction', async () => {
       const prisma = createPrismaMock();
       const service = createService(prisma);
 
-      const result = await service.create({ employeeId: 'emp1', specialization: 'IELTS' });
-      expect(result).toMatchObject({ employeeId: 'emp1', specialization: 'IELTS' });
+      const result = await service.create(dto);
+
+      expect(prisma.$transaction).toHaveBeenCalled();
+      expect(prisma.employee.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ firstName: 'Jahongir', lastName: 'Rustamov', fullName: 'Jahongir Rustamov', phone: '+998901112233' }),
+      });
+      expect(result).toMatchObject({ employeeId: 'emp-new', specialization: 'IELTS' });
+    });
+
+    it('generates a sequential TCH employee code', async () => {
+      const prisma = createPrismaMock();
+      const service = createService(prisma);
+
+      await service.create(dto);
+
+      const { data } = prisma.employee.create.mock.calls[0][0] as { data: { employeeCode: string } };
+      expect(data.employeeCode).toMatch(/^TCH-\d{4}-000005$/);
+    });
+
+    it('includes the middle name in fullName when given', async () => {
+      const prisma = createPrismaMock();
+      const service = createService(prisma);
+
+      await service.create({ ...dto, middleName: 'Akmal o‘g‘li' });
+
+      expect(prisma.employee.create).toHaveBeenCalledWith({ data: expect.objectContaining({ fullName: 'Jahongir Akmal o‘g‘li Rustamov' }) });
     });
   });
 
@@ -90,6 +106,19 @@ describe('TeachersService', () => {
 
       const result = await service.update('profile1', { status: 'INACTIVE' });
       expect(result).toMatchObject({ status: 'INACTIVE' });
+    });
+
+    it('rebuilds the employee fullName when only part of the name changes', async () => {
+      const prisma = createPrismaMock({ teacherProfile: { findUnique: vi.fn().mockResolvedValue(fakeProfile()) } });
+      const service = createService(prisma);
+
+      await service.update('profile1', { lastName: 'Karimova' });
+
+      expect(prisma.teacherProfile.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ employee: { update: expect.objectContaining({ lastName: 'Karimova', fullName: 'Sarvinoz Karimova' }) } }),
+        }),
+      );
     });
   });
 
@@ -132,16 +161,16 @@ describe('TeachersService', () => {
   });
 
   describe('findAll', () => {
-    it('combines department and branch filters without one clobbering the other', async () => {
+    it('filters by branch via the groups the teacher teaches there', async () => {
       const prisma = createPrismaMock();
       const service = createService(prisma);
 
-      await service.findAll({ departmentId: 'dept1', branchId: 'branch1', page: 1, pageSize: 20 });
+      await service.findAll({ branchId: 'branch1', page: 1, pageSize: 20 });
 
       expect(prisma.teacherProfile.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
-            employee: { departmentId: 'dept1', taughtGroups: { some: { branchId: 'branch1' } } },
+            employee: { taughtGroups: { some: { branchId: 'branch1' } } },
           }),
         }),
       );

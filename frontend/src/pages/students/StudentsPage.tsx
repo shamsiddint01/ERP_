@@ -135,7 +135,6 @@ export function StudentsPage() {
           },
           { title: 'Filial', render: (_, record) => record.branch?.name ?? '—' },
           { title: 'Telefon', dataIndex: 'phone', render: (v: string | null) => v ?? '—' },
-          { title: 'Vasiylar', render: (_, record) => record._count.guardians },
           { title: "Yozilishlar", render: (_, record) => record._count.enrollments },
           { title: 'Status', dataIndex: 'status', render: (v: StudentStatus) => <Tag color={STATUS_COLORS[v]}>{STATUS_LABELS[v]}</Tag> },
           { title: "Ro'yxatga olingan sana", dataIndex: 'registrationDate', render: (v: string) => formatDate(v) },

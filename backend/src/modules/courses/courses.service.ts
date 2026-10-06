@@ -112,7 +112,7 @@ export class CoursesService {
     });
   }
 
-  /** No hard delete — mirrors Department/Position: "removing" a course deactivates it, guarded against StudentGroup/Enrollment/Lead references. */
+  /** No hard delete — "removing" a course deactivates it, guarded against StudentGroup/Enrollment references. */
   async remove(id: string) {
     return this.update(id, { status: 'INACTIVE' });
   }
@@ -124,15 +124,11 @@ export class CoursesService {
     }
   }
 
-  /** A StudentGroup's courseId is required (non-nullable) — any group referencing this course would block a hard delete at the DB level; Enrollment reaches the course transitively through its group. Lead.preferredCourseId is checked separately since it's a soft, non-blocking-by-schema reference. */
+  /** A StudentGroup's courseId is required (non-nullable) — any group referencing this course would block a hard delete at the DB level; Enrollment reaches the course transitively through its group. */
   private async assertNotReferenced(id: string): Promise<void> {
     const groupCount = await this.prisma.studentGroup.count({ where: { courseId: id } });
     if (groupCount > 0) {
       throw new ConflictException('Cannot deactivate a course that still has student groups (and their enrollments) referencing it');
-    }
-    const leadCount = await this.prisma.lead.count({ where: { preferredCourseId: id } });
-    if (leadCount > 0) {
-      throw new ConflictException('Cannot deactivate a course that leads still have as their preferred course');
     }
   }
 }

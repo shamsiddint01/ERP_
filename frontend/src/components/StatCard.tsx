@@ -24,62 +24,57 @@ export function StatCard({ icon, title, value, loading, color = palette.primary,
   const { value: animated, ref: countRef } = useCountUp(value);
 
   return (
-    <Card size="small" className="hover-lift stat-card" onClick={onClick} style={{ cursor: onClick ? 'pointer' : undefined, height: '100%' }} styles={{ body: { padding: 16 } }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <div
-          className="stat-card-icon"
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 10,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 18,
-            color,
-            background: `${color}1A`,
-            flexShrink: 0,
-          }}
-        >
-          {icon}
-        </div>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <Typography.Text
-            type="secondary"
-            title={title}
-            style={{ fontSize: 13, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', textOverflow: 'ellipsis' }}
-          >
-            {title}
-          </Typography.Text>
-          {loading ? (
-            <Skeleton.Input active size="small" style={{ display: 'block', marginTop: 4, width: 80 }} />
-          ) : (
-            <>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                <div
-                  ref={countRef}
-                  title={`${formatter ? formatter(animated) : animated.toLocaleString('uz-UZ')}${suffix ?? ''}`}
-                  style={{ fontSize: 20, fontWeight: 600, lineHeight: 1.3, color: '#111827', overflowWrap: 'anywhere' }}
-                >
-                  {formatter ? formatter(animated) : animated.toLocaleString('uz-UZ')}
-                  {suffix}
-                </div>
-                {trend && (
-                  <span style={{ fontSize: 12, fontWeight: 500, color: trend.direction === 'up' ? palette.success : palette.error, display: 'inline-flex', alignItems: 'center', gap: 2 }}>
-                    {trend.direction === 'up' ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
-                    {trend.value}%
-                  </span>
-                )}
-              </div>
-              {description && (
-                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                  {description}
-                </Typography.Text>
-              )}
-            </>
-          )}
-        </div>
+    <Card size="small" className="hover-lift stat-card" onClick={onClick} style={{ cursor: onClick ? 'pointer' : undefined, height: '100%' }} styles={{ body: { padding: 18 } }}>
+      <div className="eyebrow" title={title} style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', lineHeight: 1.5, letterSpacing: '0.08em', minHeight: 33 }}>
+        {title}
       </div>
+      {loading ? (
+        <Skeleton.Input active size="small" style={{ display: 'block', marginTop: 10, width: 96 }} />
+      ) : (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+            <div
+              ref={countRef}
+              title={`${formatter ? formatter(animated) : animated.toLocaleString('uz-UZ')}${suffix ?? ''}`}
+              style={{ fontSize: 26, fontWeight: 700, lineHeight: 1.25, letterSpacing: '-0.01em', color: palette.text, overflowWrap: 'anywhere' }}
+            >
+              {formatter ? formatter(animated) : animated.toLocaleString('uz-UZ')}
+              {suffix && <span style={{ fontSize: 15, fontWeight: 600, color: palette.textSecondary, marginLeft: 2 }}>{suffix}</span>}
+            </div>
+            {trend && (
+              <span style={{ fontSize: 12, fontWeight: 600, color: trend.direction === 'up' ? palette.success : palette.error, display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+                {trend.direction === 'up' ? <ArrowUpOutlined /> : <ArrowDownOutlined />}
+                {trend.value}%
+              </span>
+            )}
+            <div style={{ marginLeft: 'auto' }}>
+              <div
+                className="stat-card-icon"
+                style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: 10,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 16,
+                  color,
+                  background: `${color}1F`,
+                  boxShadow: `0 0 0 1px ${color}2E inset`,
+                  flexShrink: 0,
+                }}
+              >
+                {icon}
+              </div>
+            </div>
+          </div>
+          {description && (
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              {description}
+            </Typography.Text>
+          )}
+        </>
+      )}
     </Card>
   );
 }

@@ -27,80 +27,7 @@ enum PermissionAction {
   EXPORT
 }
 
-enum CustomerStatus {
-  ACTIVE
-  INACTIVE
-}
-
-enum ProductStatus {
-  ACTIVE
-  DISCONTINUED
-  DRAFT
-}
-
-enum StockMovementType {
-  STOCK_IN
-  STOCK_OUT
-  TRANSFER_IN
-  TRANSFER_OUT
-  ADJUSTMENT_POSITIVE
-  ADJUSTMENT_NEGATIVE
-}
-
-enum StockReferenceType {
-  PURCHASE
-  SALE
-  TRANSFER
-  ADJUSTMENT
-  RETURN
-  DAMAGED
-}
-
-enum StockTransferStatus {
-  DRAFT
-  IN_TRANSIT
-  COMPLETED
-  CANCELLED
-}
-
-enum SupplierStatus {
-  ACTIVE
-  INACTIVE
-}
-
-enum PurchaseOrderStatus {
-  DRAFT
-  PENDING
-  APPROVED
-  RECEIVED
-  PARTIALLY_RECEIVED
-  CANCELLED
-}
-
 // Shared payment-status lifecycle for Order and PurchaseOrder
-enum PaymentStatus {
-  UNPAID
-  PARTIALLY_PAID
-  PAID
-  REFUNDED
-}
-
-enum OrderStatus {
-  DRAFT
-  CONFIRMED
-  PROCESSING
-  COMPLETED
-  CANCELLED
-}
-
-enum InvoiceStatus {
-  DRAFT
-  SENT
-  PARTIALLY_PAID
-  PAID
-  OVERDUE
-  VOID
-}
 
 enum PaymentDirection {
   INBOUND
@@ -124,69 +51,10 @@ enum PaymentProcessingStatus {
 
 // Polymorphic discriminator for Payment.referenceId (no DB-level FK; enforced in application layer)
 enum PaymentReferenceType {
-  ORDER
-  INVOICE
-  PURCHASE_ORDER
-  EXPENSE
-  OTHER
-  // Phase G — referenceId is the payer Student's id, not a specific charge:
-  // a tuition payment's actual per-charge breakdown lives in
-  // TuitionAllocation, resolved via POST /payments/:id/allocate.
+  // referenceId is the payer Student's id, not a specific charge: a tuition
+  // payment's actual per-charge breakdown lives in TuitionAllocation,
+  // resolved via POST /payments/:id/allocate.
   TUITION_CHARGE
-}
-
-enum AccountType {
-  CASH
-  BANK
-  RECEIVABLE
-  PAYABLE
-  REVENUE
-  EXPENSE
-  EQUITY
-  INVENTORY
-}
-
-/// The 5 fundamental account categories every AccountType rolls up into —
-/// drives normal-balance rules (ASSET/EXPENSE = debit-normal,
-/// LIABILITY/EQUITY/REVENUE = credit-normal) and the financial statements.
-enum AccountCategory {
-  ASSET
-  LIABILITY
-  EQUITY
-  REVENUE
-  EXPENSE
-}
-
-enum TransactionType {
-  SALE_REVENUE
-  PURCHASE_EXPENSE
-  PAYMENT_IN
-  PAYMENT_OUT
-  EXPENSE
-  REFUND
-  ADJUSTMENT
-  TRANSFER
-}
-
-// Polymorphic discriminator for Transaction.referenceId (no DB-level FK; enforced in application layer)
-enum TransactionReferenceType {
-  ORDER
-  PURCHASE_ORDER
-  PAYMENT
-  EXPENSE
-  INVOICE
-  MANUAL
-  PAYROLL
-  TUITION_CHARGE
-}
-
-enum ExpenseStatus {
-  DRAFT
-  PENDING
-  APPROVED
-  PAID
-  REJECTED
-  CANCELLED
 }
 
 enum EmployeeStatus {
@@ -196,130 +64,14 @@ enum EmployeeStatus {
   TERMINATED
 }
 
-enum DepartmentStatus {
-  ACTIVE
-  INACTIVE
-}
-
-enum PositionStatus {
-  ACTIVE
-  INACTIVE
-}
-
-enum AttendanceStatus {
-  PRESENT
-  ABSENT
-  LATE
-  HALF_DAY
-  ON_LEAVE
-  HOLIDAY
-}
-
-enum LeaveType {
-  VACATION
-  SICK
-  PERSONAL
-}
-
-enum SalaryType {
-  HOURLY
-  DAILY
-  MONTHLY
-  // Phase H — teacher-specific compensation models. See
-  // payroll-calculation.util.ts's computeBaseAmount for exactly how each is
-  // derived (PER_LESSON/PER_GROUP from TeacherProfile rates x
-  // completed-lessons/active-groups counts; MIXED = a MONTHLY-style prorated
-  // base plus both of those).
-  PER_LESSON
-  PER_GROUP
-  MIXED
-}
-
-enum PayrollPeriodStatus {
-  OPEN
-  CLOSED
-}
-
-enum PayrollStatus {
-  DRAFT
-  CALCULATING
-  CALCULATED
-  APPROVED
-  PAID
-  CANCELLED
-}
-
-enum PayrollComponentType {
-  BONUS
-  ALLOWANCE
-  DEDUCTION
-}
-
-/// Itemized breakdown row on a Payroll — mirrors PayrollComponentType plus the
-/// two attendance-derived rows (BASE, OVERTIME) that don't come from a configured component.
-enum PayrollLineType {
-  BASE
-  OVERTIME
-  BONUS
-  ALLOWANCE
-  DEDUCTION
-}
-
-enum ReportType {
-  SALES
-  PURCHASE
-  REVENUE
-  EXPENSE
-  PROFIT
-  INVENTORY
-  CUSTOMER
-  SUPPLIER
-  PAYMENT
-  EMPLOYEE
-}
-
-enum ReportFormat {
-  CSV
-  EXCEL
-  PDF
-}
-
-enum ReportJobStatus {
-  QUEUED
-  PROCESSING
-  COMPLETED
-  FAILED
-}
-
 enum NotificationType {
-  NEW_ORDER
-  NEW_PAYMENT
-  LOW_STOCK
-  INVOICE_DUE
-  DEBT_REMINDER
-  NEW_EMPLOYEE
-  SYSTEM_WARNING
-  // Phase 9 canonical types — the notifications module only ever emits these.
-  PAYMENT_DUE
-  INVOICE_OVERDUE
-  CUSTOMER_BALANCE
-  SUPPLIER_BALANCE
-  EXPENSE_PENDING
-  PAYROLL_PENDING
-  ATTENDANCE_ALERT
   SYSTEM
-  // Phase F — deliberately distinct from ATTENDANCE_ALERT (employee
-  // attendance): student attendance is never merged with employee attendance
-  // anywhere in this system, notifications included.
   STUDENT_ABSENT
   STUDENT_LATE
   STUDENT_REPEATED_ABSENCE
-  // Phase G — tuition billing, distinct from the retail PAYMENT_DUE/
-  // INVOICE_OVERDUE/NEW_PAYMENT types for the same reason as Phase F's split.
   TUITION_DUE
   TUITION_OVERDUE
   TUITION_PAYMENT_RECEIVED
-  // Phase H — academic assessment, distinct from every finance/attendance type above.
   EXAM_UPCOMING
   GRADES_PUBLISHED
 }
@@ -329,12 +81,6 @@ enum NotificationSeverity {
   SUCCESS
   WARNING
   CRITICAL
-}
-
-enum OutboxEventStatus {
-  PENDING
-  PROCESSED
-  FAILED
 }
 
 // ----- Education center domain (Phase A) ----------------------------------
@@ -385,39 +131,6 @@ enum StudentStatus {
   GRADUATED
   INACTIVE
   LEFT
-}
-
-enum GuardianStatus {
-  ACTIVE
-  INACTIVE
-}
-
-enum GuardianRelationship {
-  MOTHER
-  FATHER
-  GRANDPARENT
-  SIBLING
-  RELATIVE
-  LEGAL_GUARDIAN
-  OTHER
-}
-
-enum LeadStatus {
-  NEW
-  CONTACTED
-  TRIAL_SCHEDULED
-  TRIAL_COMPLETED
-  ENROLLED
-  LOST
-}
-
-enum LeadActivityType {
-  CALL
-  MESSAGE
-  MEETING
-  TRIAL
-  NOTE
-  FOLLOW_UP
 }
 
 enum EnrollmentStatus {
@@ -495,26 +208,13 @@ model User {
   createdAt    DateTime   @default(now()) @map("created_at")
   updatedAt    DateTime   @updatedAt @map("updated_at")
 
-  sessions                UserSession[]
-  auditLogs               AuditLog[]             @relation("AuditActor")
-  notifications           Notification[]
-  createdPurchaseOrders   PurchaseOrder[]        @relation("PurchaseOrderCreatedBy")
-  approvedPurchaseOrders  PurchaseOrder[]        @relation("PurchaseOrderApprovedBy")
-  recordedPayments        Payment[]              @relation("PaymentRecordedBy")
-  createdExpenses         Expense[]              @relation("ExpenseCreatedBy")
-  approvedExpenses        Expense[]              @relation("ExpenseApprovedBy")
-  createdTransactions     Transaction[]          @relation("TransactionCreatedBy")
-  createdJournalEntries   JournalEntry[]         @relation("JournalEntryCreatedBy")
-  stockMovements          StockMovement[]        @relation("StockMovementPerformedBy")
-  requestedStockTransfers StockTransfer[]        @relation("StockTransferRequestedBy")
-  requestedReportJobs     ReportExportJob[]      @relation("ReportJobRequestedBy")
-  createdCompensations    EmployeeCompensation[] @relation("CompensationCreatedBy")
-  createdPayrolls         Payroll[]              @relation("PayrollCreatedBy")
-  approvedPayrolls        Payroll[]              @relation("PayrollApprovedBy")
+  sessions         UserSession[]
+  auditLogs        AuditLog[]     @relation("AuditActor")
+  notifications    Notification[]
+  recordedPayments Payment[]      @relation("PaymentRecordedBy")
 
   // Education center (Phase A) — optional portal links
-  student  Student?
-  guardian Guardian? @relation("GuardianUser")
+  student Student?
 
   // Phase F
   markedStudentAttendances StudentAttendance[] @relation("StudentAttendanceMarkedBy")
@@ -584,374 +284,29 @@ model UserSession {
 // 3. CUSTOMERS
 // =========================================================================
 
-model Customer {
-  id          String         @id @default(uuid())
-  name        String
-  companyName String?        @map("company_name")
-  phone       String
-  email       String?
-  address     String?
-  status      CustomerStatus @default(ACTIVE)
-  balance     Decimal        @default(0) @db.Decimal(18, 2)
-  creditLimit Decimal        @default(0) @map("credit_limit") @db.Decimal(18, 2)
-  notes       String?
-  deletedAt   DateTime?      @map("deleted_at")
-  createdAt   DateTime       @default(now()) @map("created_at")
-  updatedAt   DateTime       @updatedAt @map("updated_at")
-
-  orders   Order[]
-  invoices Invoice[]
-  payments Payment[] @relation("PaymentPayerCustomer")
-
-  @@map("customers")
-}
-
 // =========================================================================
 // 4. PRODUCTS
 // =========================================================================
-
-model Category {
-  id               String     @id @default(uuid())
-  name             String
-  parentCategoryId String?    @map("parent_category_id")
-  parentCategory   Category?  @relation("CategoryToSubcategory", fields: [parentCategoryId], references: [id])
-  subcategories    Category[] @relation("CategoryToSubcategory")
-  createdAt        DateTime   @default(now()) @map("created_at")
-  updatedAt        DateTime   @updatedAt @map("updated_at")
-
-  products Product[]
-
-  @@map("categories")
-}
-
-model Product {
-  id            String        @id @default(uuid())
-  name          String
-  sku           String        @unique
-  barcode       String?       @unique
-  categoryId    String?       @map("category_id")
-  category      Category?     @relation(fields: [categoryId], references: [id])
-  description   String?
-  salePrice     Decimal       @map("sale_price") @db.Decimal(18, 2)
-  costPrice     Decimal       @map("cost_price") @db.Decimal(18, 2)
-  taxRateId     String?       @map("tax_rate_id")
-  taxRate       TaxRate?      @relation(fields: [taxRateId], references: [id])
-  unit          String
-  minStockLevel Decimal       @default(0) @map("min_stock_level") @db.Decimal(18, 3)
-  status        ProductStatus @default(DRAFT)
-  deletedAt     DateTime?     @map("deleted_at")
-  createdAt     DateTime      @default(now()) @map("created_at")
-  updatedAt     DateTime      @updatedAt @map("updated_at")
-
-  images             ProductImage[]
-  supplierProducts   SupplierProduct[]
-  inventoryStocks    InventoryStock[]
-  stockMovements     StockMovement[]
-  stockTransferItems StockTransferItem[]
-  purchaseOrderItems PurchaseOrderItem[]
-  orderItems         OrderItem[]
-  invoiceItems       InvoiceItem[]
-
-  @@map("products")
-}
-
-model ProductImage {
-  id        String   @id @default(uuid())
-  productId String   @map("product_id")
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  imageUrl  String   @map("image_url")
-  isPrimary Boolean  @default(false) @map("is_primary")
-  sortOrder Int      @default(0) @map("sort_order")
-  createdAt DateTime @default(now()) @map("created_at")
-
-  @@map("product_images")
-}
 
 // =========================================================================
 // 5. INVENTORY
 // =========================================================================
 
-model Warehouse {
-  id        String   @id @default(uuid())
-  name      String
-  code      String?  @unique
-  address   String?
-  isActive  Boolean  @default(true) @map("is_active")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  inventoryStocks InventoryStock[]
-  stockMovements  StockMovement[]
-  transfersFrom   StockTransfer[]  @relation("StockTransferFromWarehouse")
-  transfersTo     StockTransfer[]  @relation("StockTransferToWarehouse")
-  purchaseOrders  PurchaseOrder[]
-  orders          Order[]
-
-  @@map("warehouses")
-}
-
-// Named alias avoided: kept as InventoryStock, relation field named inventoryStocks above.
-model InventoryStock {
-  id               String    @id @default(uuid())
-  productId        String    @map("product_id")
-  product          Product   @relation(fields: [productId], references: [id])
-  warehouseId      String    @map("warehouse_id")
-  warehouse        Warehouse @relation(fields: [warehouseId], references: [id])
-  quantityOnHand   Decimal   @default(0) @map("quantity_on_hand") @db.Decimal(18, 3)
-  quantityReserved Decimal   @default(0) @map("quantity_reserved") @db.Decimal(18, 3)
-  minStockLevel    Decimal?  @map("min_stock_level") @db.Decimal(18, 3)
-  version          Int       @default(0)
-  createdAt        DateTime  @default(now()) @map("created_at")
-  updatedAt        DateTime  @updatedAt @map("updated_at")
-
-  @@unique([productId, warehouseId])
-  @@map("inventory_stocks")
-}
-
-model StockMovement {
-  id                String              @id @default(uuid())
-  productId         String              @map("product_id")
-  product           Product             @relation(fields: [productId], references: [id])
-  warehouseId       String              @map("warehouse_id")
-  warehouse         Warehouse           @relation(fields: [warehouseId], references: [id])
-  movementType      StockMovementType   @map("movement_type")
-  quantity          Decimal             @db.Decimal(18, 3)
-  previousQuantity  Decimal             @map("previous_quantity") @db.Decimal(18, 3)
-  balanceAfter      Decimal             @map("balance_after") @db.Decimal(18, 3)
-  referenceType     StockReferenceType? @map("reference_type")
-  referenceId       String?             @map("reference_id")
-  unitCost          Decimal?            @map("unit_cost") @db.Decimal(18, 2)
-  performedByUserId String?             @map("performed_by_user_id")
-  performedBy       User?               @relation("StockMovementPerformedBy", fields: [performedByUserId], references: [id])
-  note              String?
-  createdAt         DateTime            @default(now()) @map("created_at")
-
-  @@index([productId, warehouseId])
-  @@index([referenceType, referenceId])
-  @@map("stock_movements")
-}
-
-model StockTransfer {
-  id                String              @id @default(uuid())
-  fromWarehouseId   String              @map("from_warehouse_id")
-  fromWarehouse     Warehouse           @relation("StockTransferFromWarehouse", fields: [fromWarehouseId], references: [id])
-  toWarehouseId     String              @map("to_warehouse_id")
-  toWarehouse       Warehouse           @relation("StockTransferToWarehouse", fields: [toWarehouseId], references: [id])
-  status            StockTransferStatus @default(DRAFT)
-  requestedByUserId String?             @map("requested_by_user_id")
-  requestedBy       User?               @relation("StockTransferRequestedBy", fields: [requestedByUserId], references: [id])
-  completedAt       DateTime?           @map("completed_at")
-  createdAt         DateTime            @default(now()) @map("created_at")
-  updatedAt         DateTime            @updatedAt @map("updated_at")
-
-  items StockTransferItem[]
-
-  @@map("stock_transfers")
-}
-
-model StockTransferItem {
-  id              String        @id @default(uuid())
-  stockTransferId String        @map("stock_transfer_id")
-  stockTransfer   StockTransfer @relation(fields: [stockTransferId], references: [id], onDelete: Cascade)
-  productId       String        @map("product_id")
-  product         Product       @relation(fields: [productId], references: [id])
-  quantity        Decimal       @db.Decimal(18, 3)
-
-  @@map("stock_transfer_items")
-}
-
 // =========================================================================
 // 6. SUPPLIERS
 // =========================================================================
-
-model Supplier {
-  id            String         @id @default(uuid())
-  companyName   String         @map("company_name")
-  contactPerson String         @map("contact_person")
-  phone         String
-  email         String?
-  address       String?
-  balance       Decimal        @default(0) @db.Decimal(18, 2)
-  status        SupplierStatus @default(ACTIVE)
-  notes         String?
-  deletedAt     DateTime?      @map("deleted_at")
-  createdAt     DateTime       @default(now()) @map("created_at")
-  updatedAt     DateTime       @updatedAt @map("updated_at")
-
-  supplierProducts SupplierProduct[]
-  purchaseOrders   PurchaseOrder[]
-  payments         Payment[]         @relation("PaymentPayeeSupplier")
-  expenses         Expense[]
-
-  @@map("suppliers")
-}
-
-model SupplierProduct {
-  id          String   @id @default(uuid())
-  supplierId  String   @map("supplier_id")
-  supplier    Supplier @relation(fields: [supplierId], references: [id], onDelete: Cascade)
-  productId   String   @map("product_id")
-  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  supplierSku String?  @map("supplier_sku")
-  unitCost    Decimal  @map("unit_cost") @db.Decimal(18, 2)
-  createdAt   DateTime @default(now()) @map("created_at")
-
-  @@unique([supplierId, productId])
-  @@map("supplier_products")
-}
 
 // =========================================================================
 // 7. PURCHASES
 // =========================================================================
 
-model PurchaseOrder {
-  id               String              @id @default(uuid())
-  poNumber         String              @unique @map("po_number")
-  supplierId       String              @map("supplier_id")
-  supplier         Supplier            @relation(fields: [supplierId], references: [id])
-  warehouseId      String              @map("warehouse_id")
-  warehouse        Warehouse           @relation(fields: [warehouseId], references: [id])
-  status           PurchaseOrderStatus @default(DRAFT)
-  subtotal         Decimal             @default(0) @db.Decimal(18, 2)
-  taxTotal         Decimal             @default(0) @map("tax_total") @db.Decimal(18, 2)
-  discountTotal    Decimal             @default(0) @map("discount_total") @db.Decimal(18, 2)
-  grandTotal       Decimal             @default(0) @map("grand_total") @db.Decimal(18, 2)
-  amountPaid       Decimal             @default(0) @map("amount_paid") @db.Decimal(18, 2)
-  paymentStatus    PaymentStatus       @default(UNPAID) @map("payment_status")
-  createdByUserId  String              @map("created_by_user_id")
-  createdBy        User                @relation("PurchaseOrderCreatedBy", fields: [createdByUserId], references: [id])
-  approvedByUserId String?             @map("approved_by_user_id")
-  approvedBy       User?               @relation("PurchaseOrderApprovedBy", fields: [approvedByUserId], references: [id])
-  approvedAt       DateTime?           @map("approved_at")
-  orderDate        DateTime            @map("order_date") @db.Date
-  expectedDate     DateTime?           @map("expected_date") @db.Date
-  receivedAt       DateTime?           @map("received_at")
-  notes            String?
-  createdAt        DateTime            @default(now()) @map("created_at")
-  updatedAt        DateTime            @updatedAt @map("updated_at")
-
-  items PurchaseOrderItem[]
-
-  @@index([supplierId])
-  @@index([status])
-  @@map("purchase_orders")
-}
-
-model PurchaseOrderItem {
-  id               String        @id @default(uuid())
-  purchaseOrderId  String        @map("purchase_order_id")
-  purchaseOrder    PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
-  productId        String        @map("product_id")
-  product          Product       @relation(fields: [productId], references: [id])
-  quantity         Decimal       @db.Decimal(18, 3)
-  unitPrice        Decimal       @map("unit_price") @db.Decimal(18, 2)
-  taxPercent       Decimal       @default(0) @map("tax_percent") @db.Decimal(5, 2)
-  discountAmount   Decimal       @default(0) @map("discount_amount") @db.Decimal(18, 2)
-  lineTotal        Decimal       @map("line_total") @db.Decimal(18, 2)
-  quantityReceived Decimal       @default(0) @map("quantity_received") @db.Decimal(18, 3)
-
-  @@map("purchase_order_items")
-}
-
 // =========================================================================
 // 8/9. SALES & ORDERS (merged into a single Order entity — see plan §3.7)
 // =========================================================================
 
-model Order {
-  id                    String        @id @default(uuid())
-  orderNumber           String        @unique @map("order_number")
-  customerId            String        @map("customer_id")
-  customer              Customer      @relation(fields: [customerId], references: [id])
-  warehouseId           String        @map("warehouse_id")
-  warehouse             Warehouse     @relation(fields: [warehouseId], references: [id])
-  status                OrderStatus   @default(DRAFT)
-  paymentStatus         PaymentStatus @default(UNPAID) @map("payment_status")
-  subtotal              Decimal       @default(0) @db.Decimal(18, 2)
-  discountTotal         Decimal       @default(0) @map("discount_total") @db.Decimal(18, 2)
-  taxTotal              Decimal       @default(0) @map("tax_total") @db.Decimal(18, 2)
-  grandTotal            Decimal       @default(0) @map("grand_total") @db.Decimal(18, 2)
-  amountPaid            Decimal       @default(0) @map("amount_paid") @db.Decimal(18, 2)
-  responsibleEmployeeId String?       @map("responsible_employee_id")
-  responsibleEmployee   Employee?     @relation(fields: [responsibleEmployeeId], references: [id])
-  orderDate             DateTime      @map("order_date") @db.Date
-  confirmedAt           DateTime?     @map("confirmed_at")
-  completedAt           DateTime?     @map("completed_at")
-  cancelledAt           DateTime?     @map("cancelled_at")
-  cancellationReason    String?       @map("cancellation_reason")
-  notes                 String?
-  createdAt             DateTime      @default(now()) @map("created_at")
-  updatedAt             DateTime      @updatedAt @map("updated_at")
-
-  items    OrderItem[]
-  invoices Invoice[]
-
-  @@index([customerId])
-  @@index([status])
-  @@index([orderDate])
-  @@map("orders")
-}
-
-model OrderItem {
-  id             String  @id @default(uuid())
-  orderId        String  @map("order_id")
-  order          Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  productId      String  @map("product_id")
-  product        Product @relation(fields: [productId], references: [id])
-  quantity       Decimal @db.Decimal(18, 3)
-  unitPrice      Decimal @map("unit_price") @db.Decimal(18, 2)
-  discountAmount Decimal @default(0) @map("discount_amount") @db.Decimal(18, 2)
-  taxPercent     Decimal @default(0) @map("tax_percent") @db.Decimal(5, 2)
-  lineTotal      Decimal @map("line_total") @db.Decimal(18, 2)
-
-  @@map("order_items")
-}
-
 // =========================================================================
 // 10. INVOICES
 // =========================================================================
-
-model Invoice {
-  id            String        @id @default(uuid())
-  invoiceNumber String        @unique @map("invoice_number")
-  customerId    String        @map("customer_id")
-  customer      Customer      @relation(fields: [customerId], references: [id])
-  orderId       String?       @map("order_id")
-  order         Order?        @relation(fields: [orderId], references: [id])
-  status        InvoiceStatus @default(DRAFT)
-  issueDate     DateTime      @map("issue_date") @db.Date
-  dueDate       DateTime      @map("due_date") @db.Date
-  subtotal      Decimal       @default(0) @db.Decimal(18, 2)
-  taxTotal      Decimal       @default(0) @map("tax_total") @db.Decimal(18, 2)
-  discountTotal Decimal       @default(0) @map("discount_total") @db.Decimal(18, 2)
-  grandTotal    Decimal       @default(0) @map("grand_total") @db.Decimal(18, 2)
-  amountPaid    Decimal       @default(0) @map("amount_paid") @db.Decimal(18, 2)
-  pdfUrl        String?       @map("pdf_url")
-  createdAt     DateTime      @default(now()) @map("created_at")
-  updatedAt     DateTime      @updatedAt @map("updated_at")
-
-  items InvoiceItem[]
-
-  @@index([customerId])
-  @@index([status])
-  @@index([dueDate])
-  @@map("invoices")
-}
-
-model InvoiceItem {
-  id             String   @id @default(uuid())
-  invoiceId      String   @map("invoice_id")
-  invoice        Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  productId      String?  @map("product_id")
-  product        Product? @relation(fields: [productId], references: [id])
-  description    String
-  quantity       Decimal  @db.Decimal(18, 3)
-  unitPrice      Decimal  @map("unit_price") @db.Decimal(18, 2)
-  taxPercent     Decimal  @default(0) @map("tax_percent") @db.Decimal(5, 2)
-  discountAmount Decimal  @default(0) @map("discount_amount") @db.Decimal(18, 2)
-  lineTotal      Decimal  @map("line_total") @db.Decimal(18, 2)
-
-  @@map("invoice_items")
-}
 
 // =========================================================================
 // 11. PAYMENTS
@@ -965,11 +320,7 @@ model Payment {
   currency              String                  @default("UZS")
   method                PaymentMethod
   status                PaymentProcessingStatus @default(PENDING)
-  payerCustomerId       String?                 @map("payer_customer_id")
-  payerCustomer         Customer?               @relation("PaymentPayerCustomer", fields: [payerCustomerId], references: [id])
-  payeeSupplierId       String?                 @map("payee_supplier_id")
-  payeeSupplier         Supplier?               @relation("PaymentPayeeSupplier", fields: [payeeSupplierId], references: [id])
-  // Polymorphic target (Order | Invoice | PurchaseOrder | Expense) — no DB FK, resolved in application layer
+  // Polymorphic target — no DB FK, resolved in application layer
   referenceType         PaymentReferenceType?   @map("reference_type")
   referenceId           String?                 @map("reference_id")
   externalTransactionId String?                 @map("external_transaction_id")
@@ -991,194 +342,13 @@ model Payment {
 // 12. FINANCE
 // =========================================================================
 
-model Account {
-  id              String          @id @default(uuid())
-  code            String          @unique
-  name            String
-  type            AccountType
-  category        AccountCategory
-  parentId        String?         @map("parent_id")
-  parent          Account?        @relation("AccountHierarchy", fields: [parentId], references: [id])
-  children        Account[]       @relation("AccountHierarchy")
-  description     String?
-  /// Header/group accounts (e.g. "1000 Assets") exist purely for hierarchy
-  /// display and roll-up totals — journal lines may only post to isPostable=true leaves.
-  isPostable      Boolean         @default(true) @map("is_postable")
-  /// System accounts (seeded, load-bearing for the accounting engine) cannot be deactivated via the API.
-  isSystemAccount Boolean         @default(false) @map("is_system_account")
-  currency        String          @default("UZS")
-  openingBalance  Decimal         @default(0) @map("opening_balance") @db.Decimal(18, 2)
-  currentBalance  Decimal         @default(0) @map("current_balance") @db.Decimal(18, 2)
-  isActive        Boolean         @default(true) @map("is_active")
-  createdAt       DateTime        @default(now()) @map("created_at")
-  updatedAt       DateTime        @updatedAt @map("updated_at")
-
-  transactions      Transaction[]
-  journalLines      JournalLine[]
-  expenseCategories ExpenseCategory[]
-  expensePayments   Expense[]         @relation("ExpensePaymentAccount")
-  payrollPayments   Payroll[]         @relation("PayrollPaymentAccount")
-
-  @@map("accounts")
-}
-
-model Transaction {
-  id                String                    @id @default(uuid())
-  transactionNumber String                    @unique @map("transaction_number")
-  type              TransactionType
-  accountId         String                    @map("account_id")
-  account           Account                   @relation(fields: [accountId], references: [id])
-  amount            Decimal                   @db.Decimal(18, 2)
-  // Polymorphic target (Order | PurchaseOrder | Payment | Expense | Invoice) — no DB FK
-  referenceType     TransactionReferenceType? @map("reference_type")
-  referenceId       String?                   @map("reference_id")
-  description       String?
-  transactionDate   DateTime                  @map("transaction_date") @db.Date
-  createdByUserId   String                    @map("created_by_user_id")
-  createdBy         User                      @relation("TransactionCreatedBy", fields: [createdByUserId], references: [id])
-  createdAt         DateTime                  @default(now()) @map("created_at")
-
-  /// Optional link to the double-entry JournalEntry that actually backs this
-  /// row (nullable so historical Phase 4 rows, created before the Chart of
-  /// Accounts existed, remain valid and untouched).
-  journalEntryId String?       @unique @map("journal_entry_id")
-  journalEntry   JournalEntry? @relation(fields: [journalEntryId], references: [id])
-
-  @@index([referenceType, referenceId])
-  @@index([transactionDate])
-  @@index([accountId])
-  @@map("transactions")
-}
-
-/// The header of a balanced double-entry posting — see JournalLine for the
-/// actual debit/credit rows. entryDate/description mirror Transaction so a
-/// JournalEntry can stand alone even where no Transaction row exists (e.g.
-/// Expense postings, which never had a Transaction-writing path before this phase).
-model JournalEntry {
-  id              String                    @id @default(uuid())
-  entryNumber     String                    @unique @map("entry_number")
-  entryDate       DateTime                  @map("entry_date") @db.Date
-  description     String
-  referenceType   TransactionReferenceType? @map("reference_type")
-  referenceId     String?                   @map("reference_id")
-  createdByUserId String                    @map("created_by_user_id")
-  createdBy       User                      @relation("JournalEntryCreatedBy", fields: [createdByUserId], references: [id])
-  createdAt       DateTime                  @default(now()) @map("created_at")
-
-  lines           JournalLine[]
-  transaction     Transaction?
-  payrollApproval Payroll?      @relation("PayrollApprovalJournal")
-  payrollPayment  Payroll?      @relation("PayrollPaymentJournal")
-
-  @@index([referenceType, referenceId])
-  @@index([entryDate])
-  @@map("journal_entries")
-}
-
-model JournalLine {
-  id             String       @id @default(uuid())
-  journalEntryId String       @map("journal_entry_id")
-  journalEntry   JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
-  accountId      String       @map("account_id")
-  account        Account      @relation(fields: [accountId], references: [id])
-  debit          Decimal      @default(0) @db.Decimal(18, 2)
-  credit         Decimal      @default(0) @db.Decimal(18, 2)
-  description    String?
-
-  @@index([accountId])
-  @@index([journalEntryId])
-  @@map("journal_lines")
-}
-
 // =========================================================================
 // 13. EXPENSES
 // =========================================================================
 
-model ExpenseCategory {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  isSystem  Boolean  @default(false) @map("is_system")
-  /// The Expense-type Chart of Accounts leaf this category posts to
-  /// (e.g. "Rent" category -> "5100 Rent Expense" account).
-  accountId String?  @map("account_id")
-  account   Account? @relation(fields: [accountId], references: [id])
-  createdAt DateTime @default(now()) @map("created_at")
-
-  expenses Expense[]
-
-  @@map("expense_categories")
-}
-
-model Expense {
-  id                    String          @id @default(uuid())
-  expenseNumber         String          @unique @map("expense_number")
-  categoryId            String          @map("category_id")
-  category              ExpenseCategory @relation(fields: [categoryId], references: [id])
-  amount                Decimal         @db.Decimal(18, 2)
-  expenseDate           DateTime        @map("expense_date") @db.Date
-  description           String?
-  vendorSupplierId      String?         @map("vendor_supplier_id")
-  vendorSupplier        Supplier?       @relation(fields: [vendorSupplierId], references: [id])
-  responsibleEmployeeId String?         @map("responsible_employee_id")
-  responsibleEmployee   Employee?       @relation(fields: [responsibleEmployeeId], references: [id])
-  paymentMethod         PaymentMethod   @map("payment_method")
-  /// Which Cash/Bank account was actually debited-out when paid — set at PAID time, not before.
-  paymentAccountId      String?         @map("payment_account_id")
-  paymentAccount        Account?        @relation("ExpensePaymentAccount", fields: [paymentAccountId], references: [id])
-  status                ExpenseStatus   @default(DRAFT)
-  approvedByUserId      String?         @map("approved_by_user_id")
-  approvedBy            User?           @relation("ExpenseApprovedBy", fields: [approvedByUserId], references: [id])
-  approvedAt            DateTime?       @map("approved_at")
-  paidAt                DateTime?       @map("paid_at")
-  receiptAttachmentUrl  String?         @map("receipt_attachment_url")
-  createdByUserId       String          @map("created_by_user_id")
-  createdBy             User            @relation("ExpenseCreatedBy", fields: [createdByUserId], references: [id])
-  createdAt             DateTime        @default(now()) @map("created_at")
-  updatedAt             DateTime        @updatedAt @map("updated_at")
-
-  @@index([categoryId])
-  @@index([expenseDate])
-  @@index([status])
-  @@map("expenses")
-}
-
 // =========================================================================
 // 14. EMPLOYEES
 // =========================================================================
-
-model Department {
-  id                String           @id @default(uuid())
-  name              String
-  code              String           @unique
-  description       String?
-  status            DepartmentStatus @default(ACTIVE)
-  managerEmployeeId String?          @unique @map("manager_employee_id")
-  managerEmployee   Employee?        @relation("DepartmentManager", fields: [managerEmployeeId], references: [id])
-  createdAt         DateTime         @default(now()) @map("created_at")
-  updatedAt         DateTime         @updatedAt @map("updated_at")
-
-  positions     Position[]
-  employees     Employee[]            @relation("EmployeeDepartment")
-  workHistories EmployeeWorkHistory[]
-
-  @@map("departments")
-}
-
-model Position {
-  id           String         @id @default(uuid())
-  title        String
-  code         String         @unique
-  description  String?
-  status       PositionStatus @default(ACTIVE)
-  departmentId String         @map("department_id")
-  department   Department     @relation(fields: [departmentId], references: [id])
-  createdAt    DateTime       @default(now()) @map("created_at")
-
-  employees     Employee[]
-  workHistories EmployeeWorkHistory[]
-
-  @@map("positions")
-}
 
 model Employee {
   id              String         @id @default(uuid())
@@ -1186,269 +356,46 @@ model Employee {
   firstName       String         @map("first_name")
   lastName        String         @map("last_name")
   middleName      String?        @map("middle_name")
-  /// Denormalized display name (firstName + middleName + lastName), kept in
-  /// sync server-side so existing Order/Expense "responsibleEmployee" selects
-  /// (built in Phase 4/5 against this single field) never have to change.
+  /// Denormalized display name (firstName + middleName + lastName), kept in sync server-side.
   fullName        String         @map("full_name")
   phone           String
   email           String?
   dateOfBirth     DateTime?      @map("date_of_birth") @db.Date
   address         String?
-  departmentId    String?        @map("department_id")
-  department      Department?    @relation("EmployeeDepartment", fields: [departmentId], references: [id])
-  positionId      String?        @map("position_id")
-  position        Position?      @relation(fields: [positionId], references: [id])
-  managerId       String?        @map("manager_id")
-  manager         Employee?      @relation("EmployeeManager", fields: [managerId], references: [id])
   hireDate        DateTime       @map("hire_date") @db.Date
   status          EmployeeStatus @default(ACTIVE)
   terminationDate DateTime?      @map("termination_date") @db.Date
-  salary          Decimal?       @db.Decimal(18, 2)
   notes           String?
   deletedAt       DateTime?      @map("deleted_at")
   createdAt       DateTime       @default(now()) @map("created_at")
   updatedAt       DateTime       @updatedAt @map("updated_at")
 
-  user                User?
-  managedDepartment   Department?            @relation("DepartmentManager")
-  directReports       Employee[]             @relation("EmployeeManager")
-  workHistories       EmployeeWorkHistory[]
-  attendanceRecords   AttendanceRecord[]
-  responsibleOrders   Order[]
-  responsibleExpenses Expense[]
-  compensations       EmployeeCompensation[]
-  payrolls            Payroll[]
+  user User?
 
   // Education center (Phase A/D/E)
   managedBranches Branch[]        @relation("BranchManager")
   taughtGroups    StudentGroup[]  @relation("GroupTeacher")
-  assignedLeads   Lead[]          @relation("LeadAssignee")
-  leadActivities  LeadActivity[]  @relation("LeadActivityEmployee")
   teacherProfile  TeacherProfile?
   taughtSchedules Schedule[]      @relation("ScheduleTeacher")
   taughtLessons   Lesson[]        @relation("LessonTeacher")
   // Phase H
   examsTeaching   Exam[]          @relation("ExamTeacher")
 
-  @@index([departmentId])
-  @@index([positionId])
   @@index([status])
   @@map("employees")
-}
-
-model EmployeeWorkHistory {
-  id            String      @id @default(uuid())
-  employeeId    String      @map("employee_id")
-  employee      Employee    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
-  departmentId  String?     @map("department_id")
-  department    Department? @relation(fields: [departmentId], references: [id])
-  positionId    String?     @map("position_id")
-  position      Position?   @relation(fields: [positionId], references: [id])
-  effectiveFrom DateTime    @map("effective_from") @db.Date
-  effectiveTo   DateTime?   @map("effective_to") @db.Date
-  note          String?
-  createdAt     DateTime    @default(now()) @map("created_at")
-
-  @@map("employee_work_histories")
 }
 
 // =========================================================================
 // 15. ATTENDANCE
 // =========================================================================
 
-model AttendanceRecord {
-  id              String           @id @default(uuid())
-  employeeId      String           @map("employee_id")
-  employee        Employee         @relation(fields: [employeeId], references: [id])
-  workDate        DateTime         @map("work_date") @db.Date
-  checkInAt       DateTime?        @map("check_in_at")
-  checkOutAt      DateTime?        @map("check_out_at")
-  hoursWorked     Decimal?         @map("hours_worked") @db.Decimal(5, 2)
-  status          AttendanceStatus @default(PRESENT)
-  leaveType       LeaveType?       @map("leave_type")
-  lateMinutes     Int              @default(0) @map("late_minutes")
-  overtimeMinutes Int              @default(0) @map("overtime_minutes")
-  notes           String?
-  createdAt       DateTime         @default(now()) @map("created_at")
-  updatedAt       DateTime         @updatedAt @map("updated_at")
-
-  @@unique([employeeId, workDate])
-  @@index([workDate])
-  @@map("attendance_records")
-}
-
 // =========================================================================
 // 17. PAYROLL
 // =========================================================================
 
-/// A named pay period (e.g. "September 2026") that one Payroll row per
-/// employee belongs to. CLOSED periods are historical/locked — new payrolls
-/// cannot be created against them (enforced in PayrollPeriodsService).
-model PayrollPeriod {
-  id          String              @id @default(uuid())
-  name        String
-  periodStart DateTime            @map("period_start") @db.Date
-  periodEnd   DateTime            @map("period_end") @db.Date
-  status      PayrollPeriodStatus @default(OPEN)
-  createdAt   DateTime            @default(now()) @map("created_at")
-  updatedAt   DateTime            @updatedAt @map("updated_at")
-
-  payrolls Payroll[]
-
-  @@unique([periodStart, periodEnd])
-  @@index([status])
-  @@map("payroll_periods")
-}
-
-/// Historized salary record — a slowly-changing-dimension, same pattern as
-/// EmployeeWorkHistory: `effectiveTo = null` means "current". Creating a new
-/// compensation row closes out the previous one instead of overwriting it,
-/// so a Payroll always references the exact compensation that was in force
-/// when it was calculated and old Payroll rows never change retroactively.
-model EmployeeCompensation {
-  id              String     @id @default(uuid())
-  employeeId      String     @map("employee_id")
-  employee        Employee   @relation(fields: [employeeId], references: [id])
-  baseSalary      Decimal    @map("base_salary") @db.Decimal(18, 2)
-  salaryType      SalaryType @default(MONTHLY) @map("salary_type")
-  /// Hourly overtime rate. When null, OvertimeRate defaults to (baseSalary / standard monthly minutes) * 1.5 at calculation time.
-  overtimeRate    Decimal?   @map("overtime_rate") @db.Decimal(18, 2)
-  effectiveFrom   DateTime   @map("effective_from") @db.Date
-  effectiveTo     DateTime?  @map("effective_to") @db.Date
-  notes           String?
-  createdByUserId String     @map("created_by_user_id")
-  createdBy       User       @relation("CompensationCreatedBy", fields: [createdByUserId], references: [id])
-  createdAt       DateTime   @default(now()) @map("created_at")
-  updatedAt       DateTime   @updatedAt @map("updated_at")
-
-  payrolls Payroll[]
-
-  @@index([employeeId])
-  @@index([employeeId, effectiveFrom])
-  @@map("employee_compensations")
-}
-
-/// Reusable, configurable bonus/allowance/deduction definitions — an admin
-/// creates these once (e.g. "Transport Allowance", "Performance Bonus") and
-/// they're then picked when building a Payroll's line items, instead of
-/// hard-coding any specific bonus/allowance/deduction in code.
-model PayrollComponent {
-  id            String               @id @default(uuid())
-  name          String               @unique
-  type          PayrollComponentType
-  /// If true, `defaultAmount` is a percentage of base salary; otherwise a flat amount.
-  isPercentage  Boolean              @default(false) @map("is_percentage")
-  defaultAmount Decimal?             @map("default_amount") @db.Decimal(18, 2)
-  isSystem      Boolean              @default(false) @map("is_system")
-  isActive      Boolean              @default(true) @map("is_active")
-  createdAt     DateTime             @default(now()) @map("created_at")
-
-  lines PayrollLine[]
-
-  @@map("payroll_components")
-}
-
-/// One employee's payslip for one period. Never recalculated in place once
-/// APPROVED/PAID — see PayrollCalculationService for the recalculation
-/// workflow (must revert to DRAFT first). amounts are aggregates; see
-/// PayrollLine for the itemized breakdown backing them.
-model Payroll {
-  id             String                @id @default(uuid())
-  payrollNumber  String                @unique @map("payroll_number")
-  periodId       String                @map("period_id")
-  period         PayrollPeriod         @relation(fields: [periodId], references: [id])
-  employeeId     String                @map("employee_id")
-  employee       Employee              @relation(fields: [employeeId], references: [id])
-  compensationId String?               @map("compensation_id")
-  compensation   EmployeeCompensation? @relation(fields: [compensationId], references: [id])
-  status         PayrollStatus         @default(DRAFT)
-
-  // Attendance-derived inputs, snapshotted at calculation time.
-  workedDays        Decimal? @map("worked_days") @db.Decimal(6, 2)
-  workedMinutes     Int?     @map("worked_minutes")
-  overtimeMinutes   Int      @default(0) @map("overtime_minutes")
-  unpaidAbsenceDays Decimal  @default(0) @map("unpaid_absence_days") @db.Decimal(6, 2)
-
-  // Aggregate amounts (each backed by one or more PayrollLine rows).
-  baseAmount      Decimal @default(0) @map("base_amount") @db.Decimal(18, 2)
-  overtimeAmount  Decimal @default(0) @map("overtime_amount") @db.Decimal(18, 2)
-  bonusAmount     Decimal @default(0) @map("bonus_amount") @db.Decimal(18, 2)
-  allowanceAmount Decimal @default(0) @map("allowance_amount") @db.Decimal(18, 2)
-  deductionAmount Decimal @default(0) @map("deduction_amount") @db.Decimal(18, 2)
-  grossSalary     Decimal @default(0) @map("gross_salary") @db.Decimal(18, 2)
-  netSalary       Decimal @default(0) @map("net_salary") @db.Decimal(18, 2)
-
-  calculatedAt DateTime? @map("calculated_at")
-
-  approvedByUserId String?   @map("approved_by_user_id")
-  approvedBy       User?     @relation("PayrollApprovedBy", fields: [approvedByUserId], references: [id])
-  approvedAt       DateTime? @map("approved_at")
-
-  /// Dr Salary Expense / Cr Payroll Payable (+ Cr Deductions Payable when deductionAmount > 0), posted at approval.
-  approvalJournalEntryId String?       @unique @map("approval_journal_entry_id")
-  approvalJournalEntry   JournalEntry? @relation("PayrollApprovalJournal", fields: [approvalJournalEntryId], references: [id])
-
-  paymentAccountId String?   @map("payment_account_id")
-  paymentAccount   Account?  @relation("PayrollPaymentAccount", fields: [paymentAccountId], references: [id])
-  paidAt           DateTime? @map("paid_at")
-
-  /// Dr Payroll Payable / Cr Cash-or-Bank, posted at payment.
-  paymentJournalEntryId String?       @unique @map("payment_journal_entry_id")
-  paymentJournalEntry   JournalEntry? @relation("PayrollPaymentJournal", fields: [paymentJournalEntryId], references: [id])
-
-  cancelledAt        DateTime? @map("cancelled_at")
-  cancellationReason String?   @map("cancellation_reason")
-
-  createdByUserId String   @map("created_by_user_id")
-  createdBy       User     @relation("PayrollCreatedBy", fields: [createdByUserId], references: [id])
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-
-  lines PayrollLine[]
-
-  @@unique([periodId, employeeId])
-  @@index([status])
-  @@index([employeeId])
-  @@map("payrolls")
-}
-
-/// Itemized breakdown row backing a Payroll's aggregate amounts — this is
-/// what the frontend detail page and the Payroll reports actually read for
-/// per-component figures.
-model PayrollLine {
-  id          String            @id @default(uuid())
-  payrollId   String            @map("payroll_id")
-  payroll     Payroll           @relation(fields: [payrollId], references: [id], onDelete: Cascade)
-  type        PayrollLineType
-  componentId String?           @map("component_id")
-  component   PayrollComponent? @relation(fields: [componentId], references: [id])
-  label       String
-  amount      Decimal           @db.Decimal(18, 2)
-  notes       String?
-  createdAt   DateTime          @default(now()) @map("created_at")
-
-  @@index([payrollId])
-  @@map("payroll_lines")
-}
-
 // =========================================================================
 // 16. REPORTS
 // =========================================================================
-
-model ReportExportJob {
-  id                String          @id @default(uuid())
-  reportType        ReportType      @map("report_type")
-  filters           Json
-  format            ReportFormat
-  status            ReportJobStatus @default(QUEUED)
-  fileUrl           String?         @map("file_url")
-  requestedByUserId String          @map("requested_by_user_id")
-  requestedBy       User            @relation("ReportJobRequestedBy", fields: [requestedByUserId], references: [id])
-  completedAt       DateTime?       @map("completed_at")
-  createdAt         DateTime        @default(now()) @map("created_at")
-
-  @@map("report_export_jobs")
-}
 
 // =========================================================================
 // 17. NOTIFICATIONS
@@ -1519,36 +466,10 @@ model CompanySettings {
   @@map("company_settings")
 }
 
-model TaxRate {
-  id          String   @id @default(uuid())
-  name        String
-  ratePercent Decimal  @map("rate_percent") @db.Decimal(5, 2)
-  isDefault   Boolean  @default(false) @map("is_default")
-  createdAt   DateTime @default(now()) @map("created_at")
-
-  products Product[]
-
-  @@map("tax_rates")
-}
-
 // =========================================================================
 // INFRASTRUCTURE: transactional outbox for async cross-module cascades
 // (Dashboard cache invalidation, Notifications) — see plan §2
 // =========================================================================
-
-model OutboxEvent {
-  id          String            @id @default(uuid())
-  eventType   String            @map("event_type")
-  payload     Json
-  status      OutboxEventStatus @default(PENDING)
-  attempts    Int               @default(0)
-  lastError   String?           @map("last_error")
-  processedAt DateTime?         @map("processed_at")
-  createdAt   DateTime          @default(now()) @map("created_at")
-
-  @@index([status, createdAt])
-  @@map("outbox_events")
-}
 
 // =========================================================================
 // EDUCATION CENTER — CORE DOMAIN (Phase A)
@@ -1576,7 +497,6 @@ model Branch {
   classrooms    Classroom[]
   studentGroups StudentGroup[]
   students      Student[]
-  leads         Lead[]
   schedules     Schedule[]
   lessons       Lesson[]
 
@@ -1637,9 +557,8 @@ model Course {
   createdAt             DateTime        @default(now()) @map("created_at")
   updatedAt             DateTime        @updatedAt @map("updated_at")
 
-  studentGroups    StudentGroup[]
-  preferredByLeads Lead[]
-  exams            Exam[]
+  studentGroups StudentGroup[]
+  exams         Exam[]
 
   @@index([categoryId])
   @@index([status])
@@ -1683,32 +602,29 @@ model StudentGroup {
 }
 
 model Student {
-  id                  String        @id @default(uuid())
-  studentCode         String        @unique @map("student_code")
-  firstName           String        @map("first_name")
-  lastName            String        @map("last_name")
-  fullName            String        @map("full_name")
-  dateOfBirth         DateTime?     @map("date_of_birth") @db.Date
-  gender              String?
-  phone               String?
-  email               String?
-  address             String?
-  photoUrl            String?       @map("photo_url")
-  status              StudentStatus @default(ACTIVE)
-  registrationDate    DateTime      @default(now()) @map("registration_date")
-  source              String?
-  emergencyContact    String?       @map("emergency_contact")
-  notes               String?
-  branchId            String?       @map("branch_id")
-  branch              Branch?       @relation(fields: [branchId], references: [id])
-  userId              String?       @unique @map("user_id")
-  user                User?         @relation(fields: [userId], references: [id])
-  convertedFromLeadId String?       @unique @map("converted_from_lead_id")
-  convertedFromLead   Lead?         @relation("LeadConversion", fields: [convertedFromLeadId], references: [id])
-  createdAt           DateTime      @default(now()) @map("created_at")
-  updatedAt           DateTime      @updatedAt @map("updated_at")
+  id               String        @id @default(uuid())
+  studentCode      String        @unique @map("student_code")
+  firstName        String        @map("first_name")
+  lastName         String        @map("last_name")
+  fullName         String        @map("full_name")
+  dateOfBirth      DateTime?     @map("date_of_birth") @db.Date
+  gender           String?
+  phone            String?
+  email            String?
+  address          String?
+  photoUrl         String?       @map("photo_url")
+  status           StudentStatus @default(ACTIVE)
+  registrationDate DateTime      @default(now()) @map("registration_date")
+  source           String?
+  emergencyContact String?       @map("emergency_contact")
+  notes            String?
+  branchId         String?       @map("branch_id")
+  branch           Branch?       @relation(fields: [branchId], references: [id])
+  userId           String?       @unique @map("user_id")
+  user             User?         @relation(fields: [userId], references: [id])
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
 
-  guardians        StudentGuardian[]
   enrollments      Enrollment[]
   attendances      StudentAttendance[]
   tuitionCharges   TuitionCharge[]
@@ -1720,87 +636,6 @@ model Student {
   @@index([registrationDate])
   @@index([phone])
   @@map("students")
-}
-
-model Guardian {
-  id               String               @id @default(uuid())
-  fullName         String               @map("full_name")
-  phone            String
-  email            String?
-  relationshipType GuardianRelationship @default(OTHER) @map("relationship_type")
-  address          String?
-  notes            String?
-  status           GuardianStatus       @default(ACTIVE)
-  userId           String?              @unique @map("user_id")
-  user             User?                @relation("GuardianUser", fields: [userId], references: [id])
-  createdAt        DateTime             @default(now()) @map("created_at")
-  updatedAt        DateTime             @updatedAt @map("updated_at")
-
-  students StudentGuardian[]
-
-  @@index([phone])
-  @@index([status])
-  @@map("guardians")
-}
-
-model StudentGuardian {
-  studentId    String               @map("student_id")
-  student      Student              @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  guardianId   String               @map("guardian_id")
-  guardian     Guardian             @relation(fields: [guardianId], references: [id], onDelete: Cascade)
-  relationship GuardianRelationship @default(OTHER)
-  isPrimary    Boolean              @default(false) @map("is_primary")
-  createdAt    DateTime             @default(now()) @map("created_at")
-
-  @@id([studentId, guardianId])
-  @@index([guardianId])
-  @@map("student_guardians")
-}
-
-model Lead {
-  id                 String     @id @default(uuid())
-  fullName           String     @map("full_name")
-  phone              String
-  email              String?
-  preferredCourseId  String?    @map("preferred_course_id")
-  preferredCourse    Course?    @relation(fields: [preferredCourseId], references: [id])
-  preferredBranchId  String?    @map("preferred_branch_id")
-  preferredBranch    Branch?    @relation(fields: [preferredBranchId], references: [id])
-  source             String?
-  assignedEmployeeId String?    @map("assigned_employee_id")
-  assignedEmployee   Employee?  @relation("LeadAssignee", fields: [assignedEmployeeId], references: [id])
-  status             LeadStatus @default(NEW)
-  nextFollowUpAt     DateTime?  @map("next_follow_up_at")
-  notes              String?
-  createdAt          DateTime   @default(now()) @map("created_at")
-  updatedAt          DateTime   @updatedAt @map("updated_at")
-
-  activities       LeadActivity[]
-  convertedStudent Student?       @relation("LeadConversion")
-
-  @@index([status])
-  @@index([preferredCourseId])
-  @@index([preferredBranchId])
-  @@index([assignedEmployeeId])
-  @@index([nextFollowUpAt])
-  @@index([createdAt])
-  @@map("leads")
-}
-
-model LeadActivity {
-  id          String           @id @default(uuid())
-  leadId      String           @map("lead_id")
-  lead        Lead             @relation(fields: [leadId], references: [id], onDelete: Cascade)
-  employeeId  String?          @map("employee_id")
-  employee    Employee?        @relation("LeadActivityEmployee", fields: [employeeId], references: [id])
-  type        LeadActivityType
-  description String?
-  occurredAt  DateTime         @default(now()) @map("occurred_at")
-  createdAt   DateTime         @default(now()) @map("created_at")
-
-  @@index([leadId])
-  @@index([occurredAt])
-  @@map("lead_activities")
 }
 
 model Enrollment {

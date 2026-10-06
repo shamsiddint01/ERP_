@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { PaginatedResult, TeacherCompensationPreview, TeacherDetail, TeacherListItem, TeacherProfileStatus } from '../types';
+import type { PaginatedResult, TeacherDetail, TeacherListItem, TeacherProfileStatus } from '../types';
 
 export interface TeacherQuery {
   page?: number;
@@ -7,22 +7,24 @@ export interface TeacherQuery {
   search?: string;
   status?: TeacherProfileStatus;
   branchId?: string;
-  departmentId?: string;
 }
 
+/** Creates the teacher's underlying employee record and profile in one step. */
 export interface CreateTeacherPayload {
-  employeeId: string;
+  firstName: string;
+  lastName: string;
+  middleName?: string;
+  phone: string;
+  email?: string;
+  hireDate?: string;
   bio?: string;
   specialization?: string;
   qualification?: string;
   experienceYears?: number;
-  hourlyRate?: number;
-  perLessonRate?: number;
-  perGroupRate?: number;
   status?: TeacherProfileStatus;
 }
 
-export type UpdateTeacherPayload = Partial<Omit<CreateTeacherPayload, 'employeeId'>>;
+export type UpdateTeacherPayload = Partial<Omit<CreateTeacherPayload, 'hireDate'>>;
 
 export async function listTeachers(query: TeacherQuery) {
   const { data } = await apiClient.get<PaginatedResult<TeacherListItem>>('/teachers', { params: query });
@@ -46,10 +48,5 @@ export async function updateTeacher(id: string, payload: UpdateTeacherPayload) {
 
 export async function deactivateTeacher(id: string) {
   const { data } = await apiClient.delete<TeacherDetail>(`/teachers/${id}`);
-  return data;
-}
-
-export async function getTeacherCompensationPreview(id: string, periodId?: string) {
-  const { data } = await apiClient.get<TeacherCompensationPreview>(`/teachers/${id}/compensation`, { params: { periodId } });
   return data;
 }

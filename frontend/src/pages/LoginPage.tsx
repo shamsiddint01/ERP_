@@ -1,9 +1,11 @@
-import { LockOutlined, ReadOutlined, UserOutlined } from '@ant-design/icons';
+import { LockOutlined, UserOutlined } from '@ant-design/icons';
 import { Alert, Button, Card, Form, Input, Typography } from 'antd';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchCurrentUser, login } from '../api/auth';
-import { palette } from '../theme';
+import { BrandMark } from '../components/BrandMark';
+import { useBranding } from '../hooks/useBranding';
+import { elevation } from '../theme';
 import { useAuthStore } from '../store/auth.store';
 
 interface LoginFormValues {
@@ -16,6 +18,7 @@ export function LoginPage() {
   const setAuth = useAuthStore((state) => state.setAuth);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const { data: branding } = useBranding();
 
   async function handleSubmit(values: LoginFormValues) {
     setError(null);
@@ -34,37 +37,27 @@ export function LoginPage() {
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', alignItems: 'center', justifyContent: 'center', background: palette.layoutBg }}>
-      <Card style={{ width: 380 }}>
-        <div
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: 10,
-            background: palette.primary,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 20,
-            color: '#fff',
-            margin: '0 auto 16px',
-          }}
-        >
-          <ReadOutlined />
+    <div className="login-backdrop">
+      <Card style={{ width: 400, position: 'relative', zIndex: 1, boxShadow: elevation.level4 }} styles={{ body: { padding: 32 } }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+          <BrandMark size={56} logoUrl={branding?.logoUrl} />
         </div>
-        <Typography.Title level={3} style={{ textAlign: 'center', marginBottom: 24 }}>
-          Ta'lim Markazi tizimiga kirish
+        <div className="eyebrow" style={{ textAlign: 'center', marginBottom: 6 }}>
+          {branding?.companyName ?? "Ta'lim markazi"}
+        </div>
+        <Typography.Title level={3} style={{ textAlign: 'center', marginTop: 0, marginBottom: 24 }}>
+          Tizimga kirish
         </Typography.Title>
         {error && <Alert type="error" title={error} showIcon style={{ marginBottom: 16 }} />}
-        <Form layout="vertical" onFinish={handleSubmit} disabled={loading}>
+        <Form layout="vertical" onFinish={handleSubmit} disabled={loading} requiredMark={false}>
           <Form.Item name="username" label="Login" rules={[{ required: true, message: 'Login kiriting' }]}>
-            <Input prefix={<UserOutlined />} autoFocus />
+            <Input size="large" prefix={<UserOutlined />} autoFocus />
           </Form.Item>
           <Form.Item name="password" label="Parol" rules={[{ required: true, message: 'Parol kiriting' }]}>
-            <Input.Password prefix={<LockOutlined />} />
+            <Input.Password size="large" prefix={<LockOutlined />} />
           </Form.Item>
-          <Form.Item>
-            <Button type="primary" htmlType="submit" block loading={loading}>
+          <Form.Item style={{ marginBottom: 0 }}>
+            <Button type="primary" size="large" htmlType="submit" block loading={loading}>
               Kirish
             </Button>
           </Form.Item>

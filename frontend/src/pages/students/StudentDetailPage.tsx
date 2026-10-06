@@ -9,13 +9,10 @@ import {
   ExclamationCircleOutlined,
   FormOutlined,
   InfoCircleOutlined,
-  LinkOutlined,
   PauseCircleOutlined,
   PercentageOutlined,
   PlayCircleOutlined,
   PlusOutlined,
-  StarFilled,
-  StarOutlined,
   StopOutlined,
   SwapOutlined,
   TagOutlined,
@@ -32,7 +29,7 @@ import { listAuditLogs, type AuditLogEntry } from '../../api/auditLog';
 import { revokeStudentDiscount } from '../../api/discounts';
 import { activateEnrollment, pauseEnrollment } from '../../api/enrollments';
 import { listGroups } from '../../api/groups';
-import { deactivateStudent, getStudent, getStudentGrades, getStudentProgress, removeStudentGuardian, updateStudentGuardianLink } from '../../api/students';
+import { deactivateStudent, getStudent, getStudentGrades, getStudentProgress } from '../../api/students';
 import { downloadStudentAttendanceCsv, getStudentAttendanceHistory } from '../../api/studentAttendance';
 import { getStudentFinancialSummary } from '../../api/tuition';
 import { ActionBar } from '../../components/ActionBar';
@@ -40,7 +37,6 @@ import { CreateTuitionChargeModal } from '../../components/CreateTuitionChargeMo
 import { DetailHeader } from '../../components/DetailHeader';
 import { EnrollmentFormModal } from '../../components/EnrollmentFormModal';
 import { GrantDiscountModal } from '../../components/GrantDiscountModal';
-import { LinkGuardianModal } from '../../components/LinkGuardianModal';
 import { PageErrorState } from '../../components/PageErrorState';
 import { SummaryCard } from '../../components/SummaryCard';
 import { avatarColor } from '../../utils/avatarColor';
@@ -80,7 +76,6 @@ export function StudentDetailPage() {
   const queryClient = useQueryClient();
   const hasPermission = useAuthStore((state) => state.hasPermission);
   const [editOpen, setEditOpen] = useState(false);
-  const [linkOpen, setLinkOpen] = useState(false);
   const [enrollOpen, setEnrollOpen] = useState(false);
   const [transferTarget, setTransferTarget] = useState<StudentEnrollmentItem | undefined>();
   const [chargeModalOpen, setChargeModalOpen] = useState(false);
@@ -170,21 +165,7 @@ export function StudentDetailPage() {
     },
   });
 
-  const setPrimaryMutation = useMutation({
-    mutationFn: (guardianId: string) => updateStudentGuardianLink(id!, guardianId, { isPrimary: true }),
-    onSuccess: () => {
-      message.success('Asosiy vasiy belgilandi');
-      invalidate();
-    },
-  });
 
-  const unlinkMutation = useMutation({
-    mutationFn: (guardianId: string) => removeStudentGuardian(id!, guardianId),
-    onSuccess: () => {
-      message.success("Vasiy bog'lanishi bekor qilindi");
-      invalidate();
-    },
-  });
 
   const revokeDiscountMutation = useMutation({
     mutationFn: (studentDiscountId: string) => revokeStudentDiscount(id!, studentDiscountId),
@@ -255,86 +236,12 @@ export function StudentDetailPage() {
                 '—'
               )}
             </Descriptions.Item>
-            {student.convertedFromLead && (
-              <Descriptions.Item label="Konvertatsiya qilingan lid" span={3}>
-                {student.convertedFromLead.fullName} ({formatDate(student.convertedFromLead.createdAt)} sanasida lid sifatida yaratilgan)
-              </Descriptions.Item>
-            )}
             {student.notes && (
               <Descriptions.Item label="Izoh" span={3}>
                 {student.notes}
               </Descriptions.Item>
             )}
           </Descriptions>
-        </>
-      ),
-    },
-    {
-      key: 'guardians',
-      label: `Vasiylar (${student.guardians.length})`,
-      children: (
-        <>
-          {canEdit && (
-            <Button icon={<LinkOutlined />} style={{ marginBottom: 12 }} onClick={() => setLinkOpen(true)}>
-              Vasiy bog'lash
-            </Button>
-          )}
-          {student.guardians.length ? (
-            <Table
-              rowKey="guardianId"
-              size="small"
-              pagination={false}
-              dataSource={student.guardians}
-              onRow={(record) => ({ onClick: () => navigate(`/guardians/${record.guardianId}`), style: { cursor: 'pointer' } })}
-              columns={[
-                { title: 'F.I.Sh.', render: (_, record) => record.guardian.fullName },
-                { title: 'Telefon', render: (_, record) => record.guardian.phone },
-                { title: "Qarindoshlik", dataIndex: 'relationship' },
-                {
-                  title: 'Asosiymi',
-                  render: (_, record) =>
-                    record.isPrimary ? (
-                      <Tag icon={<StarFilled />} color="gold">
-                        Asosiy
-                      </Tag>
-                    ) : (
-                      canEdit && (
-                        <Button
-                          size="small"
-                          icon={<StarOutlined />}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setPrimaryMutation.mutate(record.guardianId);
-                          }}
-                        >
-                          Asosiy qilish
-                        </Button>
-                      )
-                    ),
-                },
-                {
-                  title: 'Amallar',
-                  render: (_, record) =>
-                    canEdit && (
-                      <Popconfirm
-                        title="Bog'lanishni bekor qilish?"
-                        onConfirm={(e) => {
-                          e?.stopPropagation();
-                          unlinkMutation.mutate(record.guardianId);
-                        }}
-                        onCancel={(e) => e?.stopPropagation()}
-                      >
-                        <Button loading={unlinkMutation.isPending} size="small" danger onClick={(e) => e.stopPropagation()}>
-                          Bekor qilish
-                        </Button>
-                      </Popconfirm>
-                    ),
-                },
-              ]}
-            />
-          ) : (
-            <EmptyState title="Vasiylar bog'lanmagan" />
-          )}
         </>
       ),
     },
@@ -791,12 +698,6 @@ export function StudentDetailPage() {
           }}
         />
       )}
-      <LinkGuardianModal
-        open={linkOpen}
-        onClose={() => setLinkOpen(false)}
-        studentId={student.id}
-        alreadyLinkedGuardianIds={student.guardians.map((g) => g.guardianId)}
-      />
       <CreateTuitionChargeModal open={chargeModalOpen} onClose={() => setChargeModalOpen(false)} fixedStudentId={id} />
       <GrantDiscountModal open={grantModalOpen} onClose={() => setGrantModalOpen(false)} studentId={id!} />
     </div>

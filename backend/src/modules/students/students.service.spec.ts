@@ -19,11 +19,6 @@ function fakeStudent(overrides: Record<string, unknown> = {}) {
 
 function createPrismaMock(overrides: Record<string, unknown> = {}) {
   const txStub = {
-    studentGuardian: {
-      updateMany: vi.fn().mockResolvedValue({ count: 0 }),
-      create: vi.fn().mockResolvedValue({}),
-      update: vi.fn().mockResolvedValue({}),
-    },
     student: {
       findUniqueOrThrow: vi.fn().mockResolvedValue(fakeStudent()),
     },
@@ -44,15 +39,6 @@ function createPrismaMock(overrides: Record<string, unknown> = {}) {
     user: {
       findUnique: vi.fn().mockResolvedValue({ id: 'user1' }),
       ...(overrides.user as Record<string, unknown>),
-    },
-    guardian: {
-      findUnique: vi.fn().mockResolvedValue({ id: 'guardian1', relationshipType: 'FATHER' }),
-      ...(overrides.guardian as Record<string, unknown>),
-    },
-    studentGuardian: {
-      findUnique: vi.fn().mockResolvedValue(null),
-      deleteMany: vi.fn().mockResolvedValue({ count: 1 }),
-      ...(overrides.studentGuardian as Record<string, unknown>),
     },
     $transaction: vi.fn((cb: (tx: unknown) => unknown) => cb(txStub)),
     __tx: txStub,
@@ -175,82 +161,6 @@ describe('StudentsService', () => {
           take: 10,
         }),
       );
-    });
-  });
-
-  describe('addGuardian', () => {
-    it('throws NotFoundException when the student does not exist', async () => {
-      const prisma = createPrismaMock({ student: { findUnique: vi.fn().mockResolvedValue(null) } });
-      const service = createService(prisma);
-
-      await expect(service.addGuardian('missing', { guardianId: 'g1' })).rejects.toThrow(NotFoundException);
-    });
-
-    it('throws NotFoundException when the guardian does not exist', async () => {
-      const prisma = createPrismaMock({
-        student: { findUnique: vi.fn().mockResolvedValue(fakeStudent()) },
-        guardian: { findUnique: vi.fn().mockResolvedValue(null) },
-      });
-      const service = createService(prisma);
-
-      await expect(service.addGuardian('stu1', { guardianId: 'missing' })).rejects.toThrow(NotFoundException);
-    });
-
-    it('rejects linking the same guardian to the same student twice', async () => {
-      const prisma = createPrismaMock({
-        student: { findUnique: vi.fn().mockResolvedValue(fakeStudent()) },
-        studentGuardian: { findUnique: vi.fn().mockResolvedValue({ studentId: 'stu1', guardianId: 'g1' }) },
-      });
-      const service = createService(prisma);
-
-      await expect(service.addGuardian('stu1', { guardianId: 'g1' })).rejects.toThrow(ConflictException);
-    });
-
-    it('unsets every other primary guardian before setting a new primary', async () => {
-      const prisma = createPrismaMock({ student: { findUnique: vi.fn().mockResolvedValue(fakeStudent()) } });
-      const service = createService(prisma);
-
-      await service.addGuardian('stu1', { guardianId: 'g1', isPrimary: true });
-
-      expect(prisma.__tx.studentGuardian.updateMany).toHaveBeenCalledWith({
-        where: { studentId: 'stu1', isPrimary: true },
-        data: { isPrimary: false },
-      });
-      expect(prisma.__tx.studentGuardian.create).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ studentId: 'stu1', guardianId: 'g1', isPrimary: true }) }),
-      );
-    });
-
-    it('falls back to the guardian record relationshipType when no relationship override is given', async () => {
-      const prisma = createPrismaMock({
-        student: { findUnique: vi.fn().mockResolvedValue(fakeStudent()) },
-        guardian: { findUnique: vi.fn().mockResolvedValue({ id: 'g1', relationshipType: 'MOTHER' }) },
-      });
-      const service = createService(prisma);
-
-      await service.addGuardian('stu1', { guardianId: 'g1' });
-
-      expect(prisma.__tx.studentGuardian.create).toHaveBeenCalledWith(
-        expect.objectContaining({ data: expect.objectContaining({ relationship: 'MOTHER' }) }),
-      );
-    });
-  });
-
-  describe('updateGuardianLink', () => {
-    it('throws NotFoundException when the guardian is not linked to the student', async () => {
-      const prisma = createPrismaMock({ studentGuardian: { findUnique: vi.fn().mockResolvedValue(null) } });
-      const service = createService(prisma);
-
-      await expect(service.updateGuardianLink('stu1', 'g1', { isPrimary: true })).rejects.toThrow(NotFoundException);
-    });
-  });
-
-  describe('removeGuardian', () => {
-    it('throws NotFoundException when there is nothing to unlink', async () => {
-      const prisma = createPrismaMock({ studentGuardian: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) } });
-      const service = createService(prisma);
-
-      await expect(service.removeGuardian('stu1', 'g1')).rejects.toThrow(NotFoundException);
     });
   });
 });

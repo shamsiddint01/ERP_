@@ -1,9 +1,36 @@
 import { TeacherProfileStatus } from '@prisma/client';
-import { IsEnum, IsInt, IsNumber, IsOptional, IsString, IsUUID, Min } from 'class-validator';
+import { IsEmail, IsEnum, IsInt, IsISO8601, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
 
+/**
+ * A teacher is created in one step: the underlying Employee record (the
+ * identity a User login and group/schedule/lesson assignments link to) is
+ * created together with the TeacherProfile — there is no separate HR module.
+ */
 export class CreateTeacherDto {
-  @IsUUID()
-  employeeId!: string;
+  @IsString()
+  @IsNotEmpty()
+  firstName!: string;
+
+  @IsString()
+  @IsNotEmpty()
+  lastName!: string;
+
+  @IsOptional()
+  @IsString()
+  middleName?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  phone!: string;
+
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
+  /** Defaults to today. */
+  @IsOptional()
+  @IsISO8601()
+  hireDate?: string;
 
   @IsOptional()
   @IsString()
@@ -21,21 +48,6 @@ export class CreateTeacherDto {
   @IsInt()
   @Min(0)
   experienceYears?: number;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  hourlyRate?: number;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  perLessonRate?: number;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  perGroupRate?: number;
 
   @IsOptional()
   @IsEnum(TeacherProfileStatus)

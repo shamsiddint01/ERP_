@@ -68,8 +68,8 @@ export function CourseDetailPage() {
   return (
     <div>
       <DetailHeader
-        backLabel="Kurslar ro'yxatiga qaytish"
-        onBack={() => navigate('/courses')}
+        backLabel="Orqaga"
+        onBack={() => navigate(-1)}
         title={
           <>
             {course.name} <Tag>{course.code}</Tag>

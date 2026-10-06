@@ -8,7 +8,7 @@ import { PaginationQueryDto } from '../../../shared/dto/pagination-query.dto.js'
  * filtered client-side after an unfiltered fetch). `status` is deliberately
  * a plain string here rather than one specific enum — each report method
  * validates it against whichever enum is actually relevant to that report
- * (StudentStatus for the students report, LeadStatus for admissions, etc.)
+ * (StudentStatus for the students report, etc.)
  * and throws a clear BadRequestException for a value that doesn't belong to
  * that enum, rather than silently ignoring a typo.
  */

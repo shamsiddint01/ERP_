@@ -1,8 +1,30 @@
 import { TeacherProfileStatus } from '@prisma/client';
-import { IsEnum, IsInt, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsEmail, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
 
-/** employeeId is intentionally absent — a profile's anchor employee never changes after creation (deactivate and create a new one instead). */
 export class UpdateTeacherDto {
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  firstName?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  lastName?: string;
+
+  @IsOptional()
+  @IsString()
+  middleName?: string;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  phone?: string;
+
+  @IsOptional()
+  @IsEmail()
+  email?: string;
+
   @IsOptional()
   @IsString()
   bio?: string;
@@ -19,21 +41,6 @@ export class UpdateTeacherDto {
   @IsInt()
   @Min(0)
   experienceYears?: number;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  hourlyRate?: number;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  perLessonRate?: number;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  perGroupRate?: number;
 
   @IsOptional()
   @IsEnum(TeacherProfileStatus)

@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { GuardianRelationship, PaginatedResult, StudentDetail, StudentGrades, StudentListItem, StudentProgress, StudentStatus } from '../types';
+import type { PaginatedResult, StudentDetail, StudentGrades, StudentListItem, StudentProgress, StudentStatus } from '../types';
 
 export interface StudentQuery {
   page?: number;
@@ -29,17 +29,6 @@ export interface StudentPayload {
 
 export type UpdateStudentPayload = Partial<StudentPayload>;
 
-export interface LinkGuardianPayload {
-  guardianId: string;
-  relationship?: GuardianRelationship;
-  isPrimary?: boolean;
-}
-
-export interface UpdateGuardianLinkPayload {
-  relationship?: GuardianRelationship;
-  isPrimary?: boolean;
-}
-
 export async function listStudents(query: StudentQuery) {
   const { data } = await apiClient.get<PaginatedResult<StudentListItem>>('/students', { params: query });
   return data;
@@ -62,21 +51,6 @@ export async function updateStudent(id: string, payload: UpdateStudentPayload) {
 
 export async function deactivateStudent(id: string) {
   const { data } = await apiClient.delete<StudentDetail>(`/students/${id}`);
-  return data;
-}
-
-export async function addStudentGuardian(studentId: string, payload: LinkGuardianPayload) {
-  const { data } = await apiClient.post<StudentDetail>(`/students/${studentId}/guardians`, payload);
-  return data;
-}
-
-export async function updateStudentGuardianLink(studentId: string, guardianId: string, payload: UpdateGuardianLinkPayload) {
-  const { data } = await apiClient.patch<StudentDetail>(`/students/${studentId}/guardians/${guardianId}`, payload);
-  return data;
-}
-
-export async function removeStudentGuardian(studentId: string, guardianId: string) {
-  const { data } = await apiClient.delete<StudentDetail>(`/students/${studentId}/guardians/${guardianId}`);
   return data;
 }
 

@@ -19,24 +19,15 @@ const SEVERITY_COLOR: Record<NotificationSeverity, string> = {
 };
 
 const TYPE_LABELS: Record<NotificationType, string> = {
-  NEW_ORDER: 'Yangi buyurtma',
-  NEW_PAYMENT: 'Yangi to‘lov',
-  LOW_STOCK: 'Kam qolgan mahsulot',
-  INVOICE_DUE: 'Hisob-faktura muddati',
-  DEBT_REMINDER: 'Qarz eslatmasi',
-  NEW_EMPLOYEE: 'Yangi xodim',
-  SYSTEM_WARNING: 'Tizim ogohlantirishi',
-  PAYMENT_DUE: 'To‘lov muddati',
-  INVOICE_OVERDUE: 'Muddati o‘tgan hisob-faktura',
-  CUSTOMER_BALANCE: 'Mijoz balansi',
-  SUPPLIER_BALANCE: 'Yetkazib beruvchi balansi',
-  EXPENSE_PENDING: 'Tasdiqlashni kutayotgan xarajat',
-  PAYROLL_PENDING: 'Tasdiqlashni kutayotgan ish haqi',
-  ATTENDANCE_ALERT: 'Davomat ogohlantirishi',
   SYSTEM: 'Tizim',
   STUDENT_ABSENT: "O'quvchi kelmadi",
   STUDENT_LATE: "O'quvchi kech qoldi",
   STUDENT_REPEATED_ABSENCE: 'Takroriy davomatsizlik',
+  TUITION_DUE: "To'lov muddati yaqin",
+  TUITION_OVERDUE: "Muddati o'tgan to'lov",
+  TUITION_PAYMENT_RECEIVED: "To'lov qabul qilindi",
+  EXAM_UPCOMING: 'Yaqinlashayotgan test',
+  GRADES_PUBLISHED: "Baholar e'lon qilindi",
 };
 
 export function NotificationsPage() {
@@ -177,7 +168,7 @@ export function NotificationsPage() {
             render: (_: string, record) => (
               <div>
                 <div style={{ fontWeight: record.isRead ? 400 : 600 }}>{record.title}</div>
-                <div style={{ color: '#666', fontSize: 13 }}>{record.message}</div>
+                <div style={{ color: 'var(--color-text-secondary)', fontSize: 13 }}>{record.message}</div>
               </div>
             ),
           },

@@ -65,8 +65,8 @@ export function BranchDetailPage() {
   return (
     <div>
       <DetailHeader
-        backLabel="Filiallar ro'yxatiga qaytish"
-        onBack={() => navigate('/branches')}
+        backLabel="Orqaga"
+        onBack={() => navigate(-1)}
         title={
           <>
             {branch.name} <Tag>{branch.code}</Tag>

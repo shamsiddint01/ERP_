@@ -3,10 +3,6 @@ import { NotificationsScheduler } from './notifications.scheduler.js';
 
 function createPrismaMock(overrides: Record<string, Record<string, unknown>> = {}) {
   return {
-    inventoryStock: { findMany: vi.fn().mockResolvedValue([]) },
-    invoice: { findMany: vi.fn().mockResolvedValue([]), updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
-    expense: { findMany: vi.fn().mockResolvedValue([]) },
-    payroll: { findMany: vi.fn().mockResolvedValue([]) },
     tuitionCharge: {
       findMany: vi.fn().mockResolvedValue([]),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
