@@ -6,12 +6,17 @@ import { RequirePermission } from '../../shared/decorators/require-permission.de
 import { CreateTeacherDto } from './dto/create-teacher.dto.js';
 import { QueryTeacherDto } from './dto/query-teacher.dto.js';
 import { UpdateTeacherDto } from './dto/update-teacher.dto.js';
+import { CreateLoginDto, UpdateLoginDto } from '../../shared/accounts/login-account.dto.js';
+import { TeacherAccountService } from './teacher-account.service.js';
 import { TeachersService } from './teachers.service.js';
 
 @ApiTags('teachers')
 @Controller('teachers')
 export class TeachersController {
-  constructor(private readonly teachersService: TeachersService) {}
+  constructor(
+    private readonly teachersService: TeachersService,
+    private readonly teacherAccountService: TeacherAccountService,
+  ) {}
 
   @Get()
   @RequirePermission('teachers', PermissionAction.VIEW)
@@ -44,5 +49,29 @@ export class TeachersController {
   @Audited('TeacherProfile', 'DEACTIVATE')
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.teachersService.remove(id);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Login — staff type the username/password and give them to the teacher
+  // ---------------------------------------------------------------------------
+
+  @Get(':id/account')
+  @RequirePermission('teachers', PermissionAction.VIEW)
+  getAccount(@Param('id', ParseUUIDPipe) id: string) {
+    return this.teacherAccountService.get(id);
+  }
+
+  @Post(':id/account')
+  @RequirePermission('teachers', PermissionAction.EDIT)
+  @Audited('TeacherProfile', 'ACCOUNT_CREATE')
+  createAccount(@Param('id', ParseUUIDPipe) id: string, @Body() dto: CreateLoginDto) {
+    return this.teacherAccountService.create(id, dto);
+  }
+
+  @Patch(':id/account')
+  @RequirePermission('teachers', PermissionAction.EDIT)
+  @Audited('TeacherProfile', 'ACCOUNT_UPDATE')
+  updateAccount(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateLoginDto) {
+    return this.teacherAccountService.update(id, dto);
   }
 }

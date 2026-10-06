@@ -1,5 +1,6 @@
 import { ConflictException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
+import { LoginAccountService } from '../../shared/accounts/login-account.service.js';
 import { StudentAccountService } from './student-account.service.js';
 
 function createPrisma(opts: { studentUserId?: string | null; usernameTaken?: boolean; emailTaken?: boolean } = {}) {
@@ -28,7 +29,7 @@ function createPrisma(opts: { studentUserId?: string | null; usernameTaken?: boo
   };
 }
 
-const service = (prisma: ReturnType<typeof createPrisma>) => new StudentAccountService(prisma as never);
+const service = (prisma: ReturnType<typeof createPrisma>) => new StudentAccountService(prisma as never, new LoginAccountService(prisma as never));
 
 describe('StudentAccountService', () => {
   it('creates an ACTIVE Student-role login with a hashed password and links it to the student', async () => {
@@ -43,7 +44,7 @@ describe('StudentAccountService', () => {
   it("falls back to a placeholder email when the student's own email is already used by another login", async () => {
     const prisma = createPrisma({ emailTaken: true });
     await service(prisma).create('stu1', { username: 'aziz', password: 'parol1234' });
-    expect(prisma.__tx.user.create.mock.calls[0][0].data.email).toBe('aziz@students.local');
+    expect(prisma.__tx.user.create.mock.calls[0][0].data.email).toBe('aziz@accounts.local');
   });
 
   it('refuses a username that is already taken', async () => {

@@ -57,7 +57,7 @@ export class TeachersService {
       this.prisma.teacherProfile.findMany({
         where,
         include: {
-          employee: { select: { ...EMPLOYEE_SUMMARY_SELECT, _count: { select: { taughtGroups: true } } } },
+          employee: { select: { ...EMPLOYEE_SUMMARY_SELECT, user: { select: { username: true, status: true } }, _count: { select: { taughtGroups: true } } } },
         },
         orderBy: { createdAt: 'desc' },
         skip: (page - 1) * pageSize,

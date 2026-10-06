@@ -10,6 +10,7 @@ import type { UpdateStudentDto } from './dto/update-student.dto.js';
 
 const STUDENT_LIST_INCLUDE = {
   branch: { select: { id: true, name: true, code: true } },
+  user: { select: { username: true, status: true } },
   _count: { select: { enrollments: true } },
 } satisfies Prisma.StudentInclude;
 

@@ -29,7 +29,7 @@ import { listAuditLogs, type AuditLogEntry } from '../../api/auditLog';
 import { revokeStudentDiscount } from '../../api/discounts';
 import { activateEnrollment, pauseEnrollment } from '../../api/enrollments';
 import { listGroups } from '../../api/groups';
-import { deactivateStudent, getStudent, getStudentGrades, getStudentProgress } from '../../api/students';
+import { createStudentAccount, deactivateStudent, getStudent, getStudentAccount, getStudentGrades, getStudentProgress, updateStudentAccount } from '../../api/students';
 import { downloadStudentAttendanceCsv, getStudentAttendanceHistory } from '../../api/studentAttendance';
 import { getStudentFinancialSummary } from '../../api/tuition';
 import { ActionBar } from '../../components/ActionBar';
@@ -41,7 +41,7 @@ import { PageErrorState } from '../../components/PageErrorState';
 import { SummaryCard } from '../../components/SummaryCard';
 import { avatarColor } from '../../utils/avatarColor';
 import { StatusTag } from '../../components/StatusTag';
-import { StudentAccountCard } from '../../components/StudentAccountCard';
+import { LoginAccountCard } from '../../components/LoginAccountCard';
 import { StudentFormModal } from '../../components/StudentFormModal';
 import { TransferEnrollmentModal } from '../../components/TransferEnrollmentModal';
 import { palette } from '../../theme';
@@ -209,6 +209,15 @@ export function StudentDetailPage() {
       label: 'Umumiy',
       children: (
         <>
+          <LoginAccountCard
+            ownerLabel="O'quvchi"
+            emptyText="O'quvchining tizimga kirish logini yo'q. Login yaratsangiz, u uy ishi, to'lovlar va natijalarini o'z kabinetida ko'ra oladi."
+            queryKey={['student-account', student.id]}
+            editPermission={{ module: 'students', action: 'EDIT' }}
+            fetchAccount={() => getStudentAccount(student.id)}
+            createAccount={(payload) => createStudentAccount(student.id, payload)}
+            updateAccount={(payload) => updateStudentAccount(student.id, payload)}
+          />
           <Descriptions column={{ xs: 1, sm: 2, md: 3 }} title="Shaxsiy ma'lumotlar">
             <Descriptions.Item label="Telefon">{student.phone ?? '—'}</Descriptions.Item>
             <Descriptions.Item label="Email">{student.email ?? '—'}</Descriptions.Item>
@@ -243,7 +252,6 @@ export function StudentDetailPage() {
               </Descriptions.Item>
             )}
           </Descriptions>
-          <StudentAccountCard studentId={student.id} />
         </>
       ),
     },

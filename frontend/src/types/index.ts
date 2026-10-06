@@ -211,6 +211,8 @@ export interface StudentListItem {
   source: string | null;
   branchId: string | null;
   branch: { id: string; name: string; code: string } | null;
+  /** The student's portal login, if one was created. */
+  user: { username: string; status: LoginAccount['status'] } | null;
   createdAt: string;
   _count: { enrollments: number };
 }
@@ -243,7 +245,7 @@ export interface StudentDetail extends StudentListItem {
   emergencyContact: string | null;
   notes: string | null;
   userId: string | null;
-  user: { id: string; username: string; status: string } | null;
+  user: { id: string; username: string; status: LoginAccount['status'] } | null;
   updatedAt: string;
   enrollments: StudentEnrollmentItem[];
 }
@@ -387,7 +389,7 @@ export interface TeacherEmployeeSummary {
 export interface TeacherListItem {
   id: string;
   employeeId: string;
-  employee: TeacherEmployeeSummary & { _count: { taughtGroups: number } };
+  employee: TeacherEmployeeSummary & { user: { username: string; status: LoginAccount['status'] } | null; _count: { taughtGroups: number } };
   bio: string | null;
   specialization: string | null;
   qualification: string | null;
@@ -886,7 +888,8 @@ export interface ExtraLessonDetail extends ExtraLessonItem {
   registrations: { id: string; createdAt: string; student: { id: string; fullName: string; studentCode: string; phone: string | null } }[];
 }
 
-export interface StudentAccount {
+/** A person's login (student or teacher), as staff see it — never includes the password. */
+export interface LoginAccount {
   id: string;
   username: string;
   status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'PENDING_INVITE';

@@ -7,6 +7,7 @@ import { listBranches } from '../../api/branches';
 import { listTeachers } from '../../api/teachers';
 import { FilterBar } from '../../components/FilterBar';
 import { PageErrorState } from '../../components/PageErrorState';
+import { LoginCell } from '../../components/LoginCell';
 import { PageHeader } from '../../components/PageHeader';
 import { TeacherFormModal } from '../../components/TeacherFormModal';
 import { useAuthStore } from '../../store/auth.store';
@@ -96,6 +97,7 @@ export function TeachersPage() {
           { title: 'F.I.Sh.', render: (_, record) => record.employee.fullName },
           { title: 'Kod', render: (_, record) => record.employee.employeeCode },
           { title: 'Telefon', render: (_, record) => record.employee.phone },
+          { title: 'Login', render: (_, record) => <LoginCell user={record.employee.user} /> },
           { title: 'Mutaxassislik', dataIndex: 'specialization', render: (v: string | null) => v ?? '—' },
           { title: 'Guruhlar', render: (_, record) => record.employee._count.taughtGroups },
           { title: 'Status', dataIndex: 'status', render: (v: TeacherProfileStatus) => <Tag color={STATUS_COLORS[v]}>{STATUS_LABELS[v]}</Tag> },

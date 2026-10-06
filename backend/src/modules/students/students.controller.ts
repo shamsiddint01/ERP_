@@ -6,6 +6,7 @@ import { Audited } from '../../shared/decorators/audited.decorator.js';
 import { CurrentUser } from '../../shared/decorators/current-user.decorator.js';
 import { RequirePermission } from '../../shared/decorators/require-permission.decorator.js';
 import type { AuthenticatedUser } from '../../shared/types/authenticated-request.js';
+import { CreateLoginDto, UpdateLoginDto } from '../../shared/accounts/login-account.dto.js';
 import { toCsv } from '../reports/report-export.util.js';
 import { AttendanceDateRangeDto } from '../student-attendance/dto/attendance-date-range.dto.js';
 import { StudentAttendanceService } from '../student-attendance/student-attendance.service.js';
@@ -15,7 +16,6 @@ import { AcademicProgressService } from '../exams/academic-progress.service.js';
 import { StudentFinanceService } from '../tuition/student-finance.service.js';
 import { CreateStudentDto } from './dto/create-student.dto.js';
 import { QueryStudentDto } from './dto/query-student.dto.js';
-import { CreateStudentAccountDto, UpdateStudentAccountDto } from './dto/student-account.dto.js';
 import { UpdateStudentDto } from './dto/update-student.dto.js';
 import { StudentAccountService } from './student-account.service.js';
 import { StudentsService } from './students.service.js';
@@ -147,14 +147,14 @@ export class StudentsController {
   @Post(':id/account')
   @RequirePermission('students', PermissionAction.EDIT)
   @Audited('Student', 'ACCOUNT_CREATE')
-  createAccount(@Param('id', ParseUUIDPipe) id: string, @Body() dto: CreateStudentAccountDto) {
+  createAccount(@Param('id', ParseUUIDPipe) id: string, @Body() dto: CreateLoginDto) {
     return this.studentAccountService.create(id, dto);
   }
 
   @Patch(':id/account')
   @RequirePermission('students', PermissionAction.EDIT)
   @Audited('Student', 'ACCOUNT_UPDATE')
-  updateAccount(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateStudentAccountDto) {
+  updateAccount(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateLoginDto) {
     return this.studentAccountService.update(id, dto);
   }
 }

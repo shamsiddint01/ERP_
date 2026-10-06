@@ -8,6 +8,7 @@ import { listStudents } from '../../api/students';
 import { EmptyState } from '../../components/EmptyState';
 import { FilterBar } from '../../components/FilterBar';
 import { PageErrorState } from '../../components/PageErrorState';
+import { LoginCell } from '../../components/LoginCell';
 import { PageHeader } from '../../components/PageHeader';
 import { StudentFormModal } from '../../components/StudentFormModal';
 import { useAuthStore } from '../../store/auth.store';
@@ -135,6 +136,7 @@ export function StudentsPage() {
           },
           { title: 'Filial', render: (_, record) => record.branch?.name ?? '—' },
           { title: 'Telefon', dataIndex: 'phone', render: (v: string | null) => v ?? '—' },
+          { title: 'Login', render: (_, record) => <LoginCell user={record.user} /> },
           { title: "Yozilishlar", render: (_, record) => record._count.enrollments },
           { title: 'Status', dataIndex: 'status', render: (v: StudentStatus) => <Tag color={STATUS_COLORS[v]}>{STATUS_LABELS[v]}</Tag> },
           { title: "Ro'yxatga olingan sana", dataIndex: 'registrationDate', render: (v: string) => formatDate(v) },

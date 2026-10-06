@@ -18,13 +18,14 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { listEnrollments } from '../../api/enrollments';
 import { listSchedules } from '../../api/schedules';
 import { getAttendanceSummary } from '../../api/studentAttendance';
-import { deactivateTeacher, getTeacher } from '../../api/teachers';
+import { createTeacherAccount, deactivateTeacher, getTeacher, getTeacherAccount, updateTeacherAccount } from '../../api/teachers';
 import { ActionBar } from '../../components/ActionBar';
 import { DetailHeader } from '../../components/DetailHeader';
 import { PageErrorState } from '../../components/PageErrorState';
 import { SummaryCard } from '../../components/SummaryCard';
 import { avatarColor } from '../../utils/avatarColor';
 import { StatusTag } from '../../components/StatusTag';
+import { LoginAccountCard } from '../../components/LoginAccountCard';
 import { TeacherFormModal } from '../../components/TeacherFormModal';
 import { palette } from '../../theme';
 import { useAuthStore } from '../../store/auth.store';
@@ -113,6 +114,15 @@ export function TeacherDetailPage() {
       label: 'Umumiy',
       children: (
         <>
+          <LoginAccountCard
+            ownerLabel="O'qituvchi"
+            emptyText="O'qituvchining tizimga kirish logini yo'q. Login yaratsangiz, u o'z guruhlari, davomat, uy ishi va testlar bilan ishlay oladi."
+            queryKey={['teacher-account', teacher.id]}
+            editPermission={{ module: 'teachers', action: 'EDIT' }}
+            fetchAccount={() => getTeacherAccount(teacher.id)}
+            createAccount={(payload) => createTeacherAccount(teacher.id, payload)}
+            updateAccount={(payload) => updateTeacherAccount(teacher.id, payload)}
+          />
           <Descriptions column={{ xs: 1, sm: 2, md: 3 }} title="Aloqa">
             <Descriptions.Item label="Telefon">{teacher.employee.phone}</Descriptions.Item>
             <Descriptions.Item label="Email">{teacher.employee.email ?? '—'}</Descriptions.Item>
