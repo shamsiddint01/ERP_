@@ -1,5 +1,5 @@
 import { randomBytes, randomUUID } from 'node:crypto';
-import { ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService, type JwtSignOptions } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
@@ -94,7 +94,7 @@ export class AuthService {
   async getProfile(userId: string) {
     const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: userId },
-      include: { role: true },
+      include: { role: true, student: { select: { id: true } } },
     });
     const permissions = await this.permissionsCache.getPermissionsForRole(user.roleId);
 
@@ -109,7 +109,31 @@ export class AuthService {
       status: user.status,
       lastActiveAt: user.lastActiveAt,
       permissions,
+      /** Set when this login belongs to a student — the frontend then shows the student portal instead of the staff app. */
+      studentId: user.student?.id ?? null,
     };
+  }
+
+  /**
+   * Self-service password change. Every other session of this user is
+   * revoked, so a password that leaked is useless everywhere else at once —
+   * the current device stays signed in.
+   */
+  async changePassword(userId: string, currentPassword: string, newPassword: string, currentRefreshToken?: string): Promise<void> {
+    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
+    if (!(await bcrypt.compare(currentPassword, user.passwordHash))) {
+      throw new BadRequestException("Joriy parol noto'g'ri");
+    }
+    if (currentPassword === newPassword) throw new BadRequestException('Yangi parol eskisidan farq qilishi kerak');
+
+    const currentSessionId = currentRefreshToken?.split('.')[0];
+    await this.prisma.$transaction([
+      this.prisma.user.update({ where: { id: userId }, data: { passwordHash: await bcrypt.hash(newPassword, 10) } }),
+      this.prisma.userSession.updateMany({
+        where: { userId, revokedAt: null, ...(currentSessionId && { id: { not: currentSessionId } }) },
+        data: { revokedAt: new Date() },
+      }),
+    ]);
   }
 
   private async issueTokenPair(userId: string, ctx: RequestContext): Promise<TokenPair> {

@@ -7,6 +7,7 @@ import { CurrentUser } from '../../shared/decorators/current-user.decorator.js';
 import { Public } from '../../shared/decorators/public.decorator.js';
 import type { AuthenticatedRequest, AuthenticatedUser } from '../../shared/types/authenticated-request.js';
 import { AuthService } from './auth.service.js';
+import { ChangePasswordDto } from './dto/change-password.dto.js';
 import { LoginDto } from './dto/login.dto.js';
 
 const REFRESH_COOKIE_NAME = 'refresh_token';
@@ -66,6 +67,13 @@ export class AuthController {
   @Get('me')
   async me(@CurrentUser() user: AuthenticatedUser) {
     return this.authService.getProfile(user.id);
+  }
+
+  @Post('change-password')
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
+  async changePassword(@CurrentUser() user: AuthenticatedUser, @Body() dto: ChangePasswordDto, @Req() req: AuthenticatedRequest) {
+    await this.authService.changePassword(user.id, dto.currentPassword, dto.newPassword, req.cookies?.[REFRESH_COOKIE_NAME]);
+    return { success: true };
   }
 
   private setRefreshCookie(res: Response, refreshToken: string, expiresAt: Date): void {

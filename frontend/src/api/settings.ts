@@ -12,7 +12,7 @@ export async function getSettings() {
   return data;
 }
 
-export async function updateSettings(payload: Partial<Pick<CompanySettings, 'companyName' | 'currency' | 'timezone' | 'defaultLanguage'>>) {
+export async function updateSettings(payload: Partial<Pick<CompanySettings, 'companyName' | 'currency' | 'defaultLanguage'>>) {
   const { data } = await apiClient.patch<CompanySettings>('/settings', payload);
   return data;
 }

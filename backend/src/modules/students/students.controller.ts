@@ -15,7 +15,9 @@ import { AcademicProgressService } from '../exams/academic-progress.service.js';
 import { StudentFinanceService } from '../tuition/student-finance.service.js';
 import { CreateStudentDto } from './dto/create-student.dto.js';
 import { QueryStudentDto } from './dto/query-student.dto.js';
+import { CreateStudentAccountDto, UpdateStudentAccountDto } from './dto/student-account.dto.js';
 import { UpdateStudentDto } from './dto/update-student.dto.js';
+import { StudentAccountService } from './student-account.service.js';
 import { StudentsService } from './students.service.js';
 
 @ApiTags('students')
@@ -27,6 +29,7 @@ export class StudentsController {
     private readonly studentFinanceService: StudentFinanceService,
     private readonly discountsService: DiscountsService,
     private readonly academicProgressService: AcademicProgressService,
+    private readonly studentAccountService: StudentAccountService,
   ) {}
 
   @Get()
@@ -129,5 +132,29 @@ export class StudentsController {
   @RequirePermission('grades', PermissionAction.VIEW)
   grades(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.academicProgressService.getStudentGrades(id, user.id);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Portal login — staff type the username/password and give them to the student
+  // ---------------------------------------------------------------------------
+
+  @Get(':id/account')
+  @RequirePermission('students', PermissionAction.VIEW)
+  getAccount(@Param('id', ParseUUIDPipe) id: string) {
+    return this.studentAccountService.get(id);
+  }
+
+  @Post(':id/account')
+  @RequirePermission('students', PermissionAction.EDIT)
+  @Audited('Student', 'ACCOUNT_CREATE')
+  createAccount(@Param('id', ParseUUIDPipe) id: string, @Body() dto: CreateStudentAccountDto) {
+    return this.studentAccountService.create(id, dto);
+  }
+
+  @Patch(':id/account')
+  @RequirePermission('students', PermissionAction.EDIT)
+  @Audited('Student', 'ACCOUNT_UPDATE')
+  updateAccount(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateStudentAccountDto) {
+    return this.studentAccountService.update(id, dto);
   }
 }

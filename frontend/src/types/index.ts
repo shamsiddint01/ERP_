@@ -11,6 +11,8 @@ export interface CurrentUserProfile {
   status: string;
   lastActiveAt: string | null;
   permissions: string[];
+  /** Set when this login belongs to a student — the app then shows the student portal instead of the staff app. */
+  studentId: string | null;
 }
 
 export interface UserListItem {
@@ -820,5 +822,174 @@ export interface GroupResults {
   exams: GroupExamResult[];
   overallAverage: number;
   overallPassRate: number;
+}
+
+// =========================================================================
+// STUDENT PORTAL — homework, extra lessons, student logins
+// =========================================================================
+
+export type HomeworkSubmissionStatus = 'SUBMITTED' | 'GRADED';
+export type ExtraLessonStatus = 'SCHEDULED' | 'CANCELLED' | 'COMPLETED';
+
+export interface HomeworkSubmission {
+  id: string;
+  answerText: string;
+  link: string | null;
+  status: HomeworkSubmissionStatus;
+  submittedAt: string;
+  score: number | null;
+  feedback: string | null;
+  gradedAt: string | null;
+}
+
+/** Staff list row. */
+export interface HomeworkListItem {
+  id: string;
+  groupId: string;
+  title: string;
+  description: string | null;
+  dueDate: string;
+  maxScore: number;
+  createdAt: string;
+  group: { id: string; name: string; code: string };
+  createdBy: { id: string; fullName: string };
+  rosterSize: number;
+  submittedCount: number;
+  gradedCount: number;
+}
+
+export interface HomeworkSubmissionsView {
+  homework: Omit<HomeworkListItem, 'rosterSize' | 'submittedCount' | 'gradedCount'>;
+  items: {
+    student: { id: string; fullName: string; studentCode: string };
+    submission: (HomeworkSubmission & { gradedBy: { id: string; fullName: string } | null }) | null;
+    late: boolean;
+  }[];
+}
+
+export interface ExtraLessonItem {
+  id: string;
+  title: string;
+  description: string | null;
+  room: string | null;
+  startsAt: string;
+  endsAt: string;
+  capacity: number;
+  status: ExtraLessonStatus;
+  teacherEmployee: { id: string; fullName: string } | null;
+  course: { id: string; name: string } | null;
+  branch: { id: string; name: string } | null;
+  _count: { registrations: number };
+}
+
+export interface ExtraLessonDetail extends ExtraLessonItem {
+  registrations: { id: string; createdAt: string; student: { id: string; fullName: string; studentCode: string; phone: string | null } }[];
+}
+
+export interface StudentAccount {
+  id: string;
+  username: string;
+  status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED' | 'PENDING_INVITE';
+  lastActiveAt: string | null;
+  createdAt: string;
+}
+
+export interface StudentBalance {
+  totalBilled: number;
+  discounts: number;
+  paid: number;
+  outstanding: number;
+  overdue: number;
+}
+
+export interface PortalOverview {
+  student: { id: string; studentCode: string; firstName: string; lastName: string; fullName: string; phone: string | null; email: string | null; status: StudentStatus; registrationDate: string; branch: { id: string; name: string } | null };
+  balance: StudentBalance;
+  nextLessons: { id: string; scheduledStart: string; scheduledEnd: string; topic: string | null; status: string; group: { id: string; name: string }; classroom: { name: string } | null; teacherEmployee: { fullName: string } | null }[];
+  pendingHomework: { count: number; overdue: number; items: { id: string; title: string; dueDate: string; group: { name: string } }[] };
+  nextExam: { id: string; title: string; date: string; type: ExamType; group: { name: string } } | null;
+  attendancePercentage: number;
+  myExtraLessons: { id: string; title: string; startsAt: string; endsAt: string }[];
+}
+
+export type PortalHomeworkState = 'PENDING' | 'OVERDUE' | 'SUBMITTED' | 'GRADED';
+
+export interface PortalHomework {
+  id: string;
+  title: string;
+  description: string | null;
+  dueDate: string;
+  maxScore: number;
+  group: { id: string; name: string; course: { name: string } };
+  createdBy: { fullName: string };
+  submission: HomeworkSubmission | null;
+  state: PortalHomeworkState;
+  late: boolean;
+}
+
+export interface PortalGroup {
+  id: string;
+  status: EnrollmentStatus;
+  startDate: string;
+  endDate: string | null;
+  group: {
+    id: string;
+    name: string;
+    code: string;
+    status: StudentGroupStatus;
+    startDate: string;
+    endDate: string | null;
+    course: { id: string; name: string };
+    branch: { name: string; address: string | null };
+    classroom: { name: string } | null;
+    teacherEmployee: { fullName: string; phone: string } | null;
+    schedules: { id: string; dayOfWeek: ScheduleDayOfWeek; startTime: string; endTime: string; classroom: { name: string } | null }[];
+    _count: { enrollments: number };
+  };
+}
+
+export interface PortalPayments {
+  balance: StudentBalance;
+  charges: { id: string; billingPeriod: string; group: { id: string; name: string; code: string }; amount: string; discountAmount: string; netAmount: string; dueDate: string; status: TuitionChargeStatus; allocatedAmount: number; outstanding: number }[];
+  payments: { id: string; paymentNumber: string; amount: string; method: PaymentMethod; status: PaymentStatus; paidAt: string | null; createdAt: string }[];
+}
+
+export interface PortalExamResult {
+  id: string;
+  examId: string;
+  examTitle: string;
+  examType: ExamType;
+  examDate: string;
+  course: { id: string; name: string };
+  group: { id: string; name: string; code: string };
+  score: number;
+  maxScore: number;
+  passingScore: number;
+  percentage: number;
+  grade: string | null;
+  passed: boolean;
+  comment: string | null;
+}
+
+export interface PortalExams {
+  upcoming: { id: string; title: string; date: string; type: ExamType; maxScore: string; passingScore: string; notes: string | null; group: { name: string }; course: { name: string } }[];
+  results: PortalExamResult[];
+}
+
+export interface PortalProgress {
+  totalExams: number;
+  averagePercentage: number;
+  passRate: number;
+  courseProgress: { enrollmentId: string; groupId: string; groupName: string; courseId: string; courseName: string; totalLessons: number; completedLessons: number; progressPercentage: number }[];
+  recentExams: PortalExamResult[];
+  attendance: { eligibleLessons: number; present: number; absent: number; late: number; excused: number; attendancePercentage: number };
+  homework: { assigned: number; submitted: number; graded: number; averagePercentage: number | null };
+}
+
+export interface PortalExtraLesson extends Omit<ExtraLessonItem, '_count'> {
+  registeredCount: number;
+  seatsLeft: number;
+  isRegistered: boolean;
+  isPast: boolean;
 }
 

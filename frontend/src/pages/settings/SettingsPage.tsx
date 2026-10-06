@@ -1,4 +1,4 @@
-import { BankOutlined, DeleteOutlined, GlobalOutlined, SaveOutlined, UploadOutlined } from '@ant-design/icons';
+import { BankOutlined, DeleteOutlined, SaveOutlined, UploadOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { App, Button, Card, Col, Form, Input, Popconfirm, Row, Select, Skeleton, Space, Typography, Upload } from 'antd';
 import { useEffect } from 'react';
@@ -12,7 +12,7 @@ import { palette } from '../../theme';
 import type { CompanySettings } from '../../types';
 import { formatDateTime } from '../../utils/format';
 
-type FormValues = Pick<CompanySettings, 'companyName' | 'currency' | 'timezone' | 'defaultLanguage'>;
+type FormValues = Pick<CompanySettings, 'companyName' | 'currency' | 'defaultLanguage'>;
 
 // Must stay in sync with backend/src/modules/settings/dto/update-settings.dto.ts.
 const CURRENCY_OPTIONS = [
@@ -20,13 +20,6 @@ const CURRENCY_OPTIONS = [
   { value: 'USD', label: 'USD — AQSh dollari' },
   { value: 'EUR', label: 'EUR — Yevro' },
   { value: 'RUB', label: 'RUB — Rossiya rubli' },
-];
-const TIMEZONE_OPTIONS = [
-  { value: 'Asia/Tashkent', label: 'Toshkent (UTC+5)' },
-  { value: 'Asia/Samarkand', label: 'Samarqand (UTC+5)' },
-  { value: 'Asia/Almaty', label: 'Olmaota (UTC+5)' },
-  { value: 'Europe/Moscow', label: 'Moskva (UTC+3)' },
-  { value: 'UTC', label: 'UTC' },
 ];
 const LANGUAGE_OPTIONS = [
   { value: 'uz', label: "O'zbekcha" },
@@ -201,17 +194,12 @@ export function SettingsPage() {
 
             <FormSection title="Mintaqa">
               <Row gutter={16}>
-                <Col xs={24} md={8}>
+                <Col xs={24} md={12}>
                   <Form.Item name="currency" label="Valyuta" style={{ marginBottom: 0 }}>
                     <Select options={CURRENCY_OPTIONS} />
                   </Form.Item>
                 </Col>
-                <Col xs={24} md={8}>
-                  <Form.Item name="timezone" label="Vaqt zonasi" style={{ marginBottom: 0 }}>
-                    <Select options={TIMEZONE_OPTIONS} suffixIcon={<GlobalOutlined />} />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={8}>
+                <Col xs={24} md={12}>
                   <Form.Item name="defaultLanguage" label="Til" style={{ marginBottom: 0 }}>
                     <Select options={LANGUAGE_OPTIONS} />
                   </Form.Item>

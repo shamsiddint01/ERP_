@@ -41,6 +41,7 @@ import { PageErrorState } from '../../components/PageErrorState';
 import { SummaryCard } from '../../components/SummaryCard';
 import { avatarColor } from '../../utils/avatarColor';
 import { StatusTag } from '../../components/StatusTag';
+import { StudentAccountCard } from '../../components/StudentAccountCard';
 import { StudentFormModal } from '../../components/StudentFormModal';
 import { TransferEnrollmentModal } from '../../components/TransferEnrollmentModal';
 import { palette } from '../../theme';
@@ -242,6 +243,7 @@ export function StudentDetailPage() {
               </Descriptions.Item>
             )}
           </Descriptions>
+          <StudentAccountCard studentId={student.id} />
         </>
       ),
     },

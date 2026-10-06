@@ -36,6 +36,9 @@ import { StudentAttendanceModule } from './modules/student-attendance/student-at
 import { TuitionModule } from './modules/tuition/tuition.module.js';
 import { DiscountsModule } from './modules/discounts/discounts.module.js';
 import { ExamsModule } from './modules/exams/exams.module.js';
+import { HomeworkModule } from './modules/homework/homework.module.js';
+import { ExtraLessonsModule } from './modules/extra-lessons/extra-lessons.module.js';
+import { PortalModule } from './modules/portal/portal.module.js';
 
 @Module({
   imports: [
@@ -74,6 +77,9 @@ import { ExamsModule } from './modules/exams/exams.module.js';
     TuitionModule,
     DiscountsModule,
     ExamsModule,
+    HomeworkModule,
+    ExtraLessonsModule,
+    PortalModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: JwtAuthGuard },

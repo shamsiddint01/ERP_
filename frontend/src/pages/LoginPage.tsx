@@ -25,7 +25,7 @@ export function LoginPage() {
     setLoading(true);
     try {
       const { accessToken, user } = await login(values.username, values.password);
-      setAuth(accessToken, { ...user, phone: null, status: 'ACTIVE', lastActiveAt: null, permissions: [] });
+      setAuth(accessToken, { ...user, phone: null, status: 'ACTIVE', lastActiveAt: null, permissions: [], studentId: null });
       const profile = await fetchCurrentUser();
       setAuth(accessToken, profile);
       navigate('/', { replace: true });

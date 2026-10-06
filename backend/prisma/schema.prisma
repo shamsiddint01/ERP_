@@ -216,6 +216,11 @@ model User {
   // Education center (Phase A) — optional portal links
   student Student?
 
+  // Student portal
+  createdHomeworks    Homework[]           @relation("HomeworkCreatedBy")
+  gradedSubmissions   HomeworkSubmission[] @relation("HomeworkSubmissionGradedBy")
+  createdExtraLessons ExtraLesson[]        @relation("ExtraLessonCreatedBy")
+
   // Phase F
   markedStudentAttendances StudentAttendance[] @relation("StudentAttendanceMarkedBy")
 
@@ -373,13 +378,15 @@ model Employee {
   user User?
 
   // Education center (Phase A/D/E)
-  managedBranches Branch[]        @relation("BranchManager")
-  taughtGroups    StudentGroup[]  @relation("GroupTeacher")
-  teacherProfile  TeacherProfile?
-  taughtSchedules Schedule[]      @relation("ScheduleTeacher")
-  taughtLessons   Lesson[]        @relation("LessonTeacher")
+  managedBranches      Branch[]        @relation("BranchManager")
+  taughtGroups         StudentGroup[]  @relation("GroupTeacher")
+  teacherProfile       TeacherProfile?
+  taughtSchedules      Schedule[]      @relation("ScheduleTeacher")
+  taughtLessons        Lesson[]        @relation("LessonTeacher")
   // Phase H
-  examsTeaching   Exam[]          @relation("ExamTeacher")
+  examsTeaching        Exam[]          @relation("ExamTeacher")
+  // Student portal
+  extraLessonsTeaching ExtraLesson[]   @relation("ExtraLessonTeacher")
 
   @@index([status])
   @@map("employees")
@@ -499,6 +506,7 @@ model Branch {
   students      Student[]
   schedules     Schedule[]
   lessons       Lesson[]
+  extraLessons  ExtraLesson[]
 
   @@index([status])
   @@map("branches")
@@ -559,6 +567,7 @@ model Course {
 
   studentGroups StudentGroup[]
   exams         Exam[]
+  extraLessons  ExtraLesson[]
 
   @@index([categoryId])
   @@index([status])
@@ -591,6 +600,7 @@ model StudentGroup {
   schedules   Schedule[]
   lessons     Lesson[]
   exams       Exam[]
+  homeworks   Homework[]
 
   @@index([courseId])
   @@index([branchId])
@@ -625,11 +635,13 @@ model Student {
   createdAt        DateTime      @default(now()) @map("created_at")
   updatedAt        DateTime      @updatedAt @map("updated_at")
 
-  enrollments      Enrollment[]
-  attendances      StudentAttendance[]
-  tuitionCharges   TuitionCharge[]
-  studentDiscounts StudentDiscount[]
-  assessments      Assessment[]
+  enrollments              Enrollment[]
+  attendances              StudentAttendance[]
+  tuitionCharges           TuitionCharge[]
+  studentDiscounts         StudentDiscount[]
+  assessments              Assessment[]
+  homeworkSubmissions      HomeworkSubmission[]
+  extraLessonRegistrations ExtraLessonRegistration[]
 
   @@index([status])
   @@index([branchId])
@@ -1019,4 +1031,102 @@ model Assessment {
   @@index([examId])
   @@index([studentId])
   @@map("assessments")
+}
+
+// =========================================================================
+// STUDENT PORTAL — homework and extra lessons
+// =========================================================================
+
+enum HomeworkSubmissionStatus {
+  SUBMITTED
+  GRADED
+}
+
+/// A homework assignment given to a whole group by its teacher (or staff).
+model Homework {
+  id              String       @id @default(uuid())
+  groupId         String       @map("group_id")
+  group           StudentGroup @relation(fields: [groupId], references: [id])
+  title           String
+  description     String?
+  dueDate         DateTime     @map("due_date")
+  maxScore        Int          @default(100) @map("max_score")
+  createdByUserId String       @map("created_by_user_id")
+  createdBy       User         @relation("HomeworkCreatedBy", fields: [createdByUserId], references: [id])
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+
+  submissions HomeworkSubmission[]
+
+  @@index([groupId, dueDate])
+  @@map("homeworks")
+}
+
+/// One student's answer to one homework — at most one per (homework, student); resubmitting overwrites it until it is graded.
+model HomeworkSubmission {
+  id             String                   @id @default(uuid())
+  homeworkId     String                   @map("homework_id")
+  homework       Homework                 @relation(fields: [homeworkId], references: [id], onDelete: Cascade)
+  studentId      String                   @map("student_id")
+  student        Student                  @relation(fields: [studentId], references: [id])
+  answerText     String                   @map("answer_text")
+  link           String?
+  status         HomeworkSubmissionStatus @default(SUBMITTED)
+  submittedAt    DateTime                 @default(now()) @map("submitted_at")
+  score          Int?
+  feedback       String?
+  gradedAt       DateTime?                @map("graded_at")
+  gradedByUserId String?                  @map("graded_by_user_id")
+  gradedBy       User?                    @relation("HomeworkSubmissionGradedBy", fields: [gradedByUserId], references: [id])
+
+  @@unique([homeworkId, studentId])
+  @@index([studentId])
+  @@map("homework_submissions")
+}
+
+enum ExtraLessonStatus {
+  SCHEDULED
+  CANCELLED
+  COMPLETED
+}
+
+/// An extra (additional) lesson the center announces; students sign up themselves until it is full.
+model ExtraLesson {
+  id                String            @id @default(uuid())
+  title             String
+  description       String?
+  teacherEmployeeId String?           @map("teacher_employee_id")
+  teacherEmployee   Employee?         @relation("ExtraLessonTeacher", fields: [teacherEmployeeId], references: [id])
+  courseId          String?           @map("course_id")
+  course            Course?           @relation(fields: [courseId], references: [id])
+  branchId          String?           @map("branch_id")
+  branch            Branch?           @relation(fields: [branchId], references: [id])
+  room              String?
+  startsAt          DateTime          @map("starts_at")
+  endsAt            DateTime          @map("ends_at")
+  capacity          Int
+  status            ExtraLessonStatus @default(SCHEDULED)
+  createdByUserId   String            @map("created_by_user_id")
+  createdBy         User              @relation("ExtraLessonCreatedBy", fields: [createdByUserId], references: [id])
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+
+  registrations ExtraLessonRegistration[]
+
+  @@index([startsAt])
+  @@map("extra_lessons")
+}
+
+/// A student's place in an extra lesson. Cancelling deletes the row, freeing the seat.
+model ExtraLessonRegistration {
+  id            String      @id @default(uuid())
+  extraLessonId String      @map("extra_lesson_id")
+  extraLesson   ExtraLesson @relation(fields: [extraLessonId], references: [id], onDelete: Cascade)
+  studentId     String      @map("student_id")
+  student       Student     @relation(fields: [studentId], references: [id])
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  @@unique([extraLessonId, studentId])
+  @@index([studentId])
+  @@map("extra_lesson_registrations")
 }

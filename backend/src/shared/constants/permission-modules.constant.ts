@@ -45,6 +45,13 @@ export const PERMISSION_MODULES = {
   // "no grade editing") or the reverse split isn't needed anywhere here.
   exams: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE, PermissionAction.EXPORT],
   grades: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE],
+  // Student portal — `homework` and `extra_lessons` gate the staff side
+  // (teachers assign/grade homework, the center schedules extra lessons);
+  // `student_portal` gates the /portal/* endpoints a logged-in student uses,
+  // which additionally require the user to be linked to a Student record.
+  homework: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE],
+  extra_lessons: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE],
+  student_portal: [PermissionAction.VIEW],
 } as const satisfies Record<string, PermissionAction[]>;
 
 export type PermissionModule = keyof typeof PERMISSION_MODULES;

@@ -42,6 +42,8 @@ const ROLE_DEFINITIONS: Array<{
       payments: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EXPORT],
       reports: [PermissionAction.VIEW, PermissionAction.EXPORT],
       notifications: [PermissionAction.VIEW],
+      homework: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE],
+      extra_lessons: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE],
     },
   },
   {
@@ -77,6 +79,9 @@ const ROLE_DEFINITIONS: Array<{
       student_attendance: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT],
       exams: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT],
       grades: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT],
+      // Own groups only — enforced per record in HomeworkService.
+      homework: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE],
+      extra_lessons: [PermissionAction.VIEW],
       notifications: [PermissionAction.VIEW],
     },
   },
@@ -98,7 +103,18 @@ const ROLE_DEFINITIONS: Array<{
       tuition: [PermissionAction.VIEW, PermissionAction.EDIT],
       payments: [PermissionAction.VIEW, PermissionAction.CREATE],
       exams: [PermissionAction.VIEW],
+      homework: [PermissionAction.VIEW],
+      extra_lessons: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT],
       notifications: [PermissionAction.VIEW],
+    },
+  },
+  // A student's portal login. student_portal alone opens /portal/*, which
+  // additionally only ever returns the caller's own linked Student record.
+  {
+    name: 'Student',
+    description: "O'quvchi: faqat o'z portali (uy ishi, guruhlar, to'lovlar, imtihonlar, ko'rsatkichlar, qo'shimcha darslar).",
+    grants: {
+      student_portal: [PermissionAction.VIEW],
     },
   },
 ];
@@ -215,6 +231,9 @@ async function main() {
 
   console.log('Seeding exams/grades demo data (Phase H)...');
   await seedExamsGradesDemo();
+
+  console.log('Seeding student portal demo data (login, homework, extra lessons)...');
+  await seedStudentPortalDemo();
 
   console.log('Invalidating cached role-permissions (RolePermissionsCacheService)...');
   await flushRolePermissionsCache();
@@ -921,6 +940,83 @@ async function seedExamsGradesDemo(): Promise<void> {
 
   const [examCount, assessmentCount] = await Promise.all([prisma.exam.count(), prisma.assessment.count()]);
   console.log(`  -> ${examCount} exams, ${assessmentCount} assessments ensured`);
+}
+
+/**
+ * Student portal demo: a login for Aziz Karimov (STU-000001, group ENG-A1-01),
+ * three homework assignments in his group covering every state (graded,
+ * submitted, still to do) and two upcoming extra lessons, one of which he has
+ * signed up for. Idempotent — keyed by username / homework title / lesson title.
+ */
+async function seedStudentPortalDemo(): Promise<void> {
+  const password = process.env.SEED_DEMO_PASSWORD ?? 'ChangeMe123!';
+  const role = await prisma.role.findUniqueOrThrow({ where: { name: 'Student' } });
+  const admin = await prisma.user.findUniqueOrThrow({ where: { username: 'admin' } });
+  const student = await prisma.student.findUniqueOrThrow({ where: { studentCode: 'STU-000001' } });
+  const group = await prisma.studentGroup.findUniqueOrThrow({ where: { code: 'ENG-A1-01' } });
+
+  if (!student.userId) {
+    const user = await prisma.user.upsert({
+      where: { username: 'student.aziz' },
+      create: { fullName: student.fullName, email: 'aziz.karimov@students.local', username: 'student.aziz', passwordHash: await bcrypt.hash(password, 10), roleId: role.id, status: 'ACTIVE' },
+      update: {},
+    });
+    await prisma.student.update({ where: { id: student.id }, data: { userId: user.id } });
+  }
+  console.log(`  -> student.aziz / ${password} (Student role, linked to STU-000001)`);
+
+  const day = 86_400_000;
+  const now = Date.now();
+  const homeworkDefs = [
+    { title: 'Present Simple — 20 ta gap', description: "Present Simple zamonida o'zingiz haqingizda 20 ta gap yozing.", due: now - 5 * day, submission: { answerText: 'I wake up at 7 am. I go to school by bus. ...', score: 85, feedback: 'Yaxshi! 3-va 12-gaplarda artikl xatosi bor.' } },
+    { title: 'Vocabulary: Family', description: "Darslikdagi 'Family' mavzusidagi 30 ta so'zni yodlang va har biri bilan gap tuzing.", due: now + 1 * day, submission: { answerText: 'mother — My mother is a doctor. father — ...' } },
+    { title: 'Reading: My Town', description: "45-sahifadagi matnni o'qing va 1–8 savollarga javob bering.", due: now + 4 * day },
+  ];
+  for (const def of homeworkDefs) {
+    let homework = await prisma.homework.findFirst({ where: { groupId: group.id, title: def.title } });
+    homework ??= await prisma.homework.create({
+      data: { groupId: group.id, title: def.title, description: def.description, dueDate: new Date(def.due), createdByUserId: admin.id },
+    });
+    if (def.submission && !(await prisma.homeworkSubmission.findUnique({ where: { homeworkId_studentId: { homeworkId: homework.id, studentId: student.id } } }))) {
+      const graded = 'score' in def.submission;
+      await prisma.homeworkSubmission.create({
+        data: {
+          homeworkId: homework.id,
+          studentId: student.id,
+          answerText: def.submission.answerText,
+          submittedAt: new Date(def.due - day),
+          ...(graded && { status: 'GRADED' as const, score: def.submission.score, feedback: def.submission.feedback, gradedAt: new Date(def.due), gradedByUserId: admin.id }),
+        },
+      });
+    }
+  }
+
+  const teacher = await prisma.employee.findUniqueOrThrow({ where: { employeeCode: 'EMP-TCH-001' } });
+  const branch = await prisma.branch.findUniqueOrThrow({ where: { code: 'BR-MAIN' } });
+  const lessonDefs = [
+    { title: 'Speaking Club', description: "Erkin mavzularda ingliz tilida suhbat. Barcha darajalar uchun.", startsIn: 2, hours: [16, 17.5], capacity: 12, register: true },
+    { title: 'IELTS Writing Task 2 — masterklass', description: "Essay tuzilishi va baholash mezonlari bo'yicha amaliy mashg'ulot.", startsIn: 5, hours: [10, 12], capacity: 8, register: false },
+  ];
+  for (const def of lessonDefs) {
+    let lesson = await prisma.extraLesson.findFirst({ where: { title: def.title } });
+    if (!lesson) {
+      const start = new Date(now + def.startsIn * day);
+      start.setHours(Math.floor(def.hours[0]), (def.hours[0] % 1) * 60, 0, 0);
+      const end = new Date(start);
+      end.setHours(Math.floor(def.hours[1]), (def.hours[1] % 1) * 60, 0, 0);
+      lesson = await prisma.extraLesson.create({
+        data: { title: def.title, description: def.description, teacherEmployeeId: teacher.id, branchId: branch.id, room: 'Room 101', startsAt: start, endsAt: end, capacity: def.capacity, createdByUserId: admin.id },
+      });
+    }
+    if (def.register) {
+      await prisma.extraLessonRegistration.upsert({
+        where: { extraLessonId_studentId: { extraLessonId: lesson.id, studentId: student.id } },
+        create: { extraLessonId: lesson.id, studentId: student.id },
+        update: {},
+      });
+    }
+  }
+  console.log(`  -> ${homeworkDefs.length} homework, ${lessonDefs.length} extra lessons ensured`);
 }
 
 /**

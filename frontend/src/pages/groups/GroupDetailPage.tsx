@@ -13,6 +13,7 @@ import { DetailHeader } from '../../components/DetailHeader';
 import { EnrollmentFormModal } from '../../components/EnrollmentFormModal';
 import { GenerateLessonsModal } from '../../components/GenerateLessonsModal';
 import { GroupFormModal } from '../../components/GroupFormModal';
+import { GroupHomeworkTab } from '../../components/GroupHomeworkTab';
 import { PageErrorState } from '../../components/PageErrorState';
 import { ScheduleFormModal } from '../../components/ScheduleFormModal';
 import { SummaryCard } from '../../components/SummaryCard';
@@ -75,6 +76,7 @@ export function GroupDetailPage() {
   const canViewAttendance = hasPermission('student_attendance', 'VIEW');
   const canViewLessons = hasPermission('lessons', 'VIEW');
   const canViewResults = hasPermission('grades', 'VIEW');
+  const canViewHomework = hasPermission('homework', 'VIEW');
 
   const groupQuery = useQuery({ queryKey: ['group', id], queryFn: () => getGroup(id!), enabled: !!id });
   const schedulesQuery = useQuery({ queryKey: ['schedules', { groupId: id }], queryFn: () => listSchedules({ groupId: id!, pageSize: 100 }), enabled: !!id && activeTab === 'schedule' });
@@ -378,6 +380,11 @@ export function GroupDetailPage() {
           />
         </>
       ),
+    },
+    canViewHomework && {
+      key: 'homework',
+      label: 'Uy ishlari',
+      children: <GroupHomeworkTab groupId={group.id} />,
     },
     canViewResults && {
       key: 'results',
