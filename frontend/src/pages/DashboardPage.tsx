@@ -186,9 +186,9 @@ export function DashboardPage() {
               )
             )}
             {quickActions.length > 0 && (
-              <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 22 }}>
+              <div className="hero-actions">
                 {quickActions.map((action) => (
-                  <Button key={action.key} type={action.primary ? 'primary' : 'default'} shape="round" icon={action.icon} onClick={() => navigate(action.to)}>
+                  <Button key={action.key} className="hero-action" type={action.primary ? 'primary' : 'default'} icon={action.icon} onClick={() => navigate(action.to)}>
                     {action.label}
                   </Button>
                 ))}

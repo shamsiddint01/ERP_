@@ -55,11 +55,11 @@ export function PortalHomePage() {
               {student.studentCode}
               {student.branch && ` · ${student.branch.name}`}
             </Typography.Text>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 22 }}>
-              <Button type="primary" shape="round" icon={<BookOutlined />} onClick={() => navigate('/homework')}>
+            <div className="hero-actions">
+              <Button className="hero-action" type="primary" icon={<BookOutlined />} onClick={() => navigate('/homework')}>
                 Uy ishlari {pendingHomework.count > 0 && `(${pendingHomework.count})`}
               </Button>
-              <Button shape="round" icon={<CalendarOutlined />} onClick={() => navigate('/extra-lessons')}>
+              <Button className="hero-action" icon={<CalendarOutlined />} onClick={() => navigate('/extra-lessons')}>
                 Qo'shimcha darslar
               </Button>
             </div>

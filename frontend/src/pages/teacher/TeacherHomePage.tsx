@@ -55,11 +55,11 @@ export function TeacherHomePage() {
         <Typography.Text type="secondary">
           Bugun {lessons.length} ta darsingiz bor{ungraded > 0 ? `, ${ungraded} ta uy ishi tekshirishni kutmoqda` : ''}.
         </Typography.Text>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 20 }}>
-          <Button type="primary" shape="round" icon={<CalendarOutlined />} onClick={() => navigate('/schedule')}>
+        <div className="hero-actions">
+          <Button className="hero-action" type="primary" icon={<CalendarOutlined />} onClick={() => navigate('/schedule')}>
             Dars jadvali
           </Button>
-          <Button shape="round" icon={<BookOutlined />} onClick={() => navigate('/homework')}>
+          <Button className="hero-action" icon={<BookOutlined />} onClick={() => navigate('/homework')}>
             Uy ishlarini tekshirish
           </Button>
         </div>

@@ -123,7 +123,7 @@ export function NotificationBell() {
   return (
     <Dropdown popupRender={() => panel} trigger={['click']} placement="bottomRight">
       <Badge key={pulseKey} count={unreadCount} size="small" offset={[-2, 4]} className={pulseKey > 0 ? 'notification-badge-pulse' : undefined}>
-        <Button type="text" icon={<BellOutlined style={{ fontSize: 18 }} />} aria-label="Bildirishnomalar" />
+        <Button className="header-icon-btn" icon={<BellOutlined />} aria-label="Bildirishnomalar" />
       </Badge>
     </Dropdown>
   );

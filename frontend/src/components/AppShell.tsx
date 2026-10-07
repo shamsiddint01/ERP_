@@ -217,7 +217,7 @@ export function AppShell({ mainItems, bottomItem, sectionBySegment, sectionLabel
         >
           <Space size={12} style={{ minWidth: 0 }}>
             <Button
-              type="text"
+              className="header-icon-btn"
               icon={(isMobile ? mobileMenuOpen : collapsed) ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
               onClick={() => (isMobile ? setMobileMenuOpen((prev) => !prev) : setCollapsed((prev) => !prev))}
               aria-label="Menyuni ochish/yopish"
@@ -227,13 +227,25 @@ export function AppShell({ mainItems, bottomItem, sectionBySegment, sectionLabel
               <span style={{ color: palette.primary }}>{sectionLabels[selectedSection] ?? ''}</span>
             </div>
           </Space>
-          <Space size={14}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <ThemeModeSwitch />
             {showNotifications && <NotificationBell />}
-            <Dropdown menu={{ items: [{ key: 'logout', icon: <LogoutOutlined />, label: 'Chiqish', onClick: handleLogout }] }}>
-              <Avatar style={{ background: avatarColor(userName), fontWeight: 700, cursor: 'pointer' }}>{userName.charAt(0)}</Avatar>
+            <span className="header-divider" style={{ margin: '0 4px' }} />
+            <Dropdown
+              trigger={['click']}
+              menu={{
+                items: [
+                  { key: 'who', label: <span style={{ fontWeight: 600 }}>{userName}</span>, disabled: true },
+                  { type: 'divider' },
+                  { key: 'logout', icon: <LogoutOutlined />, label: 'Chiqish', danger: true, onClick: handleLogout },
+                ],
+              }}
+            >
+              <Avatar className="header-avatar" shape="square" style={{ background: avatarColor(userName) }} aria-label="Profil">
+                {userName.charAt(0)}
+              </Avatar>
             </Dropdown>
-          </Space>
+          </div>
         </Header>
         <Content key={location.pathname} className="page-enter" style={{ padding: isMobile ? 12 : 28 }}>
           {isRouteAllowed ? <Outlet /> : <AccessDeniedPage />}

@@ -10,7 +10,16 @@ export function ThemeModeSwitch() {
   const hint = isLight ? "Qorong'i rejimga o'tish" : "Yorug' rejimga o'tish";
   return (
     <Tooltip title={hint}>
-      <Button type="text" shape="circle" aria-label={hint} icon={isLight ? <SunOutlined /> : <MoonOutlined />} onClick={() => setMode(isLight ? 'dark' : 'light')} />
+      <Button
+        className="header-icon-btn"
+        aria-label={hint}
+        icon={
+          <span key={mode} className="theme-toggle-icon">
+            {isLight ? <SunOutlined /> : <MoonOutlined />}
+          </span>
+        }
+        onClick={() => setMode(isLight ? 'dark' : 'light')}
+      />
     </Tooltip>
   );
 }
