@@ -15,6 +15,14 @@ export default defineConfig({
       },
     },
   },
+  // `vite preview` serves the production build (same /api proxy as above) —
+  // used by scripts/start-public.sh behind a Cloudflare quick tunnel, whose
+  // random *.trycloudflare.com hostname must be allowed explicitly.
+  preview: {
+    port: 4173,
+    strictPort: true,
+    allowedHosts: ['.trycloudflare.com'],
+  },
   build: {
     // Split the heavy, rarely-changing vendor libraries out of the app bundle
     // so browsers cache them across deploys and the initial parse is smaller.

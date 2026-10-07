@@ -306,6 +306,20 @@ curl -fsS http://localhost:8080/api/v1/health/ready   # database + redis "up"
 The compose file publishes the frontend on `:8080`; put your real reverse
 proxy / LB (HTTPS, real hostname) in front of that.
 
+### Option C — free public URL from this computer (Cloudflare quick tunnel)
+
+```bash
+./scripts/start-public.sh             # build, start, print https://<random>.trycloudflare.com
+./scripts/start-public.sh --no-build  # same, without rebuilding
+```
+
+Runs the backend with `NODE_ENV=production` + `TRUST_PROXY=1`, serves the
+built SPA with `vite preview` (port 4173, proxies `/api`), and opens a
+Cloudflare quick tunnel (needs `cloudflared` in `PATH`; no account). Free, but
+the site is up only while this computer and the script run, and the URL
+changes on every restart — for a fixed address use a named tunnel with your
+own domain, or Option A on a server. Logs go to `.public-logs/`.
+
 ### Option B — plain Node + a static host
 
 **Backend**
