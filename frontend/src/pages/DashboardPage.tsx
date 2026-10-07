@@ -51,9 +51,6 @@ const ACTION_REQUIRED_LABELS: Record<string, string> = {
 const METHOD_LABELS: Record<PaymentMethod, string> = {
   CASH: 'Naqd',
   CARD: 'Karta',
-  BANK_TRANSFER: "O'tkazma",
-  ONLINE: 'Onlayn',
-  CHEQUE: 'Chek',
 };
 
 const MONTH_SHORT = ['Yan', 'Fev', 'Mar', 'Apr', 'May', 'Iyn', 'Iyl', 'Avg', 'Sen', 'Okt', 'Noy', 'Dek'];

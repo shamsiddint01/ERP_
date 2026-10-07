@@ -132,7 +132,7 @@ export interface DashboardCharts {
   academicPerformance?: { month: string; averageScore: number | null }[];
 }
 
-export type PaymentMethod = 'CASH' | 'CARD' | 'BANK_TRANSFER' | 'ONLINE' | 'CHEQUE';
+export type PaymentMethod = 'CASH' | 'CARD';
 export type PaymentStatus = 'PENDING' | 'COMPLETED' | 'FAILED' | 'REFUNDED';
 
 export interface Payment {

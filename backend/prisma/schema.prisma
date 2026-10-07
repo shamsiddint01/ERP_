@@ -34,12 +34,10 @@ enum PaymentDirection {
   OUTBOUND
 }
 
+/// The center takes money only in cash or by card.
 enum PaymentMethod {
   CASH
   CARD
-  BANK_TRANSFER
-  ONLINE
-  CHEQUE
 }
 
 enum PaymentProcessingStatus {

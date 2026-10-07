@@ -32,9 +32,6 @@ export const EXAM_TYPE_LABELS: Record<ExamType, string> = {
 export const METHOD_LABELS: Record<PaymentMethod, string> = {
   CASH: 'Naqd',
   CARD: 'Karta',
-  BANK_TRANSFER: "O'tkazma",
-  ONLINE: 'Onlayn',
-  CHEQUE: 'Chek',
 };
 
 export const HOMEWORK_STATE: Record<PortalHomeworkState, { label: string; color: string }> = {

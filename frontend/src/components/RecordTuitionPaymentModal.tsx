@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { App, Form, Input, InputNumber, Modal, Select } from 'antd';
+import { App, Form, Input, InputNumber, Modal, Segmented } from 'antd';
 import { useEffect } from 'react';
 import { allocatePayment, createPayment } from '../api/payments';
 import type { PaymentMethod } from '../types';
@@ -19,11 +19,8 @@ interface FormValues {
 }
 
 const METHOD_OPTIONS: Array<{ label: string; value: PaymentMethod }> = [
-  { label: 'Naqd (Cash)', value: 'CASH' },
-  { label: 'Karta (Card)', value: 'CARD' },
-  { label: "O'tkazma (Bank transfer)", value: 'BANK_TRANSFER' },
-  { label: 'Onlayn (Online)', value: 'ONLINE' },
-  { label: 'Chek (Cheque)', value: 'CHEQUE' },
+  { label: 'Naqd', value: 'CASH' },
+  { label: 'Karta', value: 'CARD' },
 ];
 
 /**
@@ -67,7 +64,7 @@ export function RecordTuitionPaymentModal({ open, onClose, studentId, tuitionCha
   });
 
   return (
-    <Modal title="To'lov qabul qilish" open={open} onCancel={onClose} onOk={() => form.submit()} confirmLoading={mutation.isPending} destroyOnHidden>
+    <Modal title="To'lov qabul qilish" open={open} onCancel={onClose} onOk={() => form.submit()} okText="Qabul qilish" cancelText="Bekor" confirmLoading={mutation.isPending} destroyOnHidden>
       <Form form={form} layout="vertical" onFinish={(values) => mutation.mutate(values)}>
         <Form.Item label="Qolgan summa">
           <Input value={outstanding.toLocaleString('uz-UZ')} disabled />
@@ -76,7 +73,7 @@ export function RecordTuitionPaymentModal({ open, onClose, studentId, tuitionCha
           <InputNumber min={0.01} max={outstanding} style={{ width: '100%' }} />
         </Form.Item>
         <Form.Item name="method" label="To'lov usuli" rules={[{ required: true }]}>
-          <Select options={METHOD_OPTIONS} />
+          <Segmented block options={METHOD_OPTIONS} />
         </Form.Item>
         <Form.Item name="notes" label="Izoh">
           <Input.TextArea />

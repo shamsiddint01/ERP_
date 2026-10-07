@@ -16,9 +16,6 @@ import { PAYMENT_STATE_OPTIONS, type PaymentState } from '../../utils/paymentSta
 const METHOD_LABELS: Record<PaymentMethod, string> = {
   CASH: 'Naqd',
   CARD: 'Karta',
-  BANK_TRANSFER: "O'tkazma",
-  ONLINE: 'Onlayn',
-  CHEQUE: 'Chek',
 };
 
 export function PaymentsPage() {
