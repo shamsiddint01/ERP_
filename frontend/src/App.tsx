@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { AppLayout } from './components/AppLayout';
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -33,7 +34,15 @@ import { PortalLayout } from './pages/portal/PortalLayout';
 import { PortalPaymentsPage } from './pages/portal/PortalPaymentsPage';
 import { PortalProgressPage } from './pages/portal/PortalProgressPage';
 import { PortalSettingsPage } from './pages/portal/PortalSettingsPage';
+import { TeacherGroupsPage } from './pages/teacher/TeacherGroupsPage';
+import { TeacherHomePage } from './pages/teacher/TeacherHomePage';
+import { TeacherHomeworkPage } from './pages/teacher/TeacherHomeworkPage';
+import { TeacherLayout } from './pages/teacher/TeacherLayout';
+import { TeacherSalaryPage } from './pages/teacher/TeacherSalaryPage';
+import { TeacherSchedulePage } from './pages/teacher/TeacherSchedulePage';
+import { TeacherSettingsPage } from './pages/teacher/TeacherSettingsPage';
 import { useAuthStore } from './store/auth.store';
+import { useThemeStore } from './store/theme.store';
 
 /** A student's own cabinet — the only app a student login ever sees. */
 function PortalRoutes() {
@@ -48,6 +57,34 @@ function PortalRoutes() {
         <Route path="progress" element={<PortalProgressPage />} />
         <Route path="extra-lessons" element={<PortalExtraLessonsPage />} />
         <Route path="settings" element={<PortalSettingsPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Route>
+    </Routes>
+  );
+}
+
+/** A teacher's own cabinet. Group, student, lesson and exam pages are the staff ones — the backend narrows them to the teacher's own groups. */
+function TeacherRoutes() {
+  return (
+    <Routes>
+      <Route element={<TeacherLayout />}>
+        <Route index element={<TeacherHomePage />} />
+        <Route path="homework" element={<TeacherHomeworkPage />} />
+        <Route path="groups" element={<TeacherGroupsPage />} />
+        <Route path="groups/:id" element={<GroupDetailPage />} />
+        <Route path="students/:id" element={<StudentDetailPage />} />
+        <Route path="enrollments/:id" element={<EnrollmentDetailPage />} />
+        <Route path="exams" element={<ExamsPage />} />
+        <Route path="exams/:id" element={<ExamDetailPage />} />
+        <Route path="schedule" element={<TeacherSchedulePage />} />
+        <Route path="lessons/:id" element={<LessonDetailPage />} />
+        <Route path="lessons/:id/attendance" element={<LessonAttendancePage />} />
+        <Route path="salary" element={<TeacherSalaryPage />} />
+        <Route path="settings" element={<TeacherSettingsPage />} />
+        <Route path="notifications" element={<NotificationsPage />} />
+        {/* Links the staff pages build to sections the cabinet names differently */}
+        <Route path="attendance" element={<Navigate to="/schedule" replace />} />
+        <Route path="lessons" element={<Navigate to="/schedule" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>
@@ -100,10 +137,18 @@ function StaffRoutes() {
   );
 }
 
-/** Logged-in users get one of two apps: the student portal (a login linked to a student) or the staff app. */
+/** Logged-in users get one of three apps: the student portal, the teacher cabinet, or the staff app. */
 function AuthenticatedApp() {
-  const isStudent = useAuthStore((state) => !!state.user?.studentId);
-  return isStudent ? <PortalRoutes /> : <StaffRoutes />;
+  const user = useAuthStore((state) => state.user);
+  const userId = user?.id;
+  // Light/dark mode is remembered per user on this device.
+  useEffect(() => {
+    if (userId) useThemeStore.getState().loadForUser(userId);
+  }, [userId]);
+
+  if (user?.studentId) return <PortalRoutes />;
+  if (user?.teacherProfileId && user.role === 'Teacher') return <TeacherRoutes />;
+  return <StaffRoutes />;
 }
 
 export default function App() {

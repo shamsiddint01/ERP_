@@ -23,7 +23,7 @@ import { listGroups } from '../../api/groups';
 import { listStudents } from '../../api/students';
 import { listTeachers } from '../../api/teachers';
 import { useAuthStore } from '../../store/auth.store';
-import { attendanceChartColors, chartAxisTick, chartGridStroke, chartTooltipLabelStyle, chartTooltipStyle, palette } from '../../theme';
+import { attendanceChartColors, chartAxisTick, chartCursorFill, chartGridStroke, chartTooltipLabelStyle, chartTooltipStyle, palette } from '../../theme';
 import type { StudentGroupStatus, StudentStatus } from '../../types';
 import { formatNumber } from '../../utils/format';
 
@@ -231,7 +231,7 @@ export function EducationReportsPage() {
                 <CartesianGrid vertical={false} stroke={chartGridStroke} />
                 <XAxis dataKey="period" tick={chartAxisTick} />
                 <YAxis tick={chartAxisTick} allowDecimals={false} />
-                <Tooltip contentStyle={chartTooltipStyle} labelStyle={chartTooltipLabelStyle} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+                <Tooltip contentStyle={chartTooltipStyle} labelStyle={chartTooltipLabelStyle} cursor={{ fill: chartCursorFill }} />
                 <Line type="monotone" dataKey="count" stroke={palette.primary} strokeWidth={2} />
               </LineChart>
             </ResponsiveContainer>
@@ -322,7 +322,7 @@ export function EducationReportsPage() {
                 <CartesianGrid vertical={false} stroke={chartGridStroke} />
                 <XAxis dataKey="name" tick={chartAxisTick} />
                 <YAxis tick={chartAxisTick} />
-                <Tooltip contentStyle={chartTooltipStyle} labelStyle={chartTooltipLabelStyle} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+                <Tooltip contentStyle={chartTooltipStyle} labelStyle={chartTooltipLabelStyle} cursor={{ fill: chartCursorFill }} />
                 <Bar dataKey="utilizationPercentage" fill={palette.primary} radius={[4, 4, 0, 0]} maxBarSize={36} />
               </BarChart>
             </ResponsiveContainer>
@@ -522,7 +522,7 @@ export function EducationReportsPage() {
                     <CartesianGrid vertical={false} stroke={chartGridStroke} />
                     <XAxis dataKey="courseName" tick={chartAxisTick} />
                     <YAxis tick={chartAxisTick} />
-                    <Tooltip contentStyle={chartTooltipStyle} labelStyle={chartTooltipLabelStyle} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+                    <Tooltip contentStyle={chartTooltipStyle} labelStyle={chartTooltipLabelStyle} cursor={{ fill: chartCursorFill }} />
                     <Bar dataKey="average" fill={palette.primary} radius={[4, 4, 0, 0]} maxBarSize={36} />
                   </BarChart>
                 </ResponsiveContainer>
@@ -626,7 +626,7 @@ export function EducationReportsPage() {
                 <CartesianGrid vertical={false} stroke={chartGridStroke} />
                 <XAxis dataKey="name" tick={chartAxisTick} />
                 <YAxis tick={chartAxisTick} />
-                <Tooltip contentStyle={chartTooltipStyle} labelStyle={chartTooltipLabelStyle} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+                <Tooltip contentStyle={chartTooltipStyle} labelStyle={chartTooltipLabelStyle} cursor={{ fill: chartCursorFill }} />
                 <Bar dataKey="hours" fill={palette.primary} radius={[4, 4, 0, 0]} maxBarSize={36} />
               </BarChart>
             </ResponsiveContainer>
@@ -666,7 +666,7 @@ export function EducationReportsPage() {
                 <CartesianGrid vertical={false} stroke={chartGridStroke} />
                 <XAxis dataKey="branchName" tick={chartAxisTick} />
                 <YAxis tick={chartAxisTick} allowDecimals={false} />
-                <Tooltip contentStyle={chartTooltipStyle} labelStyle={chartTooltipLabelStyle} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+                <Tooltip contentStyle={chartTooltipStyle} labelStyle={chartTooltipLabelStyle} cursor={{ fill: chartCursorFill }} />
                 <Bar dataKey="students" fill={palette.primary} radius={[4, 4, 0, 0]} maxBarSize={36} />
               </BarChart>
             </ResponsiveContainer>

@@ -26,7 +26,6 @@ const ROUTE_PERMISSIONS: RoutePermission[] = [
   { prefix: '/courses', module: 'courses', action: 'VIEW' },
   { prefix: '/branches', module: 'branches', action: 'VIEW' },
   { prefix: '/classrooms', module: 'classrooms', action: 'VIEW' },
-  { prefix: '/settings', module: 'settings', action: 'VIEW' },
 ].sort((a, b) => b.prefix.length - a.prefix.length);
 
 export function getRequiredPermission(pathname: string): { module: string; action: string } | null {

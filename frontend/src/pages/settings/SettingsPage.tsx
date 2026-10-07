@@ -8,6 +8,7 @@ import { BrandMark } from '../../components/BrandMark';
 import { FormSection } from '../../components/FormSection';
 import { PageErrorState } from '../../components/PageErrorState';
 import { PageHeader } from '../../components/PageHeader';
+import { AppearanceCard, ChangePasswordCard } from '../../components/PersonalSettingsCards';
 import { useAuthStore } from '../../store/auth.store';
 import { palette } from '../../theme';
 import type { CompanySettings } from '../../types';
@@ -59,10 +60,11 @@ export function SettingsPage() {
   const queryClient = useQueryClient();
   const canEdit = useAuthStore((state) => state.hasPermission('settings', 'EDIT'));
   const canViewUsers = useAuthStore((state) => state.hasPermission('users', 'VIEW'));
+  const canViewCenter = useAuthStore((state) => state.hasPermission('settings', 'VIEW'));
   const [form] = Form.useForm<FormValues>();
   const companyName = Form.useWatch('companyName', form);
 
-  const settingsQuery = useQuery({ queryKey: ['settings'], queryFn: getSettings });
+  const settingsQuery = useQuery({ queryKey: ['settings'], queryFn: getSettings, enabled: canViewCenter });
 
   useEffect(() => {
     if (settingsQuery.data) form.setFieldsValue(settingsQuery.data);
@@ -127,9 +129,6 @@ export function SettingsPage() {
     return false;
   }
 
-  if (settingsQuery.isError && !settingsQuery.data) {
-    return <PageErrorState onRetry={() => settingsQuery.refetch()} />;
-  }
 
   const settings = settingsQuery.data;
   const displayName = companyName || settings?.companyName || '';
@@ -140,7 +139,8 @@ export function SettingsPage() {
         title="Sozlamalar"
         subtitle={settings ? `Oxirgi o'zgarish: ${formatDateTime(settings.updatedAt)}` : undefined}
         extra={
-          canEdit && (
+          canEdit &&
+          canViewCenter && (
             <Button type="primary" icon={<SaveOutlined />} loading={updateMutation.isPending} onClick={() => form.submit()}>
               Saqlash
             </Button>
@@ -148,7 +148,9 @@ export function SettingsPage() {
         }
       />
 
-      {settingsQuery.isLoading || !settings ? (
+      {!canViewCenter ? null : settingsQuery.isError && !settingsQuery.data ? (
+        <PageErrorState onRetry={() => settingsQuery.refetch()} />
+      ) : settingsQuery.isLoading || !settings ? (
         <Card>
           <Skeleton active paragraph={{ rows: 6 }} />
         </Card>
@@ -211,6 +213,15 @@ export function SettingsPage() {
           </Form>
         </Card>
       )}
+
+      <Row gutter={[20, 20]} style={{ marginTop: canViewCenter ? 20 : 0 }}>
+        <Col xs={24} lg={12}>
+          <AppearanceCard />
+        </Col>
+        <Col xs={24} lg={12}>
+          <ChangePasswordCard />
+        </Col>
+      </Row>
 
       {canViewUsers && <AllLoginsCard />}
     </div>

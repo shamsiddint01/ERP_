@@ -8,6 +8,7 @@ import { palette } from '../theme';
 import { avatarColor } from '../utils/avatarColor';
 import { AccessDeniedPage } from '../pages/AccessDeniedPage';
 import { useAuthStore } from '../store/auth.store';
+import { useThemeStore } from '../store/theme.store';
 import { useBranding } from '../hooks/useBranding';
 import { BrandMark } from './BrandMark';
 import { NotificationBell } from './NotificationBell';
@@ -47,6 +48,7 @@ const SIDEBAR_WIDTH = 248;
  */
 export function AppShell({ mainItems, bottomItem, sectionBySegment, sectionLabels, subtitle, isRouteAllowed = true, showNotifications = true }: AppShellProps) {
   const user = useAuthStore((state) => state.user);
+  const themeMode = useThemeStore((state) => state.mode);
   const clear = useAuthStore((state) => state.clear);
   const navigate = useNavigate();
   const location = useLocation();
@@ -116,7 +118,7 @@ export function AppShell({ mainItems, bottomItem, sectionBySegment, sectionLabel
       <div style={{ flex: 1, overflowY: 'auto' }}>
         <Menu
           className="app-sidebar-menu"
-          theme="dark"
+          theme={themeMode}
           mode="inline"
           inlineCollapsed={sidebarCollapsed}
           selectedKeys={[selectedSection]}
@@ -128,7 +130,7 @@ export function AppShell({ mainItems, bottomItem, sectionBySegment, sectionLabel
         {bottomItem && (
           <Menu
             className="app-sidebar-menu"
-            theme="dark"
+            theme={themeMode}
             mode="inline"
             inlineCollapsed={sidebarCollapsed}
             selectedKeys={[selectedSection]}
@@ -205,7 +207,7 @@ export function AppShell({ mainItems, bottomItem, sectionBySegment, sectionLabel
             gap: 12,
             height: 64,
             borderBottom: `1px solid ${palette.border}`,
-            background: 'rgba(23, 24, 28, 0.72)',
+            background: 'var(--header-bg)',
             backdropFilter: 'blur(10px)',
             position: 'sticky',
             top: 0,

@@ -1,5 +1,5 @@
 import { TeacherProfileStatus } from '@prisma/client';
-import { IsEmail, IsEnum, IsInt, IsISO8601, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
+import { IsEmail, IsEnum, IsInt, IsNumber, Max, IsISO8601, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
 
 /**
  * A teacher is created in one step: the underlying Employee record (the
@@ -48,6 +48,13 @@ export class CreateTeacherDto {
   @IsInt()
   @Min(0)
   experienceYears?: number;
+
+  /** Salary = this % of the tuition collected from the teacher's groups each month. */
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(100)
+  salaryPercent?: number;
 
   @IsOptional()
   @IsEnum(TeacherProfileStatus)

@@ -21,6 +21,8 @@ export interface CreateTeacherPayload {
   specialization?: string;
   qualification?: string;
   experienceYears?: number;
+  /** % of what the teacher's groups' students pay; null clears it. */
+  salaryPercent?: number | null;
   status?: TeacherProfileStatus;
 }
 

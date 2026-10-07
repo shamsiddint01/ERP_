@@ -2,7 +2,7 @@ import { ArrowDownOutlined, ArrowUpOutlined } from '@ant-design/icons';
 import { Card, Skeleton, Typography } from 'antd';
 import type { ReactNode } from 'react';
 import { useCountUp } from '../hooks/useCountUp';
-import { palette } from '../theme';
+import { palette, tint } from '../theme';
 
 interface StatCardProps {
   icon: ReactNode;
@@ -59,8 +59,8 @@ export function StatCard({ icon, title, value, loading, color = palette.primary,
                   justifyContent: 'center',
                   fontSize: 16,
                   color,
-                  background: `${color}1F`,
-                  boxShadow: `0 0 0 1px ${color}2E inset`,
+                  background: tint(color, 12),
+                  boxShadow: `0 0 0 1px ${tint(color, 18)} inset`,
                   flexShrink: 0,
                 }}
               >

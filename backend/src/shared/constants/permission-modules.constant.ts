@@ -55,6 +55,10 @@ export const PERMISSION_MODULES = {
   // Reading the admin-visible copy of login passwords. Only Admin has it
   // (Admin is always granted every permission); never part of a starter role.
   credentials: [PermissionAction.VIEW],
+  // Teacher salary sheet: VIEW the monthly figures, CREATE a payout, DELETE (undo) one.
+  salaries: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.DELETE],
+  // A teacher's own cabinet data (own salary); everything else a teacher sees is the normal, teacher-scoped modules.
+  teacher_portal: [PermissionAction.VIEW],
 } as const satisfies Record<string, PermissionAction[]>;
 
 export type PermissionModule = keyof typeof PERMISSION_MODULES;

@@ -1,7 +1,8 @@
-import { DollarOutlined, FileTextOutlined, PercentageOutlined, WalletOutlined } from '@ant-design/icons';
+import { DollarOutlined, FileTextOutlined, IdcardOutlined, PercentageOutlined, WalletOutlined } from '@ant-design/icons';
 import { SectionHub } from '../../components/SectionHub';
 import { DiscountsPage } from '../discounts/DiscountsPage';
 import { StudentBalancesPage } from '../finance/StudentBalancesPage';
+import { TeacherSalariesPage } from '../salaries/TeacherSalariesPage';
 import { TuitionPage } from '../tuition/TuitionPage';
 import { PaymentsPage } from './PaymentsPage';
 
@@ -13,6 +14,7 @@ export function PaymentsHubPage() {
         { key: 'charges', label: 'Hisob-kitoblar', icon: <FileTextOutlined />, permission: { module: 'tuition', action: 'VIEW' }, element: <TuitionPage /> },
         { key: 'balances', label: 'Qarzdorlik', icon: <WalletOutlined />, permission: { module: 'reports', action: 'VIEW' }, element: <StudentBalancesPage /> },
         { key: 'discounts', label: 'Chegirmalar', icon: <PercentageOutlined />, permission: { module: 'discounts', action: 'VIEW' }, element: <DiscountsPage /> },
+        { key: 'salaries', label: 'Ustozlar maoshi', icon: <IdcardOutlined />, permission: { module: 'salaries', action: 'VIEW' }, element: <TeacherSalariesPage /> },
       ]}
     />
   );

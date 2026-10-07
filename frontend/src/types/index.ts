@@ -13,6 +13,8 @@ export interface CurrentUserProfile {
   permissions: string[];
   /** Set when this login belongs to a student — the app then shows the student portal instead of the staff app. */
   studentId: string | null;
+  /** Set when this login belongs to an active teacher — with the Teacher role, the app shows the teacher cabinet. */
+  teacherProfileId: string | null;
 }
 
 export interface UserListItem {
@@ -399,6 +401,8 @@ export interface TeacherListItem {
   qualification: string | null;
   experienceYears: number | null;
   status: TeacherProfileStatus;
+  /** Salary = this % of the tuition collected from the teacher's groups each month. */
+  salaryPercent: string | null;
   hourlyRate: string | null;
   perLessonRate: string | null;
   perGroupRate: string | null;
@@ -1003,5 +1007,50 @@ export interface PortalExtraLesson extends Omit<ExtraLessonItem, '_count'> {
   seatsLeft: number;
   isRegistered: boolean;
   isPast: boolean;
+}
+
+// =========================================================================
+// TEACHER SALARY — a % of tuition collected from the teacher's groups
+// =========================================================================
+
+export interface SalaryFigures {
+  /** null = no salary % set for this teacher yet. */
+  percent: number | null;
+  collected: number;
+  earned: number;
+  paid: number;
+  remaining: number;
+}
+
+export interface SalaryGroupRow {
+  groupId: string;
+  groupName: string;
+  collected: number;
+}
+
+export interface SalaryOverviewRow extends SalaryFigures {
+  teacherProfileId: string;
+  teacherEmployeeId: string;
+  fullName: string;
+  employeeCode: string;
+  groups: SalaryGroupRow[];
+}
+
+export interface SalaryOverview {
+  period: string;
+  items: SalaryOverviewRow[];
+  totals: Omit<SalaryFigures, 'percent'>;
+}
+
+export interface TeacherSalaryMonth extends SalaryFigures {
+  period: string;
+  groups: SalaryGroupRow[];
+}
+
+export interface TeacherSalaryDetail extends TeacherSalaryMonth {
+  teacherEmployeeId: string;
+  fullName: string;
+  payments: { id: string; amount: string; paidAt: string; note: string | null; recordedBy: { fullName: string } }[];
+  history: TeacherSalaryMonth[];
 }
 

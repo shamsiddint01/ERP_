@@ -20,6 +20,7 @@ interface FormValues {
   specialization?: string;
   qualification?: string;
   experienceYears?: number;
+  salaryPercent?: number | null;
   status?: TeacherProfileStatus;
 }
 
@@ -41,6 +42,7 @@ export function TeacherFormModal({ open, onClose, teacher }: TeacherFormModalPro
         specialization: teacher.specialization ?? undefined,
         qualification: teacher.qualification ?? undefined,
         experienceYears: teacher.experienceYears ?? undefined,
+        salaryPercent: teacher.salaryPercent === null ? undefined : Number(teacher.salaryPercent),
         status: teacher.status,
       });
     } else {
@@ -50,7 +52,8 @@ export function TeacherFormModal({ open, onClose, teacher }: TeacherFormModalPro
 
   const mutation = useMutation({
     mutationFn: (values: FormValues) => {
-      const payload = { ...values, email: values.email || undefined };
+      // A cleared % field is sent as null on edit (= "not set"), and left out on create.
+      const payload = { ...values, email: values.email || undefined, salaryPercent: values.salaryPercent ?? (isEdit ? null : undefined) };
       return isEdit ? updateTeacher(teacher!.id, payload) : createTeacher(payload);
     },
     onSuccess: () => {
@@ -111,6 +114,9 @@ export function TeacherFormModal({ open, onClose, teacher }: TeacherFormModalPro
           </Form.Item>
           <Form.Item name="experienceYears" label="Ish tajribasi (yil)">
             <InputNumber min={0} style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item name="salaryPercent" label="Maosh foizi (%)" extra="Guruhlari o'quvchilari to'lagan summaning necha foizi ustozga maosh sifatida hisoblanadi">
+            <InputNumber min={0} max={100} step={5} precision={2} placeholder="Masalan: 40" style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item name="bio" label="Bio" style={{ marginBottom: isEdit ? undefined : 0 }}>
             <Input.TextArea />

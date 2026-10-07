@@ -95,7 +95,7 @@ export class AuthService {
   async getProfile(userId: string) {
     const user = await this.prisma.user.findUniqueOrThrow({
       where: { id: userId },
-      include: { role: true, student: { select: { id: true } } },
+      include: { role: true, student: { select: { id: true } }, employee: { select: { teacherProfile: { select: { id: true, status: true } } } } },
     });
     const permissions = await this.permissionsCache.getPermissionsForRole(user.roleId);
 
@@ -112,6 +112,8 @@ export class AuthService {
       permissions,
       /** Set when this login belongs to a student — the frontend then shows the student portal instead of the staff app. */
       studentId: user.student?.id ?? null,
+      /** Set when this login belongs to an active teacher — together with the Teacher role, the frontend shows the teacher cabinet. */
+      teacherProfileId: user.employee?.teacherProfile?.status === 'ACTIVE' ? user.employee.teacherProfile.id : null,
     };
   }
 

@@ -20,7 +20,7 @@ import { getDashboardCharts, getDashboardOverview, getDashboardToday } from '../
 import { EmptyState } from '../components/EmptyState';
 import { PageErrorState } from '../components/PageErrorState';
 import { StatCard } from '../components/StatCard';
-import { attendanceChartColors, chartAxisTick, chartGridStroke, chartTooltipLabelStyle, chartTooltipStyle, palette } from '../theme';
+import { attendanceChartColors, chartAxisTick, chartCursorFill, chartGridStroke, chartTooltipLabelStyle, chartTooltipStyle, palette } from '../theme';
 import { useAuthStore } from '../store/auth.store';
 import { avatarColor } from '../utils/avatarColor';
 import { formatNumber } from '../utils/format';
@@ -455,7 +455,7 @@ export function DashboardPage() {
                   <CartesianGrid vertical={false} stroke={chartGridStroke} />
                   <XAxis dataKey="month" tickFormatter={monthLabel} tick={chartAxisTick} axisLine={false} tickLine={false} />
                   <YAxis tick={chartAxisTick} axisLine={false} tickLine={false} allowDecimals={false} />
-                  <Tooltip contentStyle={chartTooltipStyle} labelStyle={chartTooltipLabelStyle} labelFormatter={(v) => monthLabel(String(v))} formatter={(v) => [v, "O'quvchilar"]} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+                  <Tooltip contentStyle={chartTooltipStyle} labelStyle={chartTooltipLabelStyle} labelFormatter={(v) => monthLabel(String(v))} formatter={(v) => [v, "O'quvchilar"]} cursor={{ fill: chartCursorFill }} />
                   <Bar dataKey="count" fill={palette.primary} radius={[4, 4, 0, 0]} maxBarSize={36} />
                 </BarChart>
               </ChartPanel>
@@ -484,7 +484,7 @@ export function DashboardPage() {
                   <CartesianGrid horizontal={false} stroke={chartGridStroke} />
                   <XAxis type="number" tick={chartAxisTick} axisLine={false} tickLine={false} allowDecimals={false} />
                   <YAxis type="category" dataKey="courseName" tick={chartAxisTick} axisLine={false} tickLine={false} width={120} />
-                  <Tooltip contentStyle={chartTooltipStyle} labelStyle={chartTooltipLabelStyle} formatter={(v) => [v, "O'quvchilar"]} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
+                  <Tooltip contentStyle={chartTooltipStyle} labelStyle={chartTooltipLabelStyle} formatter={(v) => [v, "O'quvchilar"]} cursor={{ fill: chartCursorFill }} />
                   <Bar dataKey="studentCount" fill={palette.primary} radius={[0, 4, 4, 0]} maxBarSize={22} />
                 </BarChart>
               </ChartPanel>
@@ -499,7 +499,7 @@ export function DashboardPage() {
                     contentStyle={chartTooltipStyle}
                     labelStyle={chartTooltipLabelStyle}
                     formatter={(v, _name, item) => [`${v}% (${item.payload.enrolledCount}/${item.payload.capacity})`, "To'ldirilgan"]}
-                    cursor={{ fill: 'rgba(255,255,255,0.04)' }}
+                    cursor={{ fill: chartCursorFill }}
                   />
                   <Bar dataKey="utilizationPercentage" fill={palette.ember} radius={[0, 4, 4, 0]} maxBarSize={22} />
                 </BarChart>

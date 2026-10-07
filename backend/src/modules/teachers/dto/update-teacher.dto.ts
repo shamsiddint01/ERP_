@@ -1,5 +1,5 @@
 import { TeacherProfileStatus } from '@prisma/client';
-import { IsEmail, IsEnum, IsInt, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
+import { IsEmail, IsEnum, IsInt, IsNumber, Max, IsNotEmpty, IsOptional, IsString, Min } from 'class-validator';
 
 export class UpdateTeacherDto {
   @IsOptional()
@@ -41,6 +41,13 @@ export class UpdateTeacherDto {
   @IsInt()
   @Min(0)
   experienceYears?: number;
+
+  /** Salary = this % of the tuition collected from the teacher's groups each month. */
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(100)
+  salaryPercent?: number;
 
   @IsOptional()
   @IsEnum(TeacherProfileStatus)

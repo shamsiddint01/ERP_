@@ -45,6 +45,7 @@ const ROLE_DEFINITIONS: Array<{
       notifications: [PermissionAction.VIEW],
       homework: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE],
       extra_lessons: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE],
+      salaries: [PermissionAction.VIEW],
     },
   },
   {
@@ -56,6 +57,7 @@ const ROLE_DEFINITIONS: Array<{
       payments: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.APPROVE, PermissionAction.EXPORT],
       reports: [PermissionAction.VIEW, PermissionAction.EXPORT],
       notifications: [PermissionAction.VIEW],
+      salaries: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.DELETE],
       // Read-only academic context — never edits grades.
       students: [PermissionAction.VIEW],
       groups: [PermissionAction.VIEW],
@@ -84,6 +86,8 @@ const ROLE_DEFINITIONS: Array<{
       homework: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE],
       extra_lessons: [PermissionAction.VIEW],
       notifications: [PermissionAction.VIEW],
+      // The teacher cabinet's own-salary page.
+      teacher_portal: [PermissionAction.VIEW],
     },
   },
   {

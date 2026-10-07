@@ -65,13 +65,14 @@ export function AppLayout() {
       { key: '/teachers', icon: <UserSwitchOutlined />, label: "O'qituvchilar", show: any('teachers') },
       { key: '/groups', icon: <GroupOutlined />, label: 'Guruhlar', show: any('groups') },
       { key: '/attendance', icon: <CheckSquareOutlined />, label: 'Davomat', show: any('lessons', 'student_attendance', 'extra_lessons') },
-      { key: '/payments', icon: <DollarOutlined />, label: "To'lovlar", show: any('payments', 'tuition', 'discounts', 'reports') },
+      { key: '/payments', icon: <DollarOutlined />, label: "To'lovlar", show: any('payments', 'tuition', 'discounts', 'reports', 'salaries') },
       { key: '/exams', icon: <FormOutlined />, label: 'Testlar', show: any('exams') },
       { key: '/reports', icon: <BarChartOutlined />, label: 'Hisobotlar', show: any('students', 'groups', 'student_attendance', 'grades', 'tuition', 'teachers', 'branches') },
     ];
     return {
       mainItems: main.filter((item) => item.show),
-      settingsItem: any('settings') ? { key: '/settings', icon: <SettingOutlined />, label: 'Sozlamalar' } : null,
+      // Everyone has Sozlamalar (light/dark mode, own password); the center settings inside gate themselves.
+      settingsItem: { key: '/settings', icon: <SettingOutlined />, label: 'Sozlamalar' },
     };
   }, [hasPermission]);
 

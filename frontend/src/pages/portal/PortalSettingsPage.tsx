@@ -1,37 +1,18 @@
-import { LockOutlined } from '@ant-design/icons';
-import { useMutation, useQuery } from '@tanstack/react-query';
-import { App, Avatar, Button, Card, Col, Descriptions, Form, Input, Row, Skeleton, Typography } from 'antd';
-import { changePassword } from '../../api/auth';
+import { useQuery } from '@tanstack/react-query';
+import { Avatar, Card, Col, Descriptions, Row, Skeleton, Typography } from 'antd';
 import { getPortalOverview } from '../../api/portal';
 import { PageHeader } from '../../components/PageHeader';
+import { AppearanceCard, ChangePasswordCard } from '../../components/PersonalSettingsCards';
 import { useAuthStore } from '../../store/auth.store';
 import { avatarColor } from '../../utils/avatarColor';
 import { formatDate } from '../../utils/format';
 
-interface PasswordForm {
-  currentPassword: string;
-  newPassword: string;
-  confirmPassword: string;
-}
 
 export function PortalSettingsPage() {
-  const { message } = App.useApp();
   const user = useAuthStore((state) => state.user);
-  const [form] = Form.useForm<PasswordForm>();
   const overviewQuery = useQuery({ queryKey: ['portal', 'overview'], queryFn: getPortalOverview });
   const student = overviewQuery.data?.student;
 
-  const passwordMutation = useMutation({
-    mutationFn: (values: PasswordForm) => changePassword(values.currentPassword, values.newPassword),
-    onSuccess: () => {
-      message.success("Parol o'zgartirildi. Boshqa qurilmalardagi kirishlar yopildi");
-      form.resetFields();
-    },
-    onError: (error: unknown) => {
-      const detail = (error as { response?: { data?: { message?: string | string[] } } })?.response?.data?.message;
-      message.error(Array.isArray(detail) ? detail.join(', ') : (detail ?? "Parolni o'zgartirib bo'lmadi"));
-    },
-  });
 
   return (
     <div style={{ maxWidth: 960 }}>
@@ -69,32 +50,10 @@ export function PortalSettingsPage() {
           </Card>
         </Col>
         <Col xs={24} lg={12}>
-          <Card title="Parolni o'zgartirish" style={{ height: '100%' }}>
-            <Form form={form} layout="vertical" requiredMark={false} onFinish={(values) => passwordMutation.mutate(values)}>
-              <Form.Item name="currentPassword" label="Joriy parol" rules={[{ required: true, message: 'Joriy parolni kiriting' }]}>
-                <Input.Password prefix={<LockOutlined />} autoComplete="current-password" />
-              </Form.Item>
-              <Form.Item name="newPassword" label="Yangi parol" rules={[{ required: true, message: 'Yangi parolni kiriting' }, { min: 8, message: "Kamida 8 ta belgi bo'lsin" }]}>
-                <Input.Password prefix={<LockOutlined />} autoComplete="new-password" />
-              </Form.Item>
-              <Form.Item
-                name="confirmPassword"
-                label="Yangi parolni takrorlang"
-                dependencies={['newPassword']}
-                rules={[
-                  { required: true, message: 'Parolni takrorlang' },
-                  ({ getFieldValue }) => ({
-                    validator: (_, value) => (!value || value === getFieldValue('newPassword') ? Promise.resolve() : Promise.reject(new Error('Parollar mos emas'))),
-                  }),
-                ]}
-              >
-                <Input.Password prefix={<LockOutlined />} autoComplete="new-password" />
-              </Form.Item>
-              <Button type="primary" htmlType="submit" loading={passwordMutation.isPending}>
-                Saqlash
-              </Button>
-            </Form>
-          </Card>
+          <ChangePasswordCard />
+        </Col>
+        <Col xs={24} lg={12}>
+          <AppearanceCard />
         </Col>
       </Row>
     </div>

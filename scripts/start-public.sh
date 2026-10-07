@@ -3,13 +3,17 @@
 # Puts the app on the internet for free, from this computer, through a
 # Cloudflare quick tunnel (https://<random>.trycloudflare.com).
 #
-#   ./scripts/start-public.sh            # build + start everything, print the URL
+#   ./scripts/start-public.sh            # build + start everything, print the URLs
 #   ./scripts/start-public.sh --no-build # start without rebuilding
 #
 # What runs:  backend (NODE_ENV=production, :3001)  ←  vite preview of the
-# built frontend (:4173, proxies /api)  ←  cloudflared  ←  the internet.
-# Ctrl+C stops all three. The site is only up while this computer and this
-# script are running, and the URL changes every time the tunnel restarts.
+# built frontend (:4173, proxies /api)  ←  cloudflared ×3  ←  the internet.
+# Three tunnels give three separate addresses — one to hand to the admin
+# staff, one to teachers, one to students. They all reach the same app; after
+# signing in, each person lands in their own cabinet (admin panel, ustoz
+# kabineti, o'quvchi kabineti), so a link never grants more than the login does.
+# Ctrl+C stops everything. The sites are only up while this computer and this
+# script are running, and the URLs change every time the tunnels restart.
 # Needs: Docker (Postgres/Redis), Node, cloudflared in PATH, backend/.env with
 # strong JWT_ACCESS_SECRET and CREDENTIALS_ENCRYPTION_KEY.
 # -----------------------------------------------------------------------------
@@ -53,19 +57,28 @@ curl -fsS http://localhost:3001/api/v1/health >/dev/null || { echo "Backend ishg
 (cd "$ROOT/frontend" && exec npx vite preview >"$LOGS/frontend.log" 2>&1) &
 pids+=($!)
 
-echo "4/4 Cloudflare tunnel ochilmoqda..."
-cloudflared tunnel --no-autoupdate --url http://localhost:4173 >"$LOGS/tunnel.log" 2>&1 &
-pids+=($!)
-url=""
-for _ in $(seq 1 60); do
-  url="$(grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' "$LOGS/tunnel.log" | head -1 || true)"
-  [[ -n "$url" ]] && break
-  sleep 1
+echo "4/4 Cloudflare tunnellari ochilmoqda (admin, ustoz, o'quvchi)..."
+names=(admin ustoz oquvchi)
+labels=("Admin paneli     " "Ustozlar sayti   " "O'quvchilar sayti")
+for name in "${names[@]}"; do
+  cloudflared tunnel --no-autoupdate --url http://localhost:4173 >"$LOGS/tunnel-$name.log" 2>&1 &
+  pids+=($!)
 done
-[[ -n "$url" ]] || { echo "Tunnel manzili olinmadi — $LOGS/tunnel.log ni ko'ring"; exit 1; }
+urls=()
+for name in "${names[@]}"; do
+  url=""
+  for _ in $(seq 1 60); do
+    url="$(grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' "$LOGS/tunnel-$name.log" | head -1 || true)"
+    [[ -n "$url" ]] && break
+    sleep 1
+  done
+  [[ -n "$url" ]] || { echo "Tunnel manzili olinmadi — $LOGS/tunnel-$name.log ni ko'ring"; exit 1; }
+  urls+=("$url")
+done
 
 echo
-echo "  Sayt manzili:  $url"
+for i in "${!names[@]}"; do echo "  ${labels[$i]}:  ${urls[$i]}"; done
+printf '%s\n' "${urls[@]}" >"$LOGS/urls.txt"
 echo "  (To'xtatish uchun Ctrl+C)"
 echo
 wait

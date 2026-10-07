@@ -10,31 +10,92 @@
   --motion-stagger-step: 30ms;
 
   /*
-   * Elevation system — mirrors theme.ts's `elevation` export (kept as
-   * literal duplicates, same as the --motion-* / `motion` split above, since
-   * CSS and AntD's ConfigProvider tokens can't share one source at runtime).
-   * Level 0 (page background) has no shadow — see theme.ts's own doc comment
-   * for the full level1-4 breakdown.
+   * Colour, elevation and chart tokens for the DARK mode (the default).
+   * theme.ts's `palette` / `elevation` are references to these variables, so
+   * every inline style follows the mode; the light values are below under
+   * :root[data-theme='light']. Keep in sync with MODE_COLORS in theme.ts.
    */
   --elevation-1: 0 1px 0 rgba(255, 255, 255, 0.03) inset, 0 6px 18px rgba(0, 0, 0, 0.28);
   --elevation-2: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 12px 28px rgba(0, 0, 0, 0.38);
   --elevation-3: 0 14px 36px rgba(0, 0, 0, 0.5), 0 2px 6px rgba(0, 0, 0, 0.35);
   --elevation-4: 0 28px 64px rgba(0, 0, 0, 0.6), 0 8px 18px rgba(0, 0, 0, 0.4);
 
-  /* Colour tokens — mirror theme.ts's `palette` for the few places plain CSS needs them. */
+  --color-primary: #f5a524;
+  --color-primary-hover: #ffb840;
+  --color-ember: #ef5b34;
+  --color-success: #3dd68c;
+  --color-warning: #f5a524;
+  --color-error: #f25c4a;
+  --color-info: #6aa8ff;
   --color-bg: #17181c;
   --color-sidebar: #131417;
   --color-surface: #202126;
   --color-surface-raised: #27282e;
+  --color-surface-hover: #2d2e35;
   --color-border: rgba(255, 255, 255, 0.07);
+  --color-border-strong: rgba(255, 255, 255, 0.12);
   --color-text: #ececef;
   --color-text-secondary: #9b9da8;
   --color-text-muted: #6e707b;
-  --color-accent: #f5a524;
-  --color-ember: #ef5b34;
+  --sidebar-text: #8e909b;
+  --sidebar-bg-hover: rgba(255, 255, 255, 0.04);
+  --sidebar-bg-active: rgba(245, 165, 36, 0.1);
+  --header-bg: rgba(23, 24, 28, 0.72);
+  --hero-gradient: linear-gradient(120deg, rgba(239, 91, 52, 0.22) 0%, rgba(245, 165, 36, 0.12) 45%, rgba(32, 33, 38, 0) 100%);
+  --chart-grid: rgba(255, 255, 255, 0.06);
+  --chart-cursor: rgba(255, 255, 255, 0.04);
+  --scrollbar: rgba(255, 255, 255, 0.08);
+  --scrollbar-hover: rgba(255, 255, 255, 0.16);
+  --sider-shadow: 8px 0 24px rgba(0, 0, 0, 0.25);
+  --glow-1: rgba(239, 91, 52, 0.07);
+  --glow-2: rgba(245, 165, 36, 0.05);
+  --login-bg: #1b1c20;
+  /* Kept for older rules below. */
+  --color-accent: var(--color-primary);
   --gradient-accent: linear-gradient(135deg, #ef5b34 0%, #f5a524 100%);
 
   color-scheme: dark;
+}
+
+/* LIGHT mode — warm off-white page, white surfaces, near-black text, same accent. */
+:root[data-theme='light'] {
+  --elevation-1: 0 1px 2px rgba(28, 29, 34, 0.05), 0 4px 12px rgba(28, 29, 34, 0.05);
+  --elevation-2: 0 6px 18px rgba(28, 29, 34, 0.1), 0 2px 4px rgba(28, 29, 34, 0.05);
+  --elevation-3: 0 12px 28px rgba(28, 29, 34, 0.12), 0 2px 6px rgba(28, 29, 34, 0.06);
+  --elevation-4: 0 24px 56px rgba(28, 29, 34, 0.18), 0 8px 18px rgba(28, 29, 34, 0.08);
+
+  --color-primary: #db8a00;
+  --color-primary-hover: #f09a0c;
+  --color-ember: #e5532d;
+  --color-success: #1e9e63;
+  --color-warning: #d98a00;
+  --color-error: #d93a2b;
+  --color-info: #2f7ae5;
+  --color-bg: #f5f3ef;
+  --color-sidebar: #ffffff;
+  --color-surface: #ffffff;
+  --color-surface-raised: #f8f6f2;
+  --color-surface-hover: #f2efe9;
+  --color-border: rgba(28, 29, 34, 0.08);
+  --color-border-strong: rgba(28, 29, 34, 0.14);
+  --color-text: #1c1d22;
+  --color-text-secondary: #5c5f6a;
+  --color-text-muted: #8a8d97;
+  --sidebar-text: #5c5f6a;
+  --sidebar-bg-hover: rgba(28, 29, 34, 0.04);
+  --sidebar-bg-active: rgba(219, 138, 0, 0.12);
+  --header-bg: rgba(245, 243, 239, 0.8);
+  --hero-gradient: linear-gradient(120deg, rgba(239, 91, 52, 0.14) 0%, rgba(245, 165, 36, 0.1) 45%, rgba(255, 255, 255, 0) 100%);
+  --chart-grid: rgba(28, 29, 34, 0.08);
+  --chart-cursor: rgba(28, 29, 34, 0.04);
+  --scrollbar: rgba(28, 29, 34, 0.14);
+  --scrollbar-hover: rgba(28, 29, 34, 0.26);
+  --sider-shadow: 6px 0 20px rgba(28, 29, 34, 0.05);
+  --glow-1: rgba(239, 91, 52, 0.06);
+  --glow-2: rgba(245, 165, 36, 0.06);
+  --login-bg: #f5f3ef;
+
+  color-scheme: light;
 }
 
 * {
@@ -62,8 +123,8 @@ body {
  */
 .app-content-bg {
   background:
-    radial-gradient(1200px 520px at 100% -10%, rgba(239, 91, 52, 0.07), transparent 60%),
-    radial-gradient(900px 480px at -10% 110%, rgba(245, 165, 36, 0.05), transparent 60%),
+    radial-gradient(1200px 520px at 100% -10%, var(--glow-1), transparent 60%),
+    radial-gradient(900px 480px at -10% 110%, var(--glow-2), transparent 60%),
     var(--color-bg);
 }
 
@@ -81,7 +142,7 @@ body {
   background:
     linear-gradient(118deg, #ef5b34 0%, #e8693f 30%, transparent 30.1%),
     linear-gradient(298deg, #f5a524 0%, #f5c25e 24%, transparent 24.1%),
-    #1b1c20;
+    var(--login-bg);
 }
 
 /* Small uppercase, letter-spaced label — section titles, card titles, KPI captions. */
@@ -110,11 +171,11 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--scrollbar);
   border-radius: 8px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.16);
+  background: var(--scrollbar-hover);
 }
 
 /* Accessible focus ring — only for keyboard users, never for mouse clicks. */
@@ -131,7 +192,7 @@ body {
  * would give a full-height/full-width bar.
  */
 .ant-layout-sider {
-  box-shadow: 1px 0 0 var(--color-border), 8px 0 24px rgba(0, 0, 0, 0.25);
+  box-shadow: 1px 0 0 var(--color-border), var(--sider-shadow);
 }
 
 /* Sidebar active item: a short accent bar on the left edge, like a lit indicator. */
@@ -302,8 +363,8 @@ body {
 }
 
 /* Sidebar nav row: background + indicator transition (no layout jump). */
-.ant-menu-dark .ant-menu-item,
-.ant-menu-dark .ant-menu-submenu-title {
+.app-sidebar-menu .ant-menu-item,
+.app-sidebar-menu .ant-menu-submenu-title {
   transition:
     background-color var(--motion-fast) var(--motion-ease),
     color var(--motion-fast) var(--motion-ease);

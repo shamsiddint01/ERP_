@@ -134,6 +134,7 @@ export function TeacherDetailPage() {
           <Descriptions column={{ xs: 1, sm: 2, md: 3 }} style={{ marginTop: 16 }} title="O'qituvchi profili">
             <Descriptions.Item label="Malaka">{teacher.qualification ?? '—'}</Descriptions.Item>
             <Descriptions.Item label="Tajriba">{teacher.experienceYears !== null ? `${teacher.experienceYears} yil` : '—'}</Descriptions.Item>
+            <Descriptions.Item label="Maosh foizi">{teacher.salaryPercent !== null ? `${Number(teacher.salaryPercent)}%` : 'Belgilanmagan'}</Descriptions.Item>
             <Descriptions.Item label="Mutaxassislik">{teacher.specialization ?? '—'}</Descriptions.Item>
             {teacher.bio && (
               <Descriptions.Item label="Bio" span={3}>

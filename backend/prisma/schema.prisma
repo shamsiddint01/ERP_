@@ -221,9 +221,10 @@ model User {
   student Student?
 
   // Student portal
-  createdHomeworks    Homework[]           @relation("HomeworkCreatedBy")
-  gradedSubmissions   HomeworkSubmission[] @relation("HomeworkSubmissionGradedBy")
-  createdExtraLessons ExtraLesson[]        @relation("ExtraLessonCreatedBy")
+  createdHomeworks       Homework[]             @relation("HomeworkCreatedBy")
+  gradedSubmissions      HomeworkSubmission[]   @relation("HomeworkSubmissionGradedBy")
+  createdExtraLessons    ExtraLesson[]          @relation("ExtraLessonCreatedBy")
+  recordedSalaryPayments TeacherSalaryPayment[] @relation("SalaryPaymentRecordedBy")
 
   // Phase F
   markedStudentAttendances StudentAttendance[] @relation("StudentAttendanceMarkedBy")
@@ -382,15 +383,16 @@ model Employee {
   user User?
 
   // Education center (Phase A/D/E)
-  managedBranches      Branch[]        @relation("BranchManager")
-  taughtGroups         StudentGroup[]  @relation("GroupTeacher")
+  managedBranches      Branch[]               @relation("BranchManager")
+  taughtGroups         StudentGroup[]         @relation("GroupTeacher")
   teacherProfile       TeacherProfile?
-  taughtSchedules      Schedule[]      @relation("ScheduleTeacher")
-  taughtLessons        Lesson[]        @relation("LessonTeacher")
+  taughtSchedules      Schedule[]             @relation("ScheduleTeacher")
+  taughtLessons        Lesson[]               @relation("LessonTeacher")
   // Phase H
-  examsTeaching        Exam[]          @relation("ExamTeacher")
+  examsTeaching        Exam[]                 @relation("ExamTeacher")
   // Student portal
-  extraLessonsTeaching ExtraLesson[]   @relation("ExtraLessonTeacher")
+  extraLessonsTeaching ExtraLesson[]          @relation("ExtraLessonTeacher")
+  salaryPayments       TeacherSalaryPayment[]
 
   @@index([status])
   @@map("employees")
@@ -699,6 +701,8 @@ model TeacherProfile {
   hourlyRate      Decimal?             @map("hourly_rate") @db.Decimal(18, 2)
   perLessonRate   Decimal?             @map("per_lesson_rate") @db.Decimal(18, 2)
   perGroupRate    Decimal?             @map("per_group_rate") @db.Decimal(18, 2)
+  /// Salary = this % of what the teacher's group students paid in the month (see SalariesService).
+  salaryPercent   Decimal?             @map("salary_percent") @db.Decimal(5, 2)
   createdAt       DateTime             @default(now()) @map("created_at")
   updatedAt       DateTime             @updatedAt @map("updated_at")
 
@@ -1133,4 +1137,25 @@ model ExtraLessonRegistration {
   @@unique([extraLessonId, studentId])
   @@index([studentId])
   @@map("extra_lesson_registrations")
+}
+
+// =========================================================================
+// TEACHER SALARY — a % of tuition collected from the teacher's groups
+// =========================================================================
+
+/// One salary payout to a teacher for a month ("YYYY-MM"); several (partial) payouts per month are allowed.
+model TeacherSalaryPayment {
+  id                String   @id @default(uuid())
+  teacherEmployeeId String   @map("teacher_employee_id")
+  teacherEmployee   Employee @relation(fields: [teacherEmployeeId], references: [id])
+  period            String
+  amount            Decimal  @db.Decimal(18, 2)
+  paidAt            DateTime @default(now()) @map("paid_at")
+  note              String?
+  recordedByUserId  String   @map("recorded_by_user_id")
+  recordedBy        User     @relation("SalaryPaymentRecordedBy", fields: [recordedByUserId], references: [id])
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  @@index([teacherEmployeeId, period])
+  @@map("teacher_salary_payments")
 }
