@@ -131,7 +131,7 @@ export class PortalService {
   async getGroups(userId: string) {
     const student = await this.resolveStudent(userId);
     const enrollments = await this.prisma.enrollment.findMany({
-      where: { studentId: student.id, status: { not: 'CANCELLED' } },
+      where: { studentId: student.id, status: { not: 'CANCELLED' }, group: { deletedAt: null } },
       select: {
         id: true,
         status: true,

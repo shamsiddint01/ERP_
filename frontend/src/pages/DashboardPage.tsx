@@ -24,6 +24,7 @@ import { attendanceChartColors, chartAxisTick, chartCursorFill, chartGridStroke,
 import { useAuthStore } from '../store/auth.store';
 import { avatarColor } from '../utils/avatarColor';
 import { formatNumber } from '../utils/format';
+import { PAYMENT_STATE_COLORS, PAYMENT_STATE_LABELS, paymentState } from '../utils/paymentState';
 import type { PaymentMethod } from '../types';
 
 const LESSON_STATUS_LABELS: Record<string, string> = {
@@ -31,7 +32,6 @@ const LESSON_STATUS_LABELS: Record<string, string> = {
   IN_PROGRESS: 'Davom etmoqda',
   COMPLETED: 'Yakunlangan',
   CANCELLED: 'Bekor qilingan',
-  NO_SHOW: 'Kelinmadi',
 };
 
 const LESSON_STATUS_COLORS: Record<string, string> = {
@@ -39,7 +39,6 @@ const LESSON_STATUS_COLORS: Record<string, string> = {
   IN_PROGRESS: 'processing',
   COMPLETED: 'green',
   CANCELLED: 'default',
-  NO_SHOW: 'red',
 };
 
 const ACTION_REQUIRED_LABELS: Record<string, string> = {
@@ -319,8 +318,8 @@ export function DashboardPage() {
                           </Typography.Text>
                         </div>
                       </div>
-                      <Tag color={payment.status === 'COMPLETED' ? 'green' : payment.status === 'REFUNDED' ? 'default' : 'gold'} style={{ marginInlineEnd: 0 }}>
-                        {payment.status === 'COMPLETED' ? "To'langan" : payment.status === 'REFUNDED' ? 'Qaytarilgan' : 'Kutilmoqda'}
+                      <Tag color={PAYMENT_STATE_COLORS[paymentState(payment.status)]} style={{ marginInlineEnd: 0 }}>
+                        {PAYMENT_STATE_LABELS[paymentState(payment.status)]}
                       </Tag>
                       <span style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', minWidth: 110, textAlign: 'right' }}>{money(payment.amount)}</span>
                     </div>

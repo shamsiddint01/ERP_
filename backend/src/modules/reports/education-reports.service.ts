@@ -185,6 +185,7 @@ export class EducationReportsService {
     const pageSize = query.pageSize ?? 20;
 
     const where: Prisma.StudentGroupWhereInput = {
+      deletedAt: null,
       branchId: query.branchId,
       courseId: query.courseId,
       teacherEmployeeId: query.teacherEmployeeId,

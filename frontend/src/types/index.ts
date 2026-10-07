@@ -15,6 +15,8 @@ export interface CurrentUserProfile {
   studentId: string | null;
   /** Set when this login belongs to an active teacher — with the Teacher role, the app shows the teacher cabinet. */
   teacherProfileId: string | null;
+  /** Students and teachers may change their own password once per 12 hours — when the next change is allowed (null = now). */
+  passwordChangeAvailableAt?: string | null;
 }
 
 export interface UserListItem {
@@ -358,6 +360,8 @@ export interface GroupListItem {
   startDate: string;
   endDate: string | null;
   status: StudentGroupStatus;
+  /** When the group was cancelled — it is purged 10 days later. */
+  cancelledAt: string | null;
   notes: string | null;
   createdAt: string;
   enrolledCount: number;
@@ -464,7 +468,7 @@ export interface TransferredEnrollment extends EnrollmentDetail {
 export type ScheduleDayOfWeek = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY';
 export type ScheduleRecurrenceType = 'WEEKLY';
 export type ScheduleStatus = 'ACTIVE' | 'PAUSED' | 'CANCELLED';
-export type LessonStatus = 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
+export type LessonStatus = 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
 
 export interface ScheduleListItem {
   id: string;

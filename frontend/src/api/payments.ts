@@ -7,6 +7,8 @@ export interface PaymentQuery {
   search?: string;
   method?: PaymentMethod;
   status?: PaymentStatus;
+  /** To'langan (completed) / To'lanmagan (anything else). */
+  paymentState?: 'PAID' | 'UNPAID';
   from?: string;
   to?: string;
   referenceType?: 'TUITION_CHARGE';

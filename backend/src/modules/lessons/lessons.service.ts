@@ -19,7 +19,7 @@ const LESSON_INCLUDE = {
 const CLOSED_GROUP_STATUSES = new Set(['COMPLETED', 'CANCELLED']);
 
 /** Once a lesson lands in one of these, its "when/who/where" facts are historical and locked — only topic/homework/notes may still be edited. */
-const LOCKED_STATUSES = new Set<LessonStatus>(['COMPLETED', 'CANCELLED', 'NO_SHOW']);
+const LOCKED_STATUSES = new Set<LessonStatus>(['COMPLETED', 'CANCELLED']);
 
 /** A cancelled lesson gave up its slot — it can never block a new one from taking it. Every other status still occupies the slot. */
 const NON_BLOCKING_STATUSES: LessonStatus[] = ['CANCELLED'];
@@ -135,7 +135,7 @@ export class LessonsService {
 
   /**
    * Rescheduling (teacher/classroom/time) is only allowed while the lesson is
-   * still SCHEDULED or IN_PROGRESS; a COMPLETED/CANCELLED/NO_SHOW lesson is a
+   * still SCHEDULED or IN_PROGRESS; a COMPLETED/CANCELLED lesson is a
    * historical record — only its descriptive fields (topic/homework/notes,
    * e.g. filled in by the teacher right after class) may still change.
    */
@@ -215,11 +215,6 @@ export class LessonsService {
 
   async cancel(id: string, actorUserId: string) {
     return this.transitionTo(id, actorUserId, ['SCHEDULED', 'IN_PROGRESS'], 'CANCELLED');
-  }
-
-  /** The only way LessonStatus.NO_SHOW is ever reached — a class the student(s) never attended, as opposed to one the center called off. */
-  async noShow(id: string, actorUserId: string) {
-    return this.transitionTo(id, actorUserId, ['SCHEDULED', 'IN_PROGRESS'], 'NO_SHOW');
   }
 
   private async transitionTo(id: string, actorUserId: string, allowedFrom: LessonStatus[], to: LessonStatus, extraData: Prisma.LessonUpdateInput = {}) {

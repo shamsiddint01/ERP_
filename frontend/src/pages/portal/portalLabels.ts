@@ -1,4 +1,4 @@
-import type { ExamType, PaymentMethod, PortalHomeworkState, ScheduleDayOfWeek, TuitionChargeStatus } from '../../types';
+import type { ExamType, PaymentMethod, PortalHomeworkState, ScheduleDayOfWeek } from '../../types';
 
 export const DAY_LABELS: Record<ScheduleDayOfWeek, string> = {
   MONDAY: 'Dushanba',
@@ -35,14 +35,6 @@ export const METHOD_LABELS: Record<PaymentMethod, string> = {
   BANK_TRANSFER: "O'tkazma",
   ONLINE: 'Onlayn',
   CHEQUE: 'Chek',
-};
-
-export const CHARGE_STATUS: Record<TuitionChargeStatus, { label: string; color: string }> = {
-  PENDING: { label: "To'lanmagan", color: 'blue' },
-  PARTIALLY_PAID: { label: "Qisman to'langan", color: 'orange' },
-  PAID: { label: "To'langan", color: 'green' },
-  OVERDUE: { label: "Muddati o'tgan", color: 'red' },
-  CANCELLED: { label: 'Bekor qilingan', color: 'default' },
 };
 
 export const HOMEWORK_STATE: Record<PortalHomeworkState, { label: string; color: string }> = {

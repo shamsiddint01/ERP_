@@ -15,13 +15,12 @@ import { PageHeader } from '../../components/PageHeader';
 import { useAuthStore } from '../../store/auth.store';
 import type { LessonListItem, LessonStatus } from '../../types';
 
-const STATUS_COLORS: Record<LessonStatus, string> = { SCHEDULED: 'default', IN_PROGRESS: 'blue', COMPLETED: 'green', CANCELLED: 'red', NO_SHOW: 'orange' };
+const STATUS_COLORS: Record<LessonStatus, string> = { SCHEDULED: 'default', IN_PROGRESS: 'blue', COMPLETED: 'green', CANCELLED: 'red' };
 const STATUS_LABELS: Record<LessonStatus, string> = {
   SCHEDULED: 'Rejalashtirilgan',
   IN_PROGRESS: 'Jarayonda',
   COMPLETED: 'Yakunlangan',
   CANCELLED: 'Bekor qilingan',
-  NO_SHOW: 'Kelmadi',
 };
 
 export function LessonsPage() {

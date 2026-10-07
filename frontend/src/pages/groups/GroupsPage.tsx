@@ -11,7 +11,9 @@ import { listTeachers } from '../../api/teachers';
 import { GroupFormModal } from '../../components/GroupFormModal';
 import { PageErrorState } from '../../components/PageErrorState';
 import { useAuthStore } from '../../store/auth.store';
+import { palette } from '../../theme';
 import type { GroupListItem, StudentGroupStatus } from '../../types';
+import { purgeDaysLeft, purgeLabel } from '../../utils/groupPurge';
 
 const STATUS_COLORS: Record<StudentGroupStatus, string> = { PLANNED: 'default', ACTIVE: 'green', PAUSED: 'gold', COMPLETED: 'blue', CANCELLED: 'red' };
 const STATUS_LABELS: Record<StudentGroupStatus, string> = {
@@ -163,7 +165,19 @@ export function GroupsPage() {
             ),
           },
           { title: 'Boshlanish', dataIndex: 'startDate', render: (v: string) => dayjs(v).format('DD.MM.YYYY') },
-          { title: 'Status', dataIndex: 'status', render: (v: StudentGroupStatus) => <Tag color={STATUS_COLORS[v]}>{STATUS_LABELS[v]}</Tag> },
+          {
+            title: 'Status',
+            dataIndex: 'status',
+            render: (v: StudentGroupStatus, record) => {
+              const daysLeft = purgeDaysLeft(record);
+              return (
+                <>
+                  <Tag color={STATUS_COLORS[v]}>{STATUS_LABELS[v]}</Tag>
+                  {daysLeft !== null && <div style={{ fontSize: 12, color: palette.error, marginTop: 2 }}>{purgeLabel(daysLeft)}</div>}
+                </>
+              );
+            },
+          },
         ]}
       />
 

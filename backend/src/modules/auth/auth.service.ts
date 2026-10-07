@@ -20,6 +20,31 @@ interface RequestContext {
   ipAddress?: string;
 }
 
+/** Students and teachers may change their own password at most once per this window. */
+export const SELF_PASSWORD_CHANGE_COOLDOWN_MS = 12 * 60 * 60 * 1000;
+
+/**
+ * When a student's or teacher's login may next change its own password —
+ * null when it may right now, or when the login is neither (staff/admin are
+ * not limited).
+ */
+export function nextSelfPasswordChange(
+  user: { passwordChangedAt: Date | null; student?: { id: string } | null; employee?: { teacherProfile: { id: string } | null } | null },
+  now = new Date(),
+): Date | null {
+  const limited = !!user.student || !!user.employee?.teacherProfile;
+  if (!limited || !user.passwordChangedAt) return null;
+  const availableAt = new Date(user.passwordChangedAt.getTime() + SELF_PASSWORD_CHANGE_COOLDOWN_MS);
+  return availableAt > now ? availableAt : null;
+}
+
+/** "07.10.2026 21:15" in Tashkent time (UTC+5). */
+function formatTashkent(date: Date): string {
+  const t = new Date(date.getTime() + 5 * 60 * 60 * 1000);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(t.getUTCDate())}.${pad(t.getUTCMonth() + 1)}.${t.getUTCFullYear()} ${pad(t.getUTCHours())}:${pad(t.getUTCMinutes())}`;
+}
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -114,6 +139,8 @@ export class AuthService {
       studentId: user.student?.id ?? null,
       /** Set when this login belongs to an active teacher — together with the Teacher role, the frontend shows the teacher cabinet. */
       teacherProfileId: user.employee?.teacherProfile?.status === 'ACTIVE' ? user.employee.teacherProfile.id : null,
+      /** When a student/teacher may next change their own password (null = now). */
+      passwordChangeAvailableAt: nextSelfPasswordChange(user),
     };
   }
 
@@ -122,17 +149,26 @@ export class AuthService {
    * revoked, so a password that leaked is useless everywhere else at once —
    * the current device stays signed in. The new password is also kept
    * encrypted so an admin can still look it up if the user forgets it.
+   * Students and teachers may do this at most once per 12 hours; an admin
+   * resetting someone's password is not limited and doesn't start the clock.
    */
   async changePassword(userId: string, currentPassword: string, newPassword: string, currentRefreshToken?: string): Promise<void> {
-    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      include: { student: { select: { id: true } }, employee: { select: { teacherProfile: { select: { id: true } } } } },
+    });
     if (!(await bcrypt.compare(currentPassword, user.passwordHash))) {
       throw new BadRequestException("Joriy parol noto'g'ri");
     }
     if (currentPassword === newPassword) throw new BadRequestException('Yangi parol eskisidan farq qilishi kerak');
+    const availableAt = nextSelfPasswordChange(user);
+    if (availableAt) {
+      throw new BadRequestException(`Parolni 12 soatda faqat bir marta o'zgartirish mumkin. Keyingi imkoniyat: ${formatTashkent(availableAt)}`);
+    }
 
     const currentSessionId = currentRefreshToken?.split('.')[0];
     await this.prisma.$transaction([
-      this.prisma.user.update({ where: { id: userId }, data: { passwordHash: await bcrypt.hash(newPassword, 10), temporaryPassword: encryptCredential(newPassword) } }),
+      this.prisma.user.update({ where: { id: userId }, data: { passwordHash: await bcrypt.hash(newPassword, 10), temporaryPassword: encryptCredential(newPassword), passwordChangedAt: new Date() } }),
       this.prisma.userSession.updateMany({
         where: { userId, revokedAt: null, ...(currentSessionId && { id: { not: currentSessionId } }) },
         data: { revokedAt: new Date() },

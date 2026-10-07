@@ -20,7 +20,6 @@ const LESSON_STATUS: Record<string, { label: string; color: string }> = {
   IN_PROGRESS: { label: 'Davom etmoqda', color: 'processing' },
   COMPLETED: { label: 'Yakunlangan', color: 'green' },
   CANCELLED: { label: 'Bekor qilingan', color: 'default' },
-  NO_SHOW: { label: "O'tkazilmadi", color: 'red' },
 };
 
 /** Monday 00:00 of the week containing `date`. */

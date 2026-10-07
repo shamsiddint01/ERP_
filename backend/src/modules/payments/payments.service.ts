@@ -30,7 +30,7 @@ export class PaymentsService {
     const pageSize = query.pageSize ?? 20;
     const where: Prisma.PaymentWhereInput = {
       method: query.method,
-      status: query.status,
+      status: query.status ?? (query.paymentState === 'PAID' ? 'COMPLETED' : query.paymentState === 'UNPAID' ? { not: 'COMPLETED' } : undefined),
       referenceType: query.referenceType,
       referenceId: query.referenceId,
       ...(query.search && { paymentNumber: { contains: query.search, mode: 'insensitive' } }),

@@ -48,6 +48,8 @@ import { palette } from '../../theme';
 import { useAuthStore } from '../../store/auth.store';
 import { formatCurrency, formatDate, formatDateTime, formatNumber } from '../../utils/format';
 import { ATTENDANCE_STATUS_COLORS, ATTENDANCE_STATUS_LABELS } from '../../utils/attendanceStatus';
+import { chargeState } from '../../utils/paymentState';
+import { StateTag } from '../../components/PaymentStateTag';
 import type { EnrollmentStatus, ExamType, StudentAttendanceHistoryRecord, StudentEnrollmentItem, StudentStatus, TuitionChargeStatus } from '../../types';
 
 const STATUS_COLORS: Record<StudentStatus, string> = { ACTIVE: 'green', PAUSED: 'gold', GRADUATED: 'blue', INACTIVE: 'default', LEFT: 'red' };
@@ -59,7 +61,6 @@ const STATUS_LABELS: Record<StudentStatus, string> = {
   LEFT: "Chiqib ketgan",
 };
 const ENROLLMENT_STATUS_COLORS: Record<EnrollmentStatus, string> = { ACTIVE: 'green', PAUSED: 'gold', COMPLETED: 'blue', CANCELLED: 'red', TRANSFERRED: 'purple' };
-const TUITION_STATUS_COLORS: Record<TuitionChargeStatus, string> = { PENDING: 'blue', PARTIALLY_PAID: 'orange', PAID: 'green', OVERDUE: 'red', CANCELLED: 'default' };
 const EXAM_TYPE_LABELS: Record<ExamType, string> = {
   QUIZ: 'Test',
   MIDTERM: 'Oraliq nazorat',
@@ -452,7 +453,7 @@ export function StudentDetailPage() {
                       { title: "To'langan", dataIndex: 'allocatedAmount', render: (v: number) => formatNumber(v, 2) },
                       { title: 'Qoldiq', dataIndex: 'outstanding', render: (v: number) => formatNumber(v, 2) },
                       { title: 'Muddati', dataIndex: 'dueDate', render: (v: string) => formatDate(v) },
-                      { title: 'Status', dataIndex: 'status', render: (v: TuitionChargeStatus) => <Tag color={TUITION_STATUS_COLORS[v]}>{v}</Tag> },
+                      { title: 'Status', dataIndex: 'status', render: (v: TuitionChargeStatus) => <StateTag state={chargeState(v)} /> },
                     ]}
                   />
                 ),

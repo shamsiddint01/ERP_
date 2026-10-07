@@ -54,7 +54,8 @@ export class StudentFinanceService {
 
     const [charges, payments, discounts] = await Promise.all([
       this.prisma.tuitionCharge.findMany({
-        where: { studentId },
+        // A cancelled charge isn't owed and isn't shown (the app only shows To'langan / To'lanmagan).
+        where: { studentId, status: { not: 'CANCELLED' } },
         include: {
           enrollment: { select: { id: true, group: { select: { id: true, name: true, code: true } } } },
           allocations: {

@@ -1,6 +1,6 @@
 import { EyeOutlined, PlusOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
-import { Button, Select, Table, Tag } from 'antd';
+import { Button, Select, Table } from 'antd';
 import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { listTuitionCharges } from '../../api/tuition';
@@ -9,36 +9,25 @@ import { FilterBar } from '../../components/FilterBar';
 import { PageErrorState } from '../../components/PageErrorState';
 import { PageHeader } from '../../components/PageHeader';
 import { useAuthStore } from '../../store/auth.store';
-import type { TuitionCharge, TuitionChargeStatus } from '../../types';
-
-const STATUS_COLORS: Record<TuitionChargeStatus, string> = {
-  PENDING: 'blue',
-  PARTIALLY_PAID: 'orange',
-  PAID: 'green',
-  OVERDUE: 'red',
-  CANCELLED: 'default',
-};
-
-const STATUS_LABELS: Record<TuitionChargeStatus, string> = {
-  PENDING: 'Kutilmoqda',
-  PARTIALLY_PAID: 'Qisman to‘langan',
-  PAID: "To'langan",
-  OVERDUE: 'Muddati o‘tgan',
-  CANCELLED: 'Bekor qilingan',
-};
+import { ChargeStateTag } from '../../components/PaymentStateTag';
+import type { TuitionCharge } from '../../types';
+import { PAYMENT_STATE_OPTIONS, type PaymentState } from '../../utils/paymentState';
 
 export function TuitionPage() {
   const navigate = useNavigate();
   const hasPermission = useAuthStore((state) => state.hasPermission);
   const [searchParams] = useSearchParams();
-  // Deep links (e.g. the dashboard's overdue card) can preselect a status via ?status=.
-  const [status, setStatus] = useState<TuitionChargeStatus | undefined>(() => (searchParams.get('status') as TuitionChargeStatus | null) ?? undefined);
+  // Deep links can preselect a state via ?state=PAID|UNPAID.
+  const [state, setState] = useState<PaymentState | undefined>(() => {
+    const requested = searchParams.get('state');
+    return requested === 'PAID' || requested === 'UNPAID' ? requested : undefined;
+  });
   const [page, setPage] = useState(1);
   const [createOpen, setCreateOpen] = useState(false);
 
   const chargesQuery = useQuery({
-    queryKey: ['tuition-charges', { status, page }],
-    queryFn: () => listTuitionCharges({ status, page, pageSize: 20 }),
+    queryKey: ['tuition-charges', { state, page }],
+    queryFn: () => listTuitionCharges({ paymentState: state, page, pageSize: 20 }),
     placeholderData: (prev) => prev,
   });
 
@@ -66,10 +55,10 @@ export function TuitionPage() {
           placeholder="Status"
           allowClear
           style={{ width: 200 }}
-          value={status}
-          options={Object.entries(STATUS_LABELS).map(([value, label]) => ({ value, label }))}
+          value={state}
+          options={PAYMENT_STATE_OPTIONS}
           onChange={(value) => {
-            setStatus(value);
+            setState(value);
             setPage(1);
           }}
         />
@@ -89,7 +78,7 @@ export function TuitionPage() {
           { title: 'Chegirma', dataIndex: 'discountAmount', render: (v: string) => Number(v).toLocaleString('uz-UZ') },
           { title: 'Sof summa', dataIndex: 'netAmount', render: (v: string) => Number(v).toLocaleString('uz-UZ') },
           { title: 'Muddati', dataIndex: 'dueDate', render: (v: string) => new Date(v).toLocaleDateString('uz-UZ') },
-          { title: 'Status', dataIndex: 'status', render: (v: TuitionChargeStatus) => <Tag color={STATUS_COLORS[v]}>{STATUS_LABELS[v]}</Tag> },
+          { title: 'Status', render: (_, record) => <ChargeStateTag charge={record} /> },
           {
             title: 'Amallar',
             render: (_, record) => (

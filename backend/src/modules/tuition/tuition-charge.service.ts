@@ -39,6 +39,9 @@ const TUITION_CHARGE_INCLUDE = {
 /** ACTIVE_ENROLLMENT_STATUSES-style guard isn't needed here — a charge may be billed against any non-cancelled enrollment (a COMPLETED one can still legitimately owe its last month's tuition). */
 const CANCELLED_ENROLLMENT_STATUS = 'CANCELLED';
 
+/** Every charge status the app shows as "To'lanmagan" (still owed). */
+const UNPAID_STATUSES: TuitionChargeStatus[] = ['PENDING', 'PARTIALLY_PAID', 'OVERDUE'];
+
 @Injectable()
 export class TuitionChargeService {
   constructor(
@@ -55,7 +58,8 @@ export class TuitionChargeService {
     const where: Prisma.TuitionChargeWhereInput = {
       studentId: query.studentId,
       enrollmentId: query.enrollmentId,
-      status: query.status,
+      // Cancelled charges aren't owed and aren't shown, unless asked for by status explicitly.
+      status: query.status ?? (query.paymentState === 'PAID' ? 'PAID' : query.paymentState === 'UNPAID' ? { in: UNPAID_STATUSES } : { not: 'CANCELLED' }),
       billingPeriod: query.billingPeriod,
       ...((query.dueDateFrom || query.dueDateTo) && {
         dueDate: {

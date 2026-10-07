@@ -276,7 +276,7 @@ describe('EducationReportsService.getGroupsReport', () => {
 
     await service.getGroupsReport({ branchId: 'b1', courseId: 'c1', teacherEmployeeId: 't1' });
 
-    expect(prisma.studentGroup.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { branchId: 'b1', courseId: 'c1', teacherEmployeeId: 't1', status: undefined } }));
+    expect(prisma.studentGroup.findMany).toHaveBeenCalledWith(expect.objectContaining({ where: { deletedAt: null, branchId: 'b1', courseId: 'c1', teacherEmployeeId: 't1', status: undefined } }));
   });
 });
 

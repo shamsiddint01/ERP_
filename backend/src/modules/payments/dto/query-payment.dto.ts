@@ -1,5 +1,5 @@
 import { PaymentMethod, PaymentProcessingStatus, PaymentReferenceType } from '@prisma/client';
-import { IsEnum, IsISO8601, IsOptional, IsUUID } from 'class-validator';
+import { IsEnum, IsIn, IsISO8601, IsOptional, IsUUID } from 'class-validator';
 import { PaginationQueryDto } from '../../../shared/dto/pagination-query.dto.js';
 
 export class QueryPaymentDto extends PaginationQueryDto {
@@ -19,6 +19,11 @@ export class QueryPaymentDto extends PaginationQueryDto {
   @IsOptional()
   @IsEnum(PaymentProcessingStatus)
   status?: PaymentProcessingStatus;
+
+  /** The two states the app shows: PAID = completed, UNPAID = anything else (pending, failed, refunded). */
+  @IsOptional()
+  @IsIn(['PAID', 'UNPAID'])
+  paymentState?: 'PAID' | 'UNPAID';
 
   @IsOptional()
   @IsISO8601()

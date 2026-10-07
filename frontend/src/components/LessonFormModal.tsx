@@ -42,8 +42,8 @@ interface FormValues {
   notes?: string;
 }
 
-/** Once a lesson is COMPLETED/CANCELLED/NO_SHOW its when/who/where are historical and locked — only topic/homework/notes may still change (mirrors LessonsService.LOCKED_STATUSES). */
-const LOCKED_STATUSES = new Set(['COMPLETED', 'CANCELLED', 'NO_SHOW']);
+/** Once a lesson is COMPLETED/CANCELLED its when/who/where are historical and locked — only topic/homework/notes may still change (mirrors LessonsService.LOCKED_STATUSES). */
+const LOCKED_STATUSES = new Set(['COMPLETED', 'CANCELLED']);
 
 export function LessonFormModal({ open, onClose, lesson, defaultGroupId }: LessonFormModalProps) {
   const { message } = App.useApp();

@@ -1,4 +1,4 @@
-import { DollarOutlined, EditOutlined, StopOutlined } from '@ant-design/icons';
+import { DeleteOutlined, DollarOutlined, EditOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { App, Button, DatePicker, Form, Input, Modal, Popconfirm, Spin, Table, Tag } from 'antd';
 import dayjs from 'dayjs';
@@ -10,25 +10,9 @@ import { DetailHeader } from '../../components/DetailHeader';
 import { DetailSection } from '../../components/DetailSection';
 import { InfoGrid } from '../../components/InfoGrid';
 import { PageErrorState } from '../../components/PageErrorState';
+import { ChargeStateTag } from '../../components/PaymentStateTag';
 import { RecordTuitionPaymentModal } from '../../components/RecordTuitionPaymentModal';
 import { useAuthStore } from '../../store/auth.store';
-import type { TuitionChargeStatus } from '../../types';
-
-const STATUS_COLORS: Record<TuitionChargeStatus, string> = {
-  PENDING: 'blue',
-  PARTIALLY_PAID: 'orange',
-  PAID: 'green',
-  OVERDUE: 'red',
-  CANCELLED: 'default',
-};
-
-const STATUS_LABELS: Record<TuitionChargeStatus, string> = {
-  PENDING: 'Kutilmoqda',
-  PARTIALLY_PAID: 'Qisman to‘langan',
-  PAID: "To'langan",
-  OVERDUE: 'Muddati o‘tgan',
-  CANCELLED: 'Bekor qilingan',
-};
 
 export function TuitionDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -45,7 +29,7 @@ export function TuitionDetailPage() {
   const cancelMutation = useMutation({
     mutationFn: () => cancelTuitionCharge(id!),
     onSuccess: () => {
-      message.success('Hisob bekor qilindi');
+      message.success("Hisob o'chirildi");
       queryClient.invalidateQueries({ queryKey: ['tuition-charge', id] });
       queryClient.invalidateQueries({ queryKey: ['tuition-charges'] });
       queryClient.invalidateQueries({ queryKey: ['student-balance'] });
@@ -107,7 +91,7 @@ export function TuitionDetailPage() {
         }
         actions={
           <ActionBar>
-            <Tag color={STATUS_COLORS[charge.status]}>{STATUS_LABELS[charge.status]}</Tag>
+            {charge.status === 'CANCELLED' ? <Tag>O'chirilgan</Tag> : <ChargeStateTag charge={charge} />}
             {outstanding > 0 && charge.status !== 'CANCELLED' && canRecordPayment && (
               <Button type="primary" icon={<DollarOutlined />} onClick={() => setPaymentOpen(true)}>
                 To'lov qabul qilish
@@ -125,9 +109,9 @@ export function TuitionDetailPage() {
               </Button>
             )}
             {canCancel && charge.status !== 'CANCELLED' && charge.allocations.length === 0 && (
-              <Popconfirm title="Ushbu hisobni bekor qilishni tasdiqlaysizmi?" onConfirm={() => cancelMutation.mutate()}>
-                <Button loading={cancelMutation.isPending} danger icon={<StopOutlined />}>
-                  Bekor qilish
+              <Popconfirm title="Ushbu hisobni o'chirishni tasdiqlaysizmi?" onConfirm={() => cancelMutation.mutate()}>
+                <Button loading={cancelMutation.isPending} danger icon={<DeleteOutlined />}>
+                  O'chirish
                 </Button>
               </Popconfirm>
             )}

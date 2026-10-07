@@ -1,13 +1,15 @@
 import { CheckCircleOutlined, ExclamationCircleOutlined, FileTextOutlined, WalletOutlined } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
-import { Card, Skeleton, Table, Tag } from 'antd';
+import { Card, Skeleton, Table } from 'antd';
 import { getPortalPayments } from '../../api/portal';
 import { PageErrorState } from '../../components/PageErrorState';
 import { PageHeader } from '../../components/PageHeader';
 import { StatCard } from '../../components/StatCard';
 import { palette } from '../../theme';
 import { formatDate, formatDateTime, formatNumber } from '../../utils/format';
-import { CHARGE_STATUS, METHOD_LABELS } from './portalLabels';
+import { PaymentStateTag, StateTag } from '../../components/PaymentStateTag';
+import { chargeState } from '../../utils/paymentState';
+import { METHOD_LABELS } from './portalLabels';
 
 const money = (value: number | string) => formatNumber(value);
 
@@ -51,11 +53,11 @@ export function PortalPaymentsPage() {
             { title: "To'langan", render: (_, c) => money(c.allocatedAmount), align: 'right' },
             {
               title: 'Qoldiq',
-              render: (_, c) => <span style={{ fontWeight: 700, color: c.outstanding > 0 && c.status !== 'CANCELLED' ? palette.primary : undefined }}>{money(c.outstanding)}</span>,
+              render: (_, c) => <span style={{ fontWeight: 700, color: c.outstanding > 0 ? palette.primary : undefined }}>{money(c.outstanding)}</span>,
               align: 'right',
             },
             { title: 'Muddat', render: (_, c) => formatDate(c.dueDate) },
-            { title: 'Holat', render: (_, c) => <Tag color={CHARGE_STATUS[c.status].color}>{CHARGE_STATUS[c.status].label}</Tag> },
+            { title: 'Holat', render: (_, c) => <StateTag state={chargeState(c.status)} /> },
           ]}
         />
       </Card>
@@ -73,7 +75,7 @@ export function PortalPaymentsPage() {
             { title: 'Raqam', dataIndex: 'paymentNumber' },
             { title: 'Usul', render: (_, p) => METHOD_LABELS[p.method] },
             { title: 'Summa', render: (_, p) => <span style={{ fontWeight: 700 }}>{money(p.amount)}</span>, align: 'right' },
-            { title: 'Holat', render: (_, p) => (p.status === 'REFUNDED' ? <Tag>Qaytarilgan</Tag> : p.status === 'COMPLETED' ? <Tag color="green">Qabul qilingan</Tag> : <Tag color="gold">Kutilmoqda</Tag>) },
+            { title: 'Holat', render: (_, p) => <PaymentStateTag status={p.status} /> },
           ]}
         />
       </Card>

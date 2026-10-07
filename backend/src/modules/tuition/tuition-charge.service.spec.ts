@@ -245,3 +245,23 @@ describe('TuitionChargeService — lazy overdue check', () => {
     await expect(service.findOne('missing')).rejects.toThrow(NotFoundException);
   });
 });
+
+describe('TuitionChargeService.findAll — two shown states', () => {
+  async function whereFor(query: Record<string, unknown>) {
+    const { service, prisma } = createService();
+    const findMany = vi.fn().mockResolvedValue([]);
+    Object.assign(prisma.tuitionCharge, { findMany, count: vi.fn().mockResolvedValue(0) });
+    await service.findAll(query);
+    return findMany.mock.calls[0][0].where;
+  }
+
+  it("To'langan = fully paid; To'lanmagan = pending, partly paid or overdue", async () => {
+    expect((await whereFor({ paymentState: 'PAID' })).status).toBe('PAID');
+    expect((await whereFor({ paymentState: 'UNPAID' })).status).toEqual({ in: ['PENDING', 'PARTIALLY_PAID', 'OVERDUE'] });
+  });
+
+  it('hides cancelled charges unless a status is asked for explicitly', async () => {
+    expect((await whereFor({})).status).toEqual({ not: 'CANCELLED' });
+    expect((await whereFor({ status: 'CANCELLED' })).status).toBe('CANCELLED');
+  });
+});

@@ -255,16 +255,6 @@ describe('LessonsService', () => {
       await expect(createService(prisma).cancel('lesson1', 'user1')).rejects.toThrow(ConflictException);
     });
 
-    it('noShow(): SCHEDULED -> NO_SHOW', async () => {
-      const prisma = createPrismaMock({ lesson: { findUnique: vi.fn().mockResolvedValue(fakeLesson()) } });
-      await createService(prisma).noShow('lesson1', 'user1');
-      expect(prisma.lesson.updateMany).toHaveBeenCalledWith({ where: { id: 'lesson1', status: 'SCHEDULED' }, data: { status: 'NO_SHOW' } });
-    });
-
-    it('noShow(): rejects marking an already-NO_SHOW lesson again', async () => {
-      const prisma = createPrismaMock({ lesson: { findUnique: vi.fn().mockResolvedValue(fakeLesson({ status: 'NO_SHOW' })) } });
-      await expect(createService(prisma).noShow('lesson1', 'user1')).rejects.toThrow(ConflictException);
-    });
   });
 
   describe('remove', () => {
@@ -296,7 +286,6 @@ describe('LessonsService', () => {
       await expect(createService(prisma).start('lesson1', 'teacherA-user')).rejects.toThrow(ForbiddenException);
       await expect(createService(prisma).complete('lesson1', 'teacherA-user')).rejects.toThrow(ForbiddenException);
       await expect(createService(prisma).cancel('lesson1', 'teacherA-user')).rejects.toThrow(ForbiddenException);
-      await expect(createService(prisma).noShow('lesson1', 'teacherA-user')).rejects.toThrow(ForbiddenException);
       await expect(createService(prisma).update('lesson1', { topic: 'x' }, 'teacherA-user')).rejects.toThrow(ForbiddenException);
       await expect(createService(prisma).remove('lesson1', 'teacherA-user')).rejects.toThrow(ForbiddenException);
     });

@@ -74,13 +74,6 @@ export class LessonsController {
     return this.lessonsService.cancel(id, user.id);
   }
 
-  @Post(':id/no-show')
-  @RequirePermission('lessons', PermissionAction.EDIT)
-  @Audited('Lesson', 'NO_SHOW')
-  noShow(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
-    return this.lessonsService.noShow(id, user.id);
-  }
-
   @Post(':lessonId/attendance/bulk')
   @RequirePermission('student_attendance', PermissionAction.CREATE)
   @Audited('StudentAttendance', 'BULK_MARK')

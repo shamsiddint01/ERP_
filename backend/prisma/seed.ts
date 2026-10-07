@@ -508,7 +508,7 @@ async function seedEducationCoreDemo(): Promise<void> {
   // Phase E — Schedules + Lessons. One weekly Schedule row per (group, day),
   // covering both branches, all three teachers and a teacher-less group, plus
   // a handful of generated Lesson rows per schedule so the workflow actions
-  // (start/complete/cancel/no-show) all have real historical examples to
+  // (start/complete/cancel) all have real historical examples to
   // demonstrate, not just SCHEDULED rows. Kept independent of
   // LessonGenerationService by design — every other block in this seed
   // inserts trusted rows directly via Prisma rather than going through
@@ -659,7 +659,7 @@ async function seedEducationCoreDemo(): Promise<void> {
   }
 
   const mathThursday = firstLessonByGroupDay['MATH-01-EVE:THURSDAY'];
-  await overrideIfStillScheduled(mathThursday, { status: 'NO_SHOW' });
+  await overrideIfStillScheduled(mathThursday, { status: 'CANCELLED' });
 
   // Phase F — StudentAttendance demo rows against the lessons just generated
   // above. Deliberately reuses the same four lessons the status-overrides

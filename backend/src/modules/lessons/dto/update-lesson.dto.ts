@@ -6,7 +6,7 @@ import { IsISO8601, IsOptional, IsString, IsUUID } from 'class-validator';
  * real operation (cancel and create a new one instead); this DTO only covers
  * genuine "reschedule" fields plus the always-editable descriptive content.
  * There is no `status` field — status only ever changes through the guarded
- * start/complete/cancel/no-show workflow actions, never a raw PATCH.
+ * start/complete/cancel workflow actions, never a raw PATCH.
  */
 export class UpdateLessonDto {
   @IsOptional()

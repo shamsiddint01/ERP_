@@ -81,7 +81,3 @@ export async function cancelLesson(id: string) {
   return data;
 }
 
-export async function noShowLesson(id: string) {
-  const { data } = await apiClient.post<LessonDetail>(`/lessons/${id}/no-show`);
-  return data;
-}

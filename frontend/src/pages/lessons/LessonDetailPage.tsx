@@ -1,10 +1,10 @@
-import { CarryOutOutlined, CheckCircleOutlined, CloseCircleOutlined, EditOutlined, PlayCircleOutlined, StopOutlined } from '@ant-design/icons';
+import { CarryOutOutlined, CheckCircleOutlined, EditOutlined, PlayCircleOutlined, StopOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { App, Button, Popconfirm, Spin, Tag, Typography } from 'antd';
 import dayjs from 'dayjs';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { cancelLesson, completeLesson, getLesson, noShowLesson, startLesson } from '../../api/lessons';
+import { cancelLesson, completeLesson, getLesson, startLesson } from '../../api/lessons';
 import { ActionBar } from '../../components/ActionBar';
 import { DetailHeader } from '../../components/DetailHeader';
 import { InfoGrid } from '../../components/InfoGrid';
@@ -13,13 +13,12 @@ import { PageErrorState } from '../../components/PageErrorState';
 import { useAuthStore } from '../../store/auth.store';
 import type { LessonStatus, ScheduleDayOfWeek } from '../../types';
 
-const STATUS_COLORS: Record<LessonStatus, string> = { SCHEDULED: 'default', IN_PROGRESS: 'blue', COMPLETED: 'green', CANCELLED: 'red', NO_SHOW: 'orange' };
+const STATUS_COLORS: Record<LessonStatus, string> = { SCHEDULED: 'default', IN_PROGRESS: 'blue', COMPLETED: 'green', CANCELLED: 'red' };
 const STATUS_LABELS: Record<LessonStatus, string> = {
   SCHEDULED: 'Rejalashtirilgan',
   IN_PROGRESS: 'Jarayonda',
   COMPLETED: 'Yakunlangan',
   CANCELLED: 'Bekor qilingan',
-  NO_SHOW: 'Kelmadi',
 };
 const DAY_LABELS: Record<ScheduleDayOfWeek, string> = {
   MONDAY: 'Dushanba',
@@ -75,14 +74,6 @@ export function LessonDetailPage() {
     },
     onError: onActionError,
   });
-  const noShowMutation = useMutation({
-    mutationFn: () => noShowLesson(id!),
-    onSuccess: () => {
-      message.success("O'quvchi(lar) kelmagani qayd etildi");
-      invalidate();
-    },
-    onError: onActionError,
-  });
 
   if (lessonQuery.isLoading) {
     return (
@@ -101,7 +92,7 @@ export function LessonDetailPage() {
 
   const canEdit = hasPermission('lessons', 'EDIT');
   const canViewAttendance = hasPermission('student_attendance', 'VIEW');
-  const isBusy = startMutation.isPending || completeMutation.isPending || cancelMutation.isPending || noShowMutation.isPending;
+  const isBusy = startMutation.isPending || completeMutation.isPending || cancelMutation.isPending;
   const isOpenState = lesson.status === 'SCHEDULED' || lesson.status === 'IN_PROGRESS';
 
   return (
@@ -133,13 +124,6 @@ export function LessonDetailPage() {
               <Button type={lesson.status === 'IN_PROGRESS' ? 'primary' : undefined} icon={<CheckCircleOutlined />} loading={isBusy} onClick={() => completeMutation.mutate()}>
                 Yakunlash
               </Button>
-            )}
-            {canEdit && isOpenState && (
-              <Popconfirm title="O'quvchi(lar) darsga kelmaganini tasdiqlaysizmi?" onConfirm={() => noShowMutation.mutate()}>
-                <Button icon={<CloseCircleOutlined />} loading={isBusy}>
-                  Kelmadi
-                </Button>
-              </Popconfirm>
             )}
             {canEdit && (
               <Button icon={<EditOutlined />} onClick={() => setEditOpen(true)}>

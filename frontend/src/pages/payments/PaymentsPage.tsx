@@ -1,6 +1,6 @@
 import { SearchOutlined, SplitCellsOutlined, UndoOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Button, Input, Popconfirm, Select, Space, Table, Tag } from 'antd';
+import { App, Button, Input, Popconfirm, Select, Space, Table } from 'antd';
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
 import { listPayments, refundPayment } from '../../api/payments';
@@ -9,7 +9,9 @@ import { FilterBar } from '../../components/FilterBar';
 import { PageErrorState } from '../../components/PageErrorState';
 import { PageHeader } from '../../components/PageHeader';
 import { useAuthStore } from '../../store/auth.store';
-import type { Payment, PaymentMethod, PaymentStatus } from '../../types';
+import { PaymentStateTag } from '../../components/PaymentStateTag';
+import type { Payment, PaymentMethod } from '../../types';
+import { PAYMENT_STATE_OPTIONS, type PaymentState } from '../../utils/paymentState';
 
 const METHOD_LABELS: Record<PaymentMethod, string> = {
   CASH: 'Naqd',
@@ -19,26 +21,19 @@ const METHOD_LABELS: Record<PaymentMethod, string> = {
   CHEQUE: 'Chek',
 };
 
-const STATUS_COLORS: Record<PaymentStatus, string> = {
-  PENDING: 'gold',
-  COMPLETED: 'green',
-  FAILED: 'red',
-  REFUNDED: 'default',
-};
-
 export function PaymentsPage() {
   const { message } = App.useApp();
   const hasPermission = useAuthStore((state) => state.hasPermission);
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [method, setMethod] = useState<PaymentMethod | undefined>();
-  const [status, setStatus] = useState<PaymentStatus | undefined>();
+  const [state, setState] = useState<PaymentState | undefined>();
   const [page, setPage] = useState(1);
   const [allocatingPayment, setAllocatingPayment] = useState<Payment | null>(null);
 
   const paymentsQuery = useQuery({
-    queryKey: ['payments', { search, method, status, page }],
-    queryFn: () => listPayments({ search: search || undefined, method, status, page, pageSize: 20 }),
+    queryKey: ['payments', { search, method, state, page }],
+    queryFn: () => listPayments({ search: search || undefined, method, paymentState: state, page, pageSize: 20 }),
     placeholderData: (prev) => prev,
   });
 
@@ -92,14 +87,9 @@ export function PaymentsPage() {
           placeholder="Status"
           allowClear
           style={{ width: 160 }}
-          options={[
-            { label: 'Kutilmoqda', value: 'PENDING' },
-            { label: 'Bajarilgan', value: 'COMPLETED' },
-            { label: 'Muvaffaqiyatsiz', value: 'FAILED' },
-            { label: 'Qaytarilgan', value: 'REFUNDED' },
-          ]}
+          options={PAYMENT_STATE_OPTIONS}
           onChange={(value) => {
-            setStatus(value);
+            setState(value);
             setPage(1);
           }}
         />
@@ -119,7 +109,7 @@ export function PaymentsPage() {
           { title: 'Summa', dataIndex: 'amount', render: (v: string) => Number(v).toLocaleString('uz-UZ') },
           { title: 'Usul', dataIndex: 'method', render: (v: PaymentMethod) => METHOD_LABELS[v] },
           { title: 'Sana', dataIndex: 'createdAt', render: (v: string) => new Date(v).toLocaleString('uz-UZ') },
-          { title: 'Status', dataIndex: 'status', render: (v: PaymentStatus) => <Tag color={STATUS_COLORS[v]}>{v}</Tag> },
+          { title: 'Status', dataIndex: 'status', render: (v: Payment['status']) => <PaymentStateTag status={v} /> },
           { title: 'Kim yozgan', dataIndex: ['recordedBy', 'fullName'] },
           {
             title: 'Amallar',

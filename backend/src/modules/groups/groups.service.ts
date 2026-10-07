@@ -47,6 +47,7 @@ export class GroupsService {
     // AcademicProgressService).
     const teacherScope = await this.resolveTeacherScope(actorUserId);
     const where: Prisma.StudentGroupWhereInput = {
+      deletedAt: null,
       courseId: query.courseId,
       branchId: query.branchId,
       classroomId: query.classroomId,
@@ -84,7 +85,8 @@ export class GroupsService {
 
   async findOne(id: string) {
     const group = await this.prisma.studentGroup.findUnique({ where: { id }, include: GROUP_DETAIL_INCLUDE });
-    if (!group) throw new NotFoundException('Group not found');
+    // deletedAt: purged by GroupsCleanupScheduler, only kept for its money records.
+    if (!group || group.deletedAt) throw new NotFoundException('Group not found');
     return this.withSeatInfo(group);
   }
 
@@ -112,6 +114,7 @@ export class GroupsService {
           startDate: new Date(dto.startDate),
           endDate: dto.endDate ? new Date(dto.endDate) : undefined,
           status: dto.status,
+          cancelledAt: dto.status === 'CANCELLED' ? new Date() : undefined,
           notes: dto.notes,
         },
         include: GROUP_DETAIL_INCLUDE,
@@ -160,6 +163,8 @@ export class GroupsService {
           startDate: dto.startDate ? new Date(dto.startDate) : undefined,
           endDate: dto.endDate ? new Date(dto.endDate) : undefined,
           status: dto.status,
+          // The 10-day purge countdown (GroupsCleanupScheduler) starts when the group is cancelled and stops if it is reopened.
+          cancelledAt: dto.status === undefined || dto.status === group.status ? undefined : dto.status === 'CANCELLED' ? new Date() : null,
           notes: dto.notes,
         },
         include: GROUP_DETAIL_INCLUDE,

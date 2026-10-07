@@ -171,7 +171,6 @@ enum LessonStatus {
   IN_PROGRESS
   COMPLETED
   CANCELLED
-  NO_SHOW
 }
 
 /// Phase F. LATE counts as attended (the student was physically present, just
@@ -201,6 +200,9 @@ model User {
   /// (shared/security/credential-cipher.ts) so an admin can always look it up when
   /// someone loses it. Updated on every password change, including self-service.
   temporaryPassword String?    @map("temporary_password")
+  /// Last self-service password change — students and teachers may change
+  /// their own password at most once per 12 hours (AuthService.changePassword).
+  passwordChangedAt DateTime?  @map("password_changed_at")
   avatarUrl         String?    @map("avatar_url")
   roleId            String     @map("role_id")
   role              Role       @relation(fields: [roleId], references: [id])
@@ -599,6 +601,12 @@ model StudentGroup {
   endDate           DateTime?          @map("end_date") @db.Date
   status            StudentGroupStatus @default(PLANNED)
   notes             String?
+  /// Set when the group becomes CANCELLED (cleared if it is reopened). A
+  /// cancelled group is purged 10 days later by GroupsCleanupScheduler.
+  cancelledAt       DateTime?          @map("cancelled_at")
+  /// Set by the purge when the group still has money records (tuition
+  /// charges) that must be kept — the group is then hidden everywhere.
+  deletedAt         DateTime?          @map("deleted_at")
   createdAt         DateTime           @default(now()) @map("created_at")
   updatedAt         DateTime           @updatedAt @map("updated_at")
 

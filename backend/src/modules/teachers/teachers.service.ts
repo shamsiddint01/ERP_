@@ -74,7 +74,7 @@ export class TeachersService {
     if (!profile) throw new NotFoundException('Teacher profile not found');
 
     const groups = await this.prisma.studentGroup.findMany({
-      where: { teacherEmployeeId: profile.employeeId },
+      where: { teacherEmployeeId: profile.employeeId, deletedAt: null },
       include: {
         course: { select: { id: true, name: true, code: true } },
         branch: { select: { id: true, name: true, code: true } },

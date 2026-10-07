@@ -153,6 +153,20 @@ describe('GroupsService', () => {
       expect(result).toMatchObject({ status: 'CANCELLED' });
     });
 
+    it('starts the 10-day purge countdown when a group is cancelled, and stops it when reopened', async () => {
+      const prisma = createPrismaMock({ studentGroup: { findUnique: vi.fn().mockResolvedValue(fakeGroup()) } });
+      await createService(prisma).update('group1', { status: 'CANCELLED' }, 'admin-user');
+      expect(prisma.__tx.studentGroup.update.mock.calls[0][0].data.cancelledAt).toBeInstanceOf(Date);
+
+      const reopened = createPrismaMock({ studentGroup: { findUnique: vi.fn().mockResolvedValue(fakeGroup({ status: 'CANCELLED', cancelledAt: new Date() })) } });
+      await createService(reopened).update('group1', { status: 'ACTIVE' }, 'admin-user');
+      expect(reopened.__tx.studentGroup.update.mock.calls[0][0].data.cancelledAt).toBeNull();
+
+      const renamed = createPrismaMock({ studentGroup: { findUnique: vi.fn().mockResolvedValue(fakeGroup({ status: 'CANCELLED', cancelledAt: new Date() })) } });
+      await createService(renamed).update('group1', { name: 'X' }, 'admin-user');
+      expect(renamed.__tx.studentGroup.update.mock.calls[0][0].data.cancelledAt).toBeUndefined();
+    });
+
     it('rejects a teacher editing a group they do not own', async () => {
       const prisma = createPrismaMock({
         studentGroup: { findUnique: vi.fn().mockResolvedValue(fakeGroup({ teacherEmployeeId: 'teacherA-emp' })) },
@@ -191,6 +205,11 @@ describe('GroupsService', () => {
       const service = createService(prisma);
 
       await expect(service.findOne('missing')).rejects.toThrow(NotFoundException);
+    });
+
+    it('treats a purged group (kept only for its money records) as not found', async () => {
+      const prisma = createPrismaMock({ studentGroup: { findUnique: vi.fn().mockResolvedValue(fakeGroup({ deletedAt: new Date() })) } });
+      await expect(createService(prisma).findOne('group1')).rejects.toThrow(NotFoundException);
     });
 
     it('derives enrolledCount and availableSeats from the real enrollment count', async () => {

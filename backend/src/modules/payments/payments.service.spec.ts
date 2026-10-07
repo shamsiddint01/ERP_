@@ -137,6 +137,17 @@ describe('PaymentsService.findAll', () => {
       expect.objectContaining({ id: 'pay2', student: null }),
     ]);
   });
+
+  it("filters by the two shown states: To'langan = COMPLETED, To'lanmagan = everything else", async () => {
+    const findMany = vi.fn().mockResolvedValue([]);
+    const prisma = { ...createPrismaMock(), payment: { findMany, count: vi.fn().mockResolvedValue(0) }, student: { findMany: vi.fn().mockResolvedValue([]) } };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const service = createService(prisma as any);
+    await service.findAll({ paymentState: 'PAID' });
+    await service.findAll({ paymentState: 'UNPAID' });
+    expect(findMany.mock.calls[0][0].where.status).toBe('COMPLETED');
+    expect(findMany.mock.calls[1][0].where.status).toEqual({ not: 'COMPLETED' });
+  });
 });
 
 describe('PaymentsService.allocate', () => {

@@ -26,7 +26,6 @@ const LESSON_STATUS: Record<string, { label: string; color: string }> = {
   IN_PROGRESS: { label: 'Davom etmoqda', color: 'processing' },
   COMPLETED: { label: 'Yakunlangan', color: 'green' },
   CANCELLED: { label: 'Bekor qilingan', color: 'default' },
-  NO_SHOW: { label: "O'tkazilmadi", color: 'red' },
 };
 
 const row = { display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderBottom: `1px solid ${palette.border}` } as const;

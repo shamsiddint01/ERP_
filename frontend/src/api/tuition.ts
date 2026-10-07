@@ -7,6 +7,8 @@ export interface TuitionChargeQuery {
   studentId?: string;
   enrollmentId?: string;
   status?: TuitionChargeStatus;
+  /** To'langan (fully paid) / To'lanmagan (anything still owed). */
+  paymentState?: 'PAID' | 'UNPAID';
   billingPeriod?: string;
   dueDateFrom?: string;
   dueDateTo?: string;

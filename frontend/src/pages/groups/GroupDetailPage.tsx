@@ -1,7 +1,8 @@
 import { DownloadOutlined, EditOutlined, FormOutlined, PlusOutlined, StopOutlined, ThunderboltOutlined, TrophyOutlined, UserAddOutlined, UserOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Button, Card, Col, DatePicker, Descriptions, Popconfirm, Progress, Row, Space, Spin, Table, Tabs, Tag, Typography } from 'antd';
+import { Alert, App, Button, Card, Col, DatePicker, Descriptions, Popconfirm, Progress, Row, Space, Spin, Table, Tabs, Tag, Typography } from 'antd';
 import { EmptyState } from '../../components/EmptyState';
+import { CANCELLED_GROUP_RETENTION_DAYS, purgeDaysLeft, purgeLabel } from '../../utils/groupPurge';
 import { useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { deactivateGroup, getGroup, getGroupResults } from '../../api/groups';
@@ -42,13 +43,12 @@ const DAY_LABELS: Record<ScheduleDayOfWeek, string> = {
 };
 const SCHEDULE_STATUS_COLORS: Record<ScheduleStatus, string> = { ACTIVE: 'green', PAUSED: 'gold', CANCELLED: 'red' };
 const SCHEDULE_STATUS_LABELS: Record<ScheduleStatus, string> = { ACTIVE: 'Faol', PAUSED: 'Muzlatilgan', CANCELLED: 'Bekor qilingan' };
-const LESSON_STATUS_COLORS: Record<string, string> = { SCHEDULED: 'default', IN_PROGRESS: 'blue', COMPLETED: 'green', CANCELLED: 'red', NO_SHOW: 'orange' };
+const LESSON_STATUS_COLORS: Record<string, string> = { SCHEDULED: 'default', IN_PROGRESS: 'blue', COMPLETED: 'green', CANCELLED: 'red' };
 const LESSON_STATUS_LABELS: Record<string, string> = {
   SCHEDULED: 'Rejalashtirilgan',
   IN_PROGRESS: 'Jarayonda',
   COMPLETED: 'Yakunlangan',
   CANCELLED: 'Bekor qilingan',
-  NO_SHOW: 'Kelmadi',
 };
 
 export function GroupDetailPage() {
@@ -429,8 +429,19 @@ export function GroupDetailPage() {
     },
   ].filter((tab): tab is Exclude<typeof tab, false> => Boolean(tab));
 
+  const daysLeft = purgeDaysLeft(group);
+
   return (
     <div>
+      {daysLeft !== null && (
+        <Alert
+          type="error"
+          showIcon
+          style={{ marginBottom: 16 }}
+          message={`Guruh bekor qilingan — ${purgeLabel(daysLeft).toLowerCase()}`}
+          description={`Bekor qilingan guruh ${CANCELLED_GROUP_RETENTION_DAYS} kundan keyin darslari, davomati, uy ishlari va imtihonlari bilan birga avtomatik o'chiriladi (to'lov yozuvlari saqlanib qoladi). O'chishini to'xtatish uchun guruh statusini o'zgartiring.`}
+        />
+      )}
       <DetailHeader
         backLabel="Guruhlar ro'yxatiga qaytish"
         onBack={() => navigate('/groups')}
@@ -460,7 +471,7 @@ export function GroupDetailPage() {
               </Button>
             )}
             {canEdit && group.status !== 'CANCELLED' && (
-              <Popconfirm title="Guruhni bekor qilishni tasdiqlaysizmi?" onConfirm={() => deactivateMutation.mutate()}>
+              <Popconfirm title="Guruhni bekor qilishni tasdiqlaysizmi?" description={`${CANCELLED_GROUP_RETENTION_DAYS} kundan keyin guruh avtomatik o'chiriladi`} onConfirm={() => deactivateMutation.mutate()}>
                 <Button loading={deactivateMutation.isPending} danger icon={<StopOutlined />}>
                   Bekor qilish
                 </Button>
