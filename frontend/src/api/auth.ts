@@ -24,7 +24,3 @@ export async function fetchCurrentUser() {
   const { data } = await apiClient.get<CurrentUserProfile>('/auth/me');
   return data;
 }
-
-export async function changePassword(currentPassword: string, newPassword: string) {
-  await apiClient.post('/auth/change-password', { currentPassword, newPassword });
-}

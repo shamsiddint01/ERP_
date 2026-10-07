@@ -7,8 +7,8 @@ import { AllLoginsCard } from '../../components/AllLoginsCard';
 import { BrandMark } from '../../components/BrandMark';
 import { FormSection } from '../../components/FormSection';
 import { PageErrorState } from '../../components/PageErrorState';
+import { AccessDeniedPage } from '../AccessDeniedPage';
 import { PageHeader } from '../../components/PageHeader';
-import { AppearanceCard, ChangePasswordCard } from '../../components/PersonalSettingsCards';
 import { useAuthStore } from '../../store/auth.store';
 import { palette } from '../../theme';
 import type { CompanySettings } from '../../types';
@@ -133,6 +133,8 @@ export function SettingsPage() {
   const settings = settingsQuery.data;
   const displayName = companyName || settings?.companyName || '';
 
+  if (!canViewCenter && !canViewUsers) return <AccessDeniedPage />;
+
   return (
     <div style={{ maxWidth: 1100 }}>
       <PageHeader
@@ -213,15 +215,6 @@ export function SettingsPage() {
           </Form>
         </Card>
       )}
-
-      <Row gutter={[20, 20]} style={{ marginTop: canViewCenter ? 20 : 0 }}>
-        <Col xs={24} lg={12}>
-          <AppearanceCard />
-        </Col>
-        <Col xs={24} lg={12}>
-          <ChangePasswordCard />
-        </Col>
-      </Row>
 
       {canViewUsers && <AllLoginsCard />}
     </div>

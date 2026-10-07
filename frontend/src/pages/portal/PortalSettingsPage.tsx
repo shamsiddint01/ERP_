@@ -2,7 +2,6 @@ import { useQuery } from '@tanstack/react-query';
 import { Avatar, Card, Col, Descriptions, Row, Skeleton, Typography } from 'antd';
 import { getPortalOverview } from '../../api/portal';
 import { PageHeader } from '../../components/PageHeader';
-import { AppearanceCard, ChangePasswordCard } from '../../components/PersonalSettingsCards';
 import { useAuthStore } from '../../store/auth.store';
 import { avatarColor } from '../../utils/avatarColor';
 import { formatDate } from '../../utils/format';
@@ -48,12 +47,6 @@ export function PortalSettingsPage() {
               </>
             )}
           </Card>
-        </Col>
-        <Col xs={24} lg={12}>
-          <ChangePasswordCard />
-        </Col>
-        <Col xs={24} lg={12}>
-          <AppearanceCard />
         </Col>
       </Row>
     </div>

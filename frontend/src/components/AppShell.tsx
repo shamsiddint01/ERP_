@@ -12,6 +12,7 @@ import { useThemeStore } from '../store/theme.store';
 import { useBranding } from '../hooks/useBranding';
 import { BrandMark } from './BrandMark';
 import { NotificationBell } from './NotificationBell';
+import { ThemeModeSwitch } from './ThemeModeSwitch';
 
 const { Header, Sider, Content } = Layout;
 const { useBreakpoint } = Grid;
@@ -227,6 +228,7 @@ export function AppShell({ mainItems, bottomItem, sectionBySegment, sectionLabel
             </div>
           </Space>
           <Space size={14}>
+            <ThemeModeSwitch />
             {showNotifications && <NotificationBell />}
             <Dropdown menu={{ items: [{ key: 'logout', icon: <LogoutOutlined />, label: 'Chiqish', onClick: handleLogout }] }}>
               <Avatar style={{ background: avatarColor(userName), fontWeight: 700, cursor: 'pointer' }}>{userName.charAt(0)}</Avatar>

@@ -15,8 +15,6 @@ export interface CurrentUserProfile {
   studentId: string | null;
   /** Set when this login belongs to an active teacher — with the Teacher role, the app shows the teacher cabinet. */
   teacherProfileId: string | null;
-  /** Students and teachers may change their own password once per 12 hours — when the next change is allowed (null = now). */
-  passwordChangeAvailableAt?: string | null;
 }
 
 export interface UserListItem {

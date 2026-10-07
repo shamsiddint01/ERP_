@@ -71,8 +71,8 @@ export function AppLayout() {
     ];
     return {
       mainItems: main.filter((item) => item.show),
-      // Everyone has Sozlamalar (light/dark mode, own password); the center settings inside gate themselves.
-      settingsItem: { key: '/settings', icon: <SettingOutlined />, label: 'Sozlamalar' },
+      // Sozlamalar = center settings and/or everyone's logins — shown to whoever may see either.
+      settingsItem: hasPermission('settings', 'VIEW') || hasPermission('users', 'VIEW') ? { key: '/settings', icon: <SettingOutlined />, label: 'Sozlamalar' } : null,
     };
   }, [hasPermission]);
 

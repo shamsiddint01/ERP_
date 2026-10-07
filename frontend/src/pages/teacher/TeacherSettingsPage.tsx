@@ -1,6 +1,5 @@
 import { Avatar, Card, Col, Descriptions, Row, Typography } from 'antd';
 import { PageHeader } from '../../components/PageHeader';
-import { AppearanceCard, ChangePasswordCard } from '../../components/PersonalSettingsCards';
 import { useAuthStore } from '../../store/auth.store';
 import { avatarColor } from '../../utils/avatarColor';
 
@@ -28,18 +27,13 @@ export function TeacherSettingsPage() {
             <Descriptions column={1} size="small">
               <Descriptions.Item label="Lavozim">Ustoz</Descriptions.Item>
               <Descriptions.Item label="Telefon">{user.phone ?? '—'}</Descriptions.Item>
-              <Descriptions.Item label="Email">{user.email || '—'}</Descriptions.Item>
+              {/* Logins issued without an email get a placeholder "<login>@accounts.local" — not worth showing. */}
+              <Descriptions.Item label="Email">{user.email && !user.email.endsWith('@accounts.local') ? user.email : '—'}</Descriptions.Item>
             </Descriptions>
             <Typography.Paragraph type="secondary" style={{ fontSize: 12, marginTop: 12, marginBottom: 0 }}>
               Ma'lumotlarni o'zgartirish uchun markaz ma'muriyatiga murojaat qiling.
             </Typography.Paragraph>
           </Card>
-        </Col>
-        <Col xs={24} lg={12}>
-          <ChangePasswordCard />
-        </Col>
-        <Col xs={24} lg={12}>
-          <AppearanceCard />
         </Col>
       </Row>
     </div>
