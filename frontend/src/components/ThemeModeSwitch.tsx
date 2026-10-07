@@ -1,36 +1,16 @@
 import { MoonOutlined, SunOutlined } from '@ant-design/icons';
-import { Segmented, Tooltip } from 'antd';
+import { Button, Tooltip } from 'antd';
 import { useThemeStore } from '../store/theme.store';
-import type { ThemeMode } from '../theme';
 
-/** Light / dark switch in the top bar, next to the notification bell — for every role. */
+/** Light / dark toggle in the top bar, next to the notification bell — one button showing the current mode (sun = light, moon = dark). */
 export function ThemeModeSwitch() {
   const mode = useThemeStore((state) => state.mode);
   const setMode = useThemeStore((state) => state.setMode);
+  const isLight = mode === 'light';
+  const hint = isLight ? "Qorong'i rejimga o'tish" : "Yorug' rejimga o'tish";
   return (
-    <Segmented<ThemeMode>
-      size="small"
-      value={mode}
-      onChange={setMode}
-      aria-label="Ko'rinish"
-      options={[
-        {
-          value: 'dark',
-          label: (
-            <Tooltip title="Qorong'i rejim">
-              <MoonOutlined aria-label="Qorong'i" />
-            </Tooltip>
-          ),
-        },
-        {
-          value: 'light',
-          label: (
-            <Tooltip title="Yorug' rejim">
-              <SunOutlined aria-label="Yorug'" />
-            </Tooltip>
-          ),
-        },
-      ]}
-    />
+    <Tooltip title={hint}>
+      <Button type="text" shape="circle" aria-label={hint} icon={isLight ? <SunOutlined /> : <MoonOutlined />} onClick={() => setMode(isLight ? 'dark' : 'light')} />
+    </Tooltip>
   );
 }
