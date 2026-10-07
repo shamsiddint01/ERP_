@@ -1,6 +1,5 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
-import type { CreateLoginDto, UpdateLoginDto } from '../../shared/accounts/login-account.dto.js';
 import { LOGIN_ACCOUNT_SELECT, LoginAccountService } from '../../shared/accounts/login-account.service.js';
 
 /** A teacher's login — a User with the "Teacher" role, linked through User.employeeId to the teacher's Employee record. */
@@ -24,21 +23,22 @@ export class TeacherAccountService {
     return (await this.getEmployee(teacherProfileId)).user;
   }
 
-  async create(teacherProfileId: string, dto: CreateLoginDto) {
+  async create(teacherProfileId: string) {
     const employee = await this.getEmployee(teacherProfileId);
     if (employee.user) throw new ConflictException("Bu o'qituvchida allaqachon login bor");
     return this.logins.create({
       roleName: 'Teacher',
       fullName: employee.fullName,
       preferredEmail: employee.email,
-      username: dto.username,
-      password: dto.password,
       link: (tx, userId) => tx.user.update({ where: { id: userId }, data: { employeeId: employee.id } }),
     });
   }
 
-  async update(teacherProfileId: string, dto: UpdateLoginDto) {
-    const account = await this.get(teacherProfileId);
-    return this.logins.update(account?.id, dto);
+  async resetPassword(teacherProfileId: string) {
+    return this.logins.resetPassword((await this.get(teacherProfileId))?.id);
+  }
+
+  async setActive(teacherProfileId: string, active: boolean) {
+    return this.logins.setActive((await this.get(teacherProfileId))?.id, active);
   }
 }

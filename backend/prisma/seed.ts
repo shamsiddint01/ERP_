@@ -4,6 +4,7 @@ import * as bcrypt from 'bcryptjs';
 import { Redis } from 'ioredis';
 import { PERMISSION_MODULES } from '../src/shared/constants/permission-modules.constant.js';
 import { gradeForPercentage } from '../src/shared/grading/grading-scale.js';
+import { encryptCredential } from '../src/shared/security/credential-cipher.js';
 import { generateDocumentNumber } from '../src/shared/utils/document-number.util.js';
 
 const prisma = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
@@ -197,6 +198,7 @@ async function main() {
       email: 'admin@erp.local',
       username: 'admin',
       passwordHash,
+      temporaryPassword: encryptCredential(adminPassword),
       roleId: adminRole.id,
       status: 'ACTIVE',
     },
@@ -723,6 +725,7 @@ async function seedDemoTeacherUser(): Promise<void> {
         email: demo.email,
         username: demo.username,
         passwordHash,
+        temporaryPassword: encryptCredential(password),
         roleId: teacherRole.id,
         employeeId: teacherEmployee.id,
         status: 'ACTIVE',
@@ -754,7 +757,7 @@ async function seedDemoRoleUsers(): Promise<void> {
     if (!role) continue; // defensive — all seeded above in this same run
     await prisma.user.upsert({
       where: { username: demo.username },
-      create: { fullName: demo.fullName, email: demo.email, username: demo.username, passwordHash, roleId: role.id, status: 'ACTIVE' },
+      create: { fullName: demo.fullName, email: demo.email, username: demo.username, passwordHash, temporaryPassword: encryptCredential(password), roleId: role.id, status: 'ACTIVE' },
       update: {},
     });
     console.log(`  -> ${demo.username} / ${password} (${demo.roleName} role)`);
@@ -958,7 +961,7 @@ async function seedStudentPortalDemo(): Promise<void> {
   if (!student.userId) {
     const user = await prisma.user.upsert({
       where: { username: 'student.aziz' },
-      create: { fullName: student.fullName, email: 'aziz.karimov@students.local', username: 'student.aziz', passwordHash: await bcrypt.hash(password, 10), roleId: role.id, status: 'ACTIVE' },
+      create: { fullName: student.fullName, email: 'aziz.karimov@students.local', username: 'student.aziz', passwordHash: await bcrypt.hash(password, 10), temporaryPassword: encryptCredential(password), roleId: role.id, status: 'ACTIVE' },
       update: {},
     });
     await prisma.student.update({ where: { id: student.id }, data: { userId: user.id } });

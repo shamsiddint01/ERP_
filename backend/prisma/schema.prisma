@@ -191,22 +191,26 @@ enum StudentAttendanceStatus {
 // =========================================================================
 
 model User {
-  id           String     @id @default(uuid())
-  fullName     String     @map("full_name")
-  email        String     @unique
-  phone        String?    @unique
-  username     String     @unique
-  passwordHash String     @map("password_hash")
-  avatarUrl    String?    @map("avatar_url")
-  roleId       String     @map("role_id")
-  role         Role       @relation(fields: [roleId], references: [id])
-  employeeId   String?    @unique @map("employee_id")
-  employee     Employee?  @relation(fields: [employeeId], references: [id])
-  status       UserStatus @default(PENDING_INVITE)
-  lastActiveAt DateTime?  @map("last_active_at")
-  deletedAt    DateTime?  @map("deleted_at")
-  createdAt    DateTime   @default(now()) @map("created_at")
-  updatedAt    DateTime   @updatedAt @map("updated_at")
+  id                String     @id @default(uuid())
+  fullName          String     @map("full_name")
+  email             String     @unique
+  phone             String?    @unique
+  username          String     @unique
+  passwordHash      String     @map("password_hash")
+  /// The login's current password, AES-256-GCM encrypted
+  /// (shared/security/credential-cipher.ts) so an admin can always look it up when
+  /// someone loses it. Updated on every password change, including self-service.
+  temporaryPassword String?    @map("temporary_password")
+  avatarUrl         String?    @map("avatar_url")
+  roleId            String     @map("role_id")
+  role              Role       @relation(fields: [roleId], references: [id])
+  employeeId        String?    @unique @map("employee_id")
+  employee          Employee?  @relation(fields: [employeeId], references: [id])
+  status            UserStatus @default(PENDING_INVITE)
+  lastActiveAt      DateTime?  @map("last_active_at")
+  deletedAt         DateTime?  @map("deleted_at")
+  createdAt         DateTime   @default(now()) @map("created_at")
+  updatedAt         DateTime   @updatedAt @map("updated_at")
 
   sessions         UserSession[]
   auditLogs        AuditLog[]     @relation("AuditActor")

@@ -18,7 +18,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { listEnrollments } from '../../api/enrollments';
 import { listSchedules } from '../../api/schedules';
 import { getAttendanceSummary } from '../../api/studentAttendance';
-import { createTeacherAccount, deactivateTeacher, getTeacher, getTeacherAccount, updateTeacherAccount } from '../../api/teachers';
+import { createTeacherAccount, deactivateTeacher, getTeacher, getTeacherAccount, resetTeacherPassword, setTeacherAccountActive } from '../../api/teachers';
 import { ActionBar } from '../../components/ActionBar';
 import { DetailHeader } from '../../components/DetailHeader';
 import { PageErrorState } from '../../components/PageErrorState';
@@ -120,8 +120,9 @@ export function TeacherDetailPage() {
             queryKey={['teacher-account', teacher.id]}
             editPermission={{ module: 'teachers', action: 'EDIT' }}
             fetchAccount={() => getTeacherAccount(teacher.id)}
-            createAccount={(payload) => createTeacherAccount(teacher.id, payload)}
-            updateAccount={(payload) => updateTeacherAccount(teacher.id, payload)}
+            createAccount={() => createTeacherAccount(teacher.id)}
+            resetPassword={() => resetTeacherPassword(teacher.id)}
+            setActive={(active) => setTeacherAccountActive(teacher.id, active)}
           />
           <Descriptions column={{ xs: 1, sm: 2, md: 3 }} title="Aloqa">
             <Descriptions.Item label="Telefon">{teacher.employee.phone}</Descriptions.Item>

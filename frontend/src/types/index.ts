@@ -26,6 +26,10 @@ export interface UserListItem {
   lastActiveAt: string | null;
   createdAt: string;
   role: { id: string; name: string };
+  student: { id: string; studentCode: string } | null;
+  employee: { id: string; employeeCode: string; teacherProfile: { id: string } | null } | null;
+  /** Whether a readable copy of this login's password exists; the password itself is never listed. */
+  hasVisiblePassword: boolean;
 }
 
 export interface RoleListItem {
@@ -212,7 +216,7 @@ export interface StudentListItem {
   branchId: string | null;
   branch: { id: string; name: string; code: string } | null;
   /** The student's portal login, if one was created. */
-  user: { username: string; status: LoginAccount['status'] } | null;
+  user: { id: string; username: string; status: LoginAccount['status'] } | null;
   createdAt: string;
   _count: { enrollments: number };
 }
@@ -389,7 +393,7 @@ export interface TeacherEmployeeSummary {
 export interface TeacherListItem {
   id: string;
   employeeId: string;
-  employee: TeacherEmployeeSummary & { user: { username: string; status: LoginAccount['status'] } | null; _count: { taughtGroups: number } };
+  employee: TeacherEmployeeSummary & { user: { id: string; username: string; status: LoginAccount['status'] } | null; _count: { taughtGroups: number } };
   bio: string | null;
   specialization: string | null;
   qualification: string | null;
@@ -886,6 +890,11 @@ export interface ExtraLessonItem {
 
 export interface ExtraLessonDetail extends ExtraLessonItem {
   registrations: { id: string; createdAt: string; student: { id: string; fullName: string; studentCode: string; phone: string | null } }[];
+}
+
+/** A freshly issued login / password, returned once by create and reset-password. */
+export interface IssuedLogin extends LoginAccount {
+  password: string;
 }
 
 /** A person's login (student or teacher), as staff see it — never includes the password. */

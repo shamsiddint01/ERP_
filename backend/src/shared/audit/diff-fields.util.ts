@@ -1,4 +1,4 @@
-const SENSITIVE_FIELDS = new Set(['passwordHash', 'refreshTokenHash']);
+const SENSITIVE_FIELDS = new Set(['passwordHash', 'refreshTokenHash', 'temporaryPassword']);
 
 export interface FieldDiff {
   old: Record<string, unknown>;

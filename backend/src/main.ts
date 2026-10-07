@@ -23,6 +23,10 @@ function assertProductionSecrets(): void {
   if (weak) {
     throw new Error('JWT_ACCESS_SECRET must be set to a strong value (>= 32 chars) when NODE_ENV=production');
   }
+  const credentialsKey = process.env.CREDENTIALS_ENCRYPTION_KEY;
+  if (!credentialsKey || credentialsKey.length < 32 || credentialsKey.startsWith('change_me')) {
+    throw new Error('CREDENTIALS_ENCRYPTION_KEY must be set to a strong value (>= 32 chars) when NODE_ENV=production');
+  }
 }
 
 /** Comma-separated list of allowed browser origins; falls back to the Vite dev server outside production. */

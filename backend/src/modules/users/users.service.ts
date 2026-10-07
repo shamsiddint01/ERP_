@@ -4,6 +4,7 @@ import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { AuditEntityRegistryService } from '../../shared/audit/audit-entity-registry.service.js';
 import { sanitizeEntity } from '../../shared/audit/diff-fields.util.js';
+import { encryptCredential } from '../../shared/security/credential-cipher.js';
 import type { CreateUserDto } from './dto/create-user.dto.js';
 import type { UpdateUserDto } from './dto/update-user.dto.js';
 
@@ -18,13 +19,18 @@ export class UsersService {
     registry.register('User', (id) => this.prisma.user.findUnique({ where: { id } }));
   }
 
+  /** Every login, with who it belongs to; `hasVisiblePassword` says whether a readable copy of its password exists (the value itself is never listed). */
   async findAll() {
     const users = await this.prisma.user.findMany({
       where: { deletedAt: null },
-      include: { role: { select: { id: true, name: true } } },
-      orderBy: { createdAt: 'desc' },
+      include: {
+        role: { select: { id: true, name: true } },
+        student: { select: { id: true, studentCode: true } },
+        employee: { select: { id: true, employeeCode: true, teacherProfile: { select: { id: true } } } },
+      },
+      orderBy: [{ role: { name: 'asc' } }, { username: 'asc' }],
     });
-    return users.map((user) => this.sanitize(user));
+    return users.map((user) => ({ ...this.sanitize(user), hasVisiblePassword: user.temporaryPassword !== null }));
   }
 
   async findOne(id: string) {
@@ -52,6 +58,7 @@ export class UsersService {
           phone: dto.phone,
           username: dto.username,
           passwordHash,
+          temporaryPassword: encryptCredential(dto.password),
           roleId: dto.roleId,
           employeeId: dto.employeeId,
           avatarUrl: dto.avatarUrl,
@@ -81,7 +88,7 @@ export class UsersService {
           employeeId: dto.employeeId,
           avatarUrl: dto.avatarUrl,
           status: dto.status,
-          ...(passwordHash ? { passwordHash } : {}),
+          ...(passwordHash ? { passwordHash, temporaryPassword: encryptCredential(dto.password!) } : {}),
         },
         include: { role: { select: { id: true, name: true } } },
       });

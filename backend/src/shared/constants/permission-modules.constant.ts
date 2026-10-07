@@ -52,6 +52,9 @@ export const PERMISSION_MODULES = {
   homework: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE],
   extra_lessons: [PermissionAction.VIEW, PermissionAction.CREATE, PermissionAction.EDIT, PermissionAction.DELETE],
   student_portal: [PermissionAction.VIEW],
+  // Reading the admin-visible copy of login passwords. Only Admin has it
+  // (Admin is always granted every permission); never part of a starter role.
+  credentials: [PermissionAction.VIEW],
 } as const satisfies Record<string, PermissionAction[]>;
 
 export type PermissionModule = keyof typeof PERMISSION_MODULES;

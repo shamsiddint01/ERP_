@@ -1,20 +1,17 @@
-import { KeyOutlined, LockOutlined, StopOutlined, UnlockOutlined, UserAddOutlined } from '@ant-design/icons';
+import { KeyOutlined, StopOutlined, UnlockOutlined, UserAddOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Button, Card, Form, Input, Modal, Popconfirm, Skeleton, Space, Tag, Typography } from 'antd';
+import { App, Button, Card, Modal, Popconfirm, Skeleton, Space, Tag, Typography } from 'antd';
 import { useState } from 'react';
 import { useAuthStore } from '../store/auth.store';
-import type { LoginAccount } from '../types';
+import { palette } from '../theme';
+import type { IssuedLogin, LoginAccount } from '../types';
 import { formatDateTime } from '../utils/format';
+import { LIVE_REFRESH_MS, PasswordReveal } from './PasswordReveal';
 
 function apiError(error: unknown, fallback: string): string {
   const detail = (error as { response?: { data?: { message?: string | string[] } } })?.response?.data?.message;
   return Array.isArray(detail) ? detail.join(', ') : (detail ?? fallback);
 }
-
-const passwordRules = [
-  { required: true, message: 'Parolni kiriting' },
-  { min: 8, message: "Kamida 8 ta belgi bo'lsin" },
-];
 
 interface LoginAccountCardProps {
   /** Who this login belongs to, e.g. "O'quvchi" / "O'qituvchi" — used in the texts. */
@@ -25,40 +22,57 @@ interface LoginAccountCardProps {
   /** The permission needed to create / change the login (the owner record's own EDIT permission). */
   editPermission: { module: string; action: string };
   fetchAccount: () => Promise<LoginAccount | null>;
-  createAccount: (payload: { username: string; password: string }) => Promise<unknown>;
-  updateAccount: (payload: { password?: string; active?: boolean }) => Promise<unknown>;
+  createAccount: () => Promise<IssuedLogin>;
+  resetPassword: () => Promise<IssuedLogin>;
+  setActive: (active: boolean) => Promise<unknown>;
 }
 
+const monospace = { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' } as const;
+
 /**
- * A person's login (student or teacher): staff create it by typing the login
- * and password themselves, set a new password, or block it. The password is
- * only ever stored as a hash, so it is shown nowhere after saving — the
- * staff member hands it over right away and can set a new one any time.
+ * A person's login (student or teacher). The system assigns both parts — the
+ * login is the next number from 10000, the password is random — and shows
+ * them once right after creating / resetting so they can be handed over. An
+ * admin (credentials:VIEW) sees the current password here at any time, in
+ * case the person loses it.
  */
-export function LoginAccountCard({ ownerLabel, emptyText, queryKey, editPermission, fetchAccount, createAccount, updateAccount }: LoginAccountCardProps) {
+export function LoginAccountCard({ ownerLabel, emptyText, queryKey, editPermission, fetchAccount, createAccount, resetPassword, setActive }: LoginAccountCardProps) {
   const { message } = App.useApp();
   const queryClient = useQueryClient();
   const canEdit = useAuthStore((state) => state.hasPermission(editPermission.module, editPermission.action));
-  const [mode, setMode] = useState<'create' | 'password' | null>(null);
-  const [form] = Form.useForm<{ username?: string; password: string }>();
+  const canViewPassword = useAuthStore((state) => state.hasPermission('credentials', 'VIEW'));
+  const [issued, setIssued] = useState<{ title: string; login: IssuedLogin } | null>(null);
 
-  const accountQuery = useQuery({ queryKey, queryFn: fetchAccount });
+  const accountQuery = useQuery({ queryKey, queryFn: fetchAccount, refetchInterval: LIVE_REFRESH_MS });
   const account = accountQuery.data;
 
-  const onDone = (text: string) => {
-    message.success(text);
+  const refresh = (userId?: string) => {
     queryClient.invalidateQueries({ queryKey });
-    setMode(null);
+    if (userId) queryClient.invalidateQueries({ queryKey: ['credentials', userId] });
   };
 
   const createMutation = useMutation({
     mutationFn: createAccount,
-    onSuccess: () => onDone(`Login yaratildi — uni ${ownerLabel.toLowerCase()}ga bering`),
+    onSuccess: (login) => {
+      refresh(login.id);
+      setIssued({ title: 'Login yaratildi', login });
+    },
     onError: (error) => message.error(apiError(error, "Login yaratib bo'lmadi")),
   });
-  const updateMutation = useMutation({
-    mutationFn: updateAccount,
-    onSuccess: (_data, payload) => onDone(payload.password ? 'Yangi parol saqlandi' : payload.active ? 'Login faollashtirildi' : 'Login bloklandi'),
+  const resetMutation = useMutation({
+    mutationFn: resetPassword,
+    onSuccess: (login) => {
+      refresh(login.id);
+      setIssued({ title: 'Yangi parol berildi', login });
+    },
+    onError: (error) => message.error(apiError(error, "Parolni almashtirib bo'lmadi")),
+  });
+  const activeMutation = useMutation({
+    mutationFn: setActive,
+    onSuccess: (_data, active) => {
+      message.success(active ? 'Login faollashtirildi' : 'Login bloklandi');
+      refresh(account?.id);
+    },
     onError: (error) => message.error(apiError(error, "Saqlab bo'lmadi")),
   });
 
@@ -72,36 +86,55 @@ export function LoginAccountCard({ ownerLabel, emptyText, queryKey, editPermissi
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
           <Typography.Text type="secondary">{emptyText}</Typography.Text>
           {canEdit && (
-            <Button type="primary" icon={<UserAddOutlined />} onClick={() => setMode('create')}>
-              Login yaratish
-            </Button>
+            <Popconfirm title="Login yaratilsinmi?" description="Login raqami va parol avtomatik beriladi." onConfirm={() => createMutation.mutate()}>
+              <Button type="primary" icon={<UserAddOutlined />} loading={createMutation.isPending}>
+                Login yaratish
+              </Button>
+            </Popconfirm>
           )}
         </div>
       ) : (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-          <Space orientation="vertical" size={2}>
-            <Space>
-              <Typography.Text strong style={{ fontSize: 15 }}>
+          <Space orientation="vertical" size={4}>
+            <Space wrap>
+              <Typography.Text type="secondary" style={{ width: 44, display: 'inline-block' }}>
+                Login
+              </Typography.Text>
+              <Typography.Text strong copyable={{ text: account.username, tooltips: ['Nusxalash', 'Nusxalandi'] }} style={{ ...monospace, fontSize: 16 }}>
                 {account.username}
               </Typography.Text>
               {!blocked ? <Tag color="green">Faol</Tag> : account.status === 'SUSPENDED' ? <Tag color="red">Bloklangan</Tag> : <Tag>Faol emas — kira olmaydi</Tag>}
             </Space>
+            {canViewPassword && (
+              <Space>
+                <Typography.Text type="secondary" style={{ width: 44, display: 'inline-block' }}>
+                  Parol
+                </Typography.Text>
+                <PasswordReveal userId={account.id} defaultShown />
+              </Space>
+            )}
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
               Oxirgi kirish: {account.lastActiveAt ? formatDateTime(account.lastActiveAt) : 'hali kirmagan'}
             </Typography.Text>
           </Space>
           {canEdit && (
             <Space wrap>
-              <Button icon={<KeyOutlined />} onClick={() => setMode('password')}>
-                Parolni almashtirish
-              </Button>
+              <Popconfirm
+                title="Yangi parol berilsinmi?"
+                description={`Eski parol ishlamay qoladi va ${ownerLabel.toLowerCase()} barcha qurilmalardan chiqariladi.`}
+                onConfirm={() => resetMutation.mutate()}
+              >
+                <Button icon={<KeyOutlined />} loading={resetMutation.isPending}>
+                  Yangi parol
+                </Button>
+              </Popconfirm>
               {blocked ? (
-                <Button icon={<UnlockOutlined />} loading={updateMutation.isPending} onClick={() => updateMutation.mutate({ active: true })}>
+                <Button icon={<UnlockOutlined />} loading={activeMutation.isPending} onClick={() => activeMutation.mutate(true)}>
                   Faollashtirish
                 </Button>
               ) : (
-                <Popconfirm title={`Login bloklansinmi? ${ownerLabel} barcha qurilmalardan chiqariladi.`} onConfirm={() => updateMutation.mutate({ active: false })}>
-                  <Button danger icon={<StopOutlined />} loading={updateMutation.isPending}>
+                <Popconfirm title={`Login bloklansinmi? ${ownerLabel} barcha qurilmalardan chiqariladi.`} onConfirm={() => activeMutation.mutate(false)}>
+                  <Button danger icon={<StopOutlined />} loading={activeMutation.isPending}>
                     Bloklash
                   </Button>
                 </Popconfirm>
@@ -112,41 +145,46 @@ export function LoginAccountCard({ ownerLabel, emptyText, queryKey, editPermissi
       )}
 
       <Modal
-        title={mode === 'create' ? 'Login yaratish' : 'Yangi parol'}
-        open={!!mode}
-        onCancel={() => setMode(null)}
-        onOk={() => form.submit()}
-        okText="Saqlash"
-        cancelText="Bekor qilish"
-        confirmLoading={createMutation.isPending || updateMutation.isPending}
-        destroyOnHidden
+        title={issued?.title}
+        open={!!issued}
+        onCancel={() => setIssued(null)}
+        footer={
+          <Button type="primary" onClick={() => setIssued(null)}>
+            Tayyor
+          </Button>
+        }
       >
-        <Form
-          form={form}
-          layout="vertical"
-          requiredMark={false}
-          onFinish={(values) =>
-            mode === 'create' ? createMutation.mutate({ username: values.username!, password: values.password }) : updateMutation.mutate({ password: values.password })
-          }
-        >
-          {mode === 'create' && (
-            <Form.Item
-              name="username"
-              label="Login"
-              extra="Lotin harflari, raqamlar va . _ - belgilari"
-              rules={[
-                { required: true, message: 'Loginni kiriting' },
-                { min: 3, message: "Kamida 3 ta belgi bo'lsin" },
-                { pattern: /^[a-zA-Z0-9._-]+$/, message: "Faqat lotin harflari, raqamlar va . _ -" },
-              ]}
+        {issued && (
+          <>
+            <Typography.Paragraph type="secondary">Ushbu ma'lumotlarni {ownerLabel.toLowerCase()}ga bering:</Typography.Paragraph>
+            <div
+              style={{
+                padding: 16,
+                borderRadius: 12,
+                background: palette.surfaceRaised,
+                border: `1px solid ${palette.border}`,
+                display: 'grid',
+                gridTemplateColumns: 'auto 1fr',
+                gap: '10px 16px',
+                alignItems: 'center',
+              }}
             >
-              <Input placeholder="masalan: aziz.karimov" autoComplete="off" />
-            </Form.Item>
-          )}
-          <Form.Item name="password" label={mode === 'create' ? 'Parol' : 'Yangi parol'} rules={passwordRules} style={{ marginBottom: 0 }} extra="Parolni hozir yozib oling yoki o'zi bilan yuboring — saqlangandan keyin u hech qayerda ko'rsatilmaydi">
-            <Input.Password prefix={<LockOutlined />} autoComplete="new-password" />
-          </Form.Item>
-        </Form>
+              <Typography.Text type="secondary">Login</Typography.Text>
+              <Typography.Text strong copyable={{ tooltips: ['Nusxalash', 'Nusxalandi'] }} style={{ ...monospace, fontSize: 20 }}>
+                {issued.login.username}
+              </Typography.Text>
+              <Typography.Text type="secondary">Parol</Typography.Text>
+              <Typography.Text strong copyable={{ tooltips: ['Nusxalash', 'Nusxalandi'] }} style={{ ...monospace, fontSize: 20 }}>
+                {issued.login.password}
+              </Typography.Text>
+            </div>
+            <Typography.Paragraph type="secondary" style={{ fontSize: 12, marginTop: 12, marginBottom: 0 }}>
+              {canViewPassword
+                ? "Unutib qo'ysa — admin uni shu sahifada istalgan vaqtda ko'ra oladi."
+                : "Hozir yozib oling: bu oynani yopgandan keyin parolni faqat admin ko'ra oladi."}
+            </Typography.Paragraph>
+          </>
+        )}
       </Modal>
     </Card>
   );

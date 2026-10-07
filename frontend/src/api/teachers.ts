@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { PaginatedResult, LoginAccount, TeacherDetail, TeacherListItem, TeacherProfileStatus } from '../types';
+import type { IssuedLogin, PaginatedResult, LoginAccount, TeacherDetail, TeacherListItem, TeacherProfileStatus } from '../types';
 
 export interface TeacherQuery {
   page?: number;
@@ -56,12 +56,18 @@ export async function getTeacherAccount(teacherId: string) {
   return data;
 }
 
-export async function createTeacherAccount(teacherId: string, payload: { username: string; password: string }) {
-  const { data } = await apiClient.post<LoginAccount>(`/teachers/${teacherId}/account`, payload);
+/** The system assigns the login number and a random password; both come back once, to hand over. */
+export async function createTeacherAccount(teacherId: string) {
+  const { data } = await apiClient.post<IssuedLogin>(`/teachers/${teacherId}/account`);
   return data;
 }
 
-export async function updateTeacherAccount(teacherId: string, payload: { password?: string; active?: boolean }) {
-  const { data } = await apiClient.patch<LoginAccount>(`/teachers/${teacherId}/account`, payload);
+export async function resetTeacherPassword(teacherId: string) {
+  const { data } = await apiClient.post<IssuedLogin>(`/teachers/${teacherId}/account/reset-password`);
+  return data;
+}
+
+export async function setTeacherAccountActive(teacherId: string, active: boolean) {
+  const { data } = await apiClient.patch<LoginAccount>(`/teachers/${teacherId}/account`, { active });
   return data;
 }

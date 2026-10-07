@@ -6,7 +6,7 @@ import { RequirePermission } from '../../shared/decorators/require-permission.de
 import { CreateTeacherDto } from './dto/create-teacher.dto.js';
 import { QueryTeacherDto } from './dto/query-teacher.dto.js';
 import { UpdateTeacherDto } from './dto/update-teacher.dto.js';
-import { CreateLoginDto, UpdateLoginDto } from '../../shared/accounts/login-account.dto.js';
+import { SetLoginActiveDto } from '../../shared/accounts/login-account.dto.js';
 import { TeacherAccountService } from './teacher-account.service.js';
 import { TeachersService } from './teachers.service.js';
 
@@ -61,17 +61,26 @@ export class TeachersController {
     return this.teacherAccountService.get(id);
   }
 
+  /** The system assigns the login (next number from 10000) and a random password; both are returned so they can be handed over. */
   @Post(':id/account')
   @RequirePermission('teachers', PermissionAction.EDIT)
   @Audited('TeacherProfile', 'ACCOUNT_CREATE')
-  createAccount(@Param('id', ParseUUIDPipe) id: string, @Body() dto: CreateLoginDto) {
-    return this.teacherAccountService.create(id, dto);
+  createAccount(@Param('id', ParseUUIDPipe) id: string) {
+    return this.teacherAccountService.create(id);
+  }
+
+  /** A new random password (the old one stops working everywhere), returned so it can be handed over. */
+  @Post(':id/account/reset-password')
+  @RequirePermission('teachers', PermissionAction.EDIT)
+  @Audited('TeacherProfile', 'ACCOUNT_PASSWORD_RESET')
+  resetAccountPassword(@Param('id', ParseUUIDPipe) id: string) {
+    return this.teacherAccountService.resetPassword(id);
   }
 
   @Patch(':id/account')
   @RequirePermission('teachers', PermissionAction.EDIT)
   @Audited('TeacherProfile', 'ACCOUNT_UPDATE')
-  updateAccount(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateLoginDto) {
-    return this.teacherAccountService.update(id, dto);
+  setAccountActive(@Param('id', ParseUUIDPipe) id: string, @Body() dto: SetLoginActiveDto) {
+    return this.teacherAccountService.setActive(id, dto.active);
   }
 }

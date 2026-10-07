@@ -6,7 +6,7 @@ import { Audited } from '../../shared/decorators/audited.decorator.js';
 import { CurrentUser } from '../../shared/decorators/current-user.decorator.js';
 import { RequirePermission } from '../../shared/decorators/require-permission.decorator.js';
 import type { AuthenticatedUser } from '../../shared/types/authenticated-request.js';
-import { CreateLoginDto, UpdateLoginDto } from '../../shared/accounts/login-account.dto.js';
+import { SetLoginActiveDto } from '../../shared/accounts/login-account.dto.js';
 import { toCsv } from '../reports/report-export.util.js';
 import { AttendanceDateRangeDto } from '../student-attendance/dto/attendance-date-range.dto.js';
 import { StudentAttendanceService } from '../student-attendance/student-attendance.service.js';
@@ -144,17 +144,26 @@ export class StudentsController {
     return this.studentAccountService.get(id);
   }
 
+  /** The system assigns the login (next number from 10000) and a random password; both are returned so they can be handed over. */
   @Post(':id/account')
   @RequirePermission('students', PermissionAction.EDIT)
   @Audited('Student', 'ACCOUNT_CREATE')
-  createAccount(@Param('id', ParseUUIDPipe) id: string, @Body() dto: CreateLoginDto) {
-    return this.studentAccountService.create(id, dto);
+  createAccount(@Param('id', ParseUUIDPipe) id: string) {
+    return this.studentAccountService.create(id);
+  }
+
+  /** A new random password (the old one stops working everywhere), returned so it can be handed over. */
+  @Post(':id/account/reset-password')
+  @RequirePermission('students', PermissionAction.EDIT)
+  @Audited('Student', 'ACCOUNT_PASSWORD_RESET')
+  resetAccountPassword(@Param('id', ParseUUIDPipe) id: string) {
+    return this.studentAccountService.resetPassword(id);
   }
 
   @Patch(':id/account')
   @RequirePermission('students', PermissionAction.EDIT)
   @Audited('Student', 'ACCOUNT_UPDATE')
-  updateAccount(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateLoginDto) {
-    return this.studentAccountService.update(id, dto);
+  setAccountActive(@Param('id', ParseUUIDPipe) id: string, @Body() dto: SetLoginActiveDto) {
+    return this.studentAccountService.setActive(id, dto.active);
   }
 }

@@ -8,6 +8,8 @@ export default defineConfig({
   test: {
     globals: true,
     root: './',
+    // A fixed, test-only key so credential encryption works without a local .env.
+    env: { CREDENTIALS_ENCRYPTION_KEY: 'test-only-credentials-key-0123456789abcdef' },
     include: ['**/*.spec.ts'],
   },
 });

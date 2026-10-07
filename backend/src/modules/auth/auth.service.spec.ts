@@ -1,6 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import * as bcrypt from 'bcryptjs';
 import { describe, expect, it, vi } from 'vitest';
+import { decryptCredential } from '../../shared/security/credential-cipher.js';
 import { AuthService } from './auth.service.js';
 
 async function createService(currentPassword = 'eskiparol1') {
@@ -27,12 +28,14 @@ describe('AuthService.changePassword', () => {
     await expect(service.changePassword('u1', 'eskiparol1', 'eskiparol1')).rejects.toThrow(BadRequestException);
   });
 
-  it('stores a new hash and revokes every OTHER session, keeping the current device signed in', async () => {
+  it('stores a new hash plus an admin-readable copy and revokes every OTHER session, keeping the current device signed in', async () => {
     const { service, prisma } = await createService();
     await service.changePassword('u1', 'eskiparol1', 'yangiparol1', 'session-current.secret');
 
     const { data } = prisma.user.update.mock.calls[0][0];
     expect(await bcrypt.compare('yangiparol1', data.passwordHash)).toBe(true);
+    // The admin can still look the new password up.
+    expect(decryptCredential(data.temporaryPassword)).toBe('yangiparol1');
     expect(prisma.userSession.updateMany).toHaveBeenCalledWith({
       where: { userId: 'u1', revokedAt: null, id: { not: 'session-current' } },
       data: { revokedAt: expect.any(Date) },

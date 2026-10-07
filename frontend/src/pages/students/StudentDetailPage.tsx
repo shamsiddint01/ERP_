@@ -29,7 +29,7 @@ import { listAuditLogs, type AuditLogEntry } from '../../api/auditLog';
 import { revokeStudentDiscount } from '../../api/discounts';
 import { activateEnrollment, pauseEnrollment } from '../../api/enrollments';
 import { listGroups } from '../../api/groups';
-import { createStudentAccount, deactivateStudent, getStudent, getStudentAccount, getStudentGrades, getStudentProgress, updateStudentAccount } from '../../api/students';
+import { createStudentAccount, deactivateStudent, getStudent, getStudentAccount, getStudentGrades, getStudentProgress, resetStudentPassword, setStudentAccountActive } from '../../api/students';
 import { downloadStudentAttendanceCsv, getStudentAttendanceHistory } from '../../api/studentAttendance';
 import { getStudentFinancialSummary } from '../../api/tuition';
 import { ActionBar } from '../../components/ActionBar';
@@ -215,8 +215,9 @@ export function StudentDetailPage() {
             queryKey={['student-account', student.id]}
             editPermission={{ module: 'students', action: 'EDIT' }}
             fetchAccount={() => getStudentAccount(student.id)}
-            createAccount={(payload) => createStudentAccount(student.id, payload)}
-            updateAccount={(payload) => updateStudentAccount(student.id, payload)}
+            createAccount={() => createStudentAccount(student.id)}
+            resetPassword={() => resetStudentPassword(student.id)}
+            setActive={(active) => setStudentAccountActive(student.id, active)}
           />
           <Descriptions column={{ xs: 1, sm: 2, md: 3 }} title="Shaxsiy ma'lumotlar">
             <Descriptions.Item label="Telefon">{student.phone ?? '—'}</Descriptions.Item>

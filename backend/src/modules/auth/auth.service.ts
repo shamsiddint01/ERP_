@@ -5,6 +5,7 @@ import { JwtService, type JwtSignOptions } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { RolePermissionsCacheService } from '../../shared/rbac/role-permissions-cache.service.js';
+import { encryptCredential } from '../../shared/security/credential-cipher.js';
 import { parseDurationMs } from '../../shared/utils/duration.util.js';
 import type { LoginDto } from './dto/login.dto.js';
 
@@ -117,7 +118,8 @@ export class AuthService {
   /**
    * Self-service password change. Every other session of this user is
    * revoked, so a password that leaked is useless everywhere else at once —
-   * the current device stays signed in.
+   * the current device stays signed in. The new password is also kept
+   * encrypted so an admin can still look it up if the user forgets it.
    */
   async changePassword(userId: string, currentPassword: string, newPassword: string, currentRefreshToken?: string): Promise<void> {
     const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
@@ -128,7 +130,7 @@ export class AuthService {
 
     const currentSessionId = currentRefreshToken?.split('.')[0];
     await this.prisma.$transaction([
-      this.prisma.user.update({ where: { id: userId }, data: { passwordHash: await bcrypt.hash(newPassword, 10) } }),
+      this.prisma.user.update({ where: { id: userId }, data: { passwordHash: await bcrypt.hash(newPassword, 10), temporaryPassword: encryptCredential(newPassword) } }),
       this.prisma.userSession.updateMany({
         where: { userId, revokedAt: null, ...(currentSessionId && { id: { not: currentSessionId } }) },
         data: { revokedAt: new Date() },

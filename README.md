@@ -138,6 +138,7 @@ Copy `backend/.env.example` → `backend/.env`. `.env` is gitignored; only
 |---|---|
 | `DATABASE_URL` | PostgreSQL connection string |
 | `JWT_ACCESS_SECRET` | Signs the 15-min access token. In production the app **refuses to boot** if it is missing, shorter than 32 chars, or an obvious placeholder (`change_me`, `secret`, …). Generate: `openssl rand -base64 48`. |
+| `CREDENTIALS_ENCRYPTION_KEY` | Encrypts the admin-visible copy of passwords that staff set for students/teachers/staff (`users.temporary_password`). Required (the app refuses to boot in production without a 32+ char value). Keep it outside the database and its backups; changing it makes every stored password unreadable, and admins then set new ones. Generate: `openssl rand -base64 48`. |
 | `CORS_ORIGIN` | Allowed browser origin(s), comma-separated. If unset in production, cross-origin browser requests are blocked and a warning is logged (it never falls back to `*`). |
 | `NODE_ENV` | `production` — switches on JSON logs, the strong-secret check, the secure-cookie flag, and disables Swagger by default. |
 

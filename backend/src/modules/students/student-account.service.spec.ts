@@ -1,74 +1,50 @@
-import { ConflictException } from '@nestjs/common';
+import { ConflictException, NotFoundException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
-import { LoginAccountService } from '../../shared/accounts/login-account.service.js';
 import { StudentAccountService } from './student-account.service.js';
 
-function createPrisma(opts: { studentUserId?: string | null; usernameTaken?: boolean; emailTaken?: boolean } = {}) {
-  const tx = {
-    user: {
-      create: vi.fn().mockImplementation(({ data }) => Promise.resolve({ id: 'u-new', ...data })),
-      update: vi.fn().mockResolvedValue({ id: 'u1' }),
-    },
-    student: { update: vi.fn().mockResolvedValue({}) },
-    userSession: { updateMany: vi.fn().mockResolvedValue({ count: 2 }) },
-  };
-  return {
+function setup(opts: { studentUserId?: string | null; account?: { id: string } | null; studentExists?: boolean } = {}) {
+  const prisma = {
     student: {
-      findUnique: vi.fn().mockImplementation(({ select }) =>
-        Promise.resolve(select?.user ? { user: { id: 'u1', username: 'aziz' } } : { id: 'stu1', fullName: 'Aziz Karimov', email: 'aziz@mail.uz', userId: opts.studentUserId ?? null }),
-      ),
+      findUnique: vi.fn().mockImplementation(({ select }) => {
+        if (opts.studentExists === false) return Promise.resolve(null);
+        return Promise.resolve(select?.user ? { user: opts.account ?? null } : { fullName: 'Aziz Karimov', email: 'aziz@mail.uz', userId: opts.studentUserId ?? null });
+      }),
+      update: vi.fn().mockResolvedValue({}),
     },
-    user: {
-      findUnique: vi.fn().mockImplementation(({ where }) =>
-        Promise.resolve((where.username && opts.usernameTaken) || (where.email && opts.emailTaken) ? { id: 'someone' } : null),
-      ),
-    },
-    role: { findUnique: vi.fn().mockResolvedValue({ id: 'role-student' }) },
-    $transaction: vi.fn((cb: (t: unknown) => unknown) => cb(tx)),
-    __tx: tx,
   };
+  const logins = {
+    create: vi.fn().mockResolvedValue({ id: 'u-new', username: '10000', password: 'Kx7mPq2a' }),
+    resetPassword: vi.fn().mockResolvedValue({ id: 'u1', password: 'New12345' }),
+    setActive: vi.fn().mockResolvedValue({ id: 'u1' }),
+  };
+  return { service: new StudentAccountService(prisma as never, logins as never), prisma, logins };
 }
 
-const service = (prisma: ReturnType<typeof createPrisma>) => new StudentAccountService(prisma as never, new LoginAccountService(prisma as never));
-
 describe('StudentAccountService', () => {
-  it('creates an ACTIVE Student-role login with a hashed password and links it to the student', async () => {
-    const prisma = createPrisma();
-    await service(prisma).create('stu1', { username: 'Aziz.K', password: 'parol1234' });
-    const { data } = prisma.__tx.user.create.mock.calls[0][0];
-    expect(data).toMatchObject({ username: 'aziz.k', roleId: 'role-student', status: 'ACTIVE', email: 'aziz@mail.uz' });
-    expect(data.passwordHash).not.toBe('parol1234');
-    expect(prisma.__tx.student.update).toHaveBeenCalledWith({ where: { id: 'stu1' }, data: { userId: 'u-new' } });
-  });
-
-  it("falls back to a placeholder email when the student's own email is already used by another login", async () => {
-    const prisma = createPrisma({ emailTaken: true });
-    await service(prisma).create('stu1', { username: 'aziz', password: 'parol1234' });
-    expect(prisma.__tx.user.create.mock.calls[0][0].data.email).toBe('aziz@accounts.local');
-  });
-
-  it('refuses a username that is already taken', async () => {
-    await expect(service(createPrisma({ usernameTaken: true })).create('stu1', { username: 'aziz', password: 'parol1234' })).rejects.toThrow(ConflictException);
+  it('creates a Student-role login and links it to the student inside the same transaction', async () => {
+    const { service, logins } = setup();
+    const result = await service.create('stu1');
+    expect(result).toMatchObject({ username: '10000', password: 'Kx7mPq2a' });
+    const input = logins.create.mock.calls[0][0];
+    expect(input).toMatchObject({ roleName: 'Student', fullName: 'Aziz Karimov', preferredEmail: 'aziz@mail.uz' });
+    const tx = { student: { update: vi.fn() } };
+    await input.link(tx, 'u-new');
+    expect(tx.student.update).toHaveBeenCalledWith({ where: { id: 'stu1' }, data: { userId: 'u-new' } });
   });
 
   it('refuses a second login for the same student', async () => {
-    await expect(service(createPrisma({ studentUserId: 'u1' })).create('stu1', { username: 'aziz', password: 'parol1234' })).rejects.toThrow(ConflictException);
+    await expect(setup({ studentUserId: 'u1' }).service.create('stu1')).rejects.toThrow(ConflictException);
   });
 
-  it('signs the student out everywhere when the password is reset', async () => {
-    const prisma = createPrisma();
-    await service(prisma).update('stu1', { password: 'yangiparol1' });
-    expect(prisma.__tx.userSession.updateMany).toHaveBeenCalledWith({ where: { userId: 'u1', revokedAt: null }, data: { revokedAt: expect.any(Date) } });
+  it('404s for an unknown student', async () => {
+    await expect(setup({ studentExists: false }).service.create('missing')).rejects.toThrow(NotFoundException);
   });
 
-  it('blocking suspends the login and signs it out; unblocking does not touch sessions', async () => {
-    const prisma = createPrisma();
-    await service(prisma).update('stu1', { active: false });
-    expect(prisma.__tx.user.update).toHaveBeenCalledWith(expect.objectContaining({ data: { status: 'SUSPENDED' } }));
-    expect(prisma.__tx.userSession.updateMany).toHaveBeenCalledTimes(1);
-
-    const prisma2 = createPrisma();
-    await service(prisma2).update('stu1', { active: true });
-    expect(prisma2.__tx.userSession.updateMany).not.toHaveBeenCalled();
+  it('resets the password / blocks through the student\'s own login', async () => {
+    const { service, logins } = setup({ account: { id: 'u1' } });
+    await service.resetPassword('stu1');
+    await service.setActive('stu1', false);
+    expect(logins.resetPassword).toHaveBeenCalledWith('u1');
+    expect(logins.setActive).toHaveBeenCalledWith('u1', false);
   });
 });
