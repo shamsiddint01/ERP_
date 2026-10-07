@@ -160,6 +160,12 @@ export class StudentsController {
     return this.studentAccountService.resetPassword(id);
   }
 
+  @Delete(':id/account')
+  @RequirePermission('students', PermissionAction.EDIT)
+  removeAccount(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.studentAccountService.remove(id, user);
+  }
+
   @Patch(':id/account')
   @RequirePermission('students', PermissionAction.EDIT)
   @Audited('Student', 'ACCOUNT_UPDATE')

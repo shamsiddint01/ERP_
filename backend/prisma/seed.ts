@@ -716,8 +716,13 @@ async function seedDemoTeacherUser(): Promise<void> {
     { employeeCode: 'EMP-TCH-002', username: 'teacher.jahongir', email: 'jahongir.rustamov@erp.local' },
   ];
   for (const demo of demoTeachers) {
-    const teacherEmployee = await prisma.employee.findUnique({ where: { employeeCode: demo.employeeCode } });
+    const teacherEmployee = await prisma.employee.findUnique({ where: { employeeCode: demo.employeeCode }, include: { user: { select: { username: true } } } });
     if (!teacherEmployee) continue; // defensive — seeded above in this same run
+    // Already has a login (e.g. re-issued as a numeric login from the admin UI) — leave it alone.
+    if (teacherEmployee.user && teacherEmployee.user.username !== demo.username) {
+      console.log(`  -> ${demo.employeeCode} already has login ${teacherEmployee.user.username} — skipped`);
+      continue;
+    }
     await prisma.user.upsert({
       where: { username: demo.username },
       create: {
@@ -965,8 +970,10 @@ async function seedStudentPortalDemo(): Promise<void> {
       update: {},
     });
     await prisma.student.update({ where: { id: student.id }, data: { userId: user.id } });
+    console.log(`  -> student.aziz / ${password} (Student role, linked to STU-000001)`);
+  } else {
+    console.log('  -> STU-000001 already has a login — skipped (see Sozlamalar → Loginlar va parollar)');
   }
-  console.log(`  -> student.aziz / ${password} (Student role, linked to STU-000001)`);
 
   const day = 86_400_000;
   const now = Date.now();

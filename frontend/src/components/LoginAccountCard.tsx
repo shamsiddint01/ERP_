@@ -1,4 +1,4 @@
-import { KeyOutlined, StopOutlined, UnlockOutlined, UserAddOutlined } from '@ant-design/icons';
+import { DeleteOutlined, KeyOutlined, StopOutlined, UnlockOutlined, UserAddOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { App, Button, Card, Modal, Popconfirm, Skeleton, Space, Tag, Typography } from 'antd';
 import { useState } from 'react';
@@ -25,6 +25,7 @@ interface LoginAccountCardProps {
   createAccount: () => Promise<IssuedLogin>;
   resetPassword: () => Promise<IssuedLogin>;
   setActive: (active: boolean) => Promise<unknown>;
+  deleteAccount: () => Promise<unknown>;
 }
 
 const monospace = { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace' } as const;
@@ -36,7 +37,7 @@ const monospace = { fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace'
  * admin (credentials:VIEW) sees the current password here at any time, in
  * case the person loses it.
  */
-export function LoginAccountCard({ ownerLabel, emptyText, queryKey, editPermission, fetchAccount, createAccount, resetPassword, setActive }: LoginAccountCardProps) {
+export function LoginAccountCard({ ownerLabel, emptyText, queryKey, editPermission, fetchAccount, createAccount, resetPassword, setActive, deleteAccount }: LoginAccountCardProps) {
   const { message } = App.useApp();
   const queryClient = useQueryClient();
   const canEdit = useAuthStore((state) => state.hasPermission(editPermission.module, editPermission.action));
@@ -74,6 +75,15 @@ export function LoginAccountCard({ ownerLabel, emptyText, queryKey, editPermissi
       refresh(account?.id);
     },
     onError: (error) => message.error(apiError(error, "Saqlab bo'lmadi")),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteAccount,
+    onSuccess: () => {
+      message.success("Login o'chirildi");
+      refresh(account?.id);
+    },
+    onError: (error) => message.error(apiError(error, "Loginni o'chirib bo'lmadi")),
   });
 
   const blocked = account && account.status !== 'ACTIVE';
@@ -139,6 +149,13 @@ export function LoginAccountCard({ ownerLabel, emptyText, queryKey, editPermissi
                   </Button>
                 </Popconfirm>
               )}
+              <Popconfirm
+                title="Login o'chirilsinmi?"
+                description={`${ownerLabel}ning o'zi va ma'lumotlari qoladi — keyin yangi login berish mumkin.`}
+                onConfirm={() => deleteMutation.mutate()}
+              >
+                <Button danger type="text" icon={<DeleteOutlined />} loading={deleteMutation.isPending} aria-label="Loginni o'chirish" />
+              </Popconfirm>
             </Space>
           )}
         </div>

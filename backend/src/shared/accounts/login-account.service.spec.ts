@@ -83,6 +83,43 @@ describe('LoginAccountService.resetPassword / setActive', () => {
   });
 });
 
+describe('LoginAccountService.remove', () => {
+  function removable(counts: Partial<Record<'payment' | 'tuitionAllocation' | 'assessment' | 'studentAttendance' | 'homework' | 'extraLesson', number>> = {}) {
+    const tx = {
+      user: { delete: vi.fn().mockResolvedValue({ id: 'u1', username: '10005', fullName: 'Aziz' }) },
+      auditLog: { create: vi.fn().mockResolvedValue({}) },
+    };
+    const count = (key: keyof typeof counts) => ({ count: vi.fn().mockResolvedValue(counts[key] ?? 0) });
+    const prisma = {
+      payment: count('payment'),
+      tuitionAllocation: count('tuitionAllocation'),
+      assessment: count('assessment'),
+      studentAttendance: count('studentAttendance'),
+      homework: count('homework'),
+      extraLesson: count('extraLesson'),
+      $transaction: vi.fn((cb: (t: unknown) => unknown) => cb(tx)),
+    };
+    return { service: new LoginAccountService(prisma as never), tx };
+  }
+
+  it('deletes the login and audits who did it (without any password)', async () => {
+    const { service, tx } = removable();
+    await expect(service.remove('u1', { id: 'admin1', username: 'admin' })).resolves.toEqual({ id: 'u1', username: '10005' });
+    expect(tx.user.delete).toHaveBeenCalledWith(expect.objectContaining({ where: { id: 'u1' } }));
+    expect(tx.auditLog.create).toHaveBeenCalledWith({ data: expect.objectContaining({ actorUserId: 'admin1', action: 'LOGIN_DELETE', entityId: 'u1' }) });
+  });
+
+  it('refuses while the login authored payments / grades / attendance / homework', async () => {
+    const { service, tx } = removable({ studentAttendance: 3 });
+    await expect(service.remove('u1', { id: 'admin1', username: 'admin' })).rejects.toThrow(ConflictException);
+    expect(tx.user.delete).not.toHaveBeenCalled();
+  });
+
+  it('404s when there is no login', async () => {
+    await expect(removable().service.remove(null, { id: 'admin1', username: 'admin' })).rejects.toThrow(NotFoundException);
+  });
+});
+
 describe('LoginAccountService.reveal', () => {
   it('decrypts the stored password and audits the look-up WITHOUT the password', async () => {
     const prisma = createPrisma({ stored: encryptCredential('Kx7mPq2a') });

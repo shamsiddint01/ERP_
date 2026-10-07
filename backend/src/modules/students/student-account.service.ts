@@ -32,6 +32,11 @@ export class StudentAccountService {
     return this.logins.resetPassword((await this.get(studentId))?.id);
   }
 
+  /** Deletes only the login; the student record and its history stay. A new login can be issued right after. */
+  async remove(studentId: string, actor: { id: string; username: string }) {
+    return this.logins.remove((await this.get(studentId))?.id, actor);
+  }
+
   async setActive(studentId: string, active: boolean) {
     return this.logins.setActive((await this.get(studentId))?.id, active);
   }

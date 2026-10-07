@@ -99,6 +99,44 @@ export class LoginAccountService {
   }
 
   /**
+   * Deletes the login itself (the student / teacher record stays). Sessions
+   * and personal notifications go with it; audit rows keep their history with
+   * the actor cleared. Refused while the login is the recorded author of real
+   * work (payments, grades, attendance, homework, extra lessons) — that
+   * history must keep pointing at a real user, so block the login instead.
+   */
+  async remove(userId: string | null | undefined, actor: { id: string; username: string }) {
+    if (!userId) throw new NotFoundException("Login yo'q");
+    const [payments, allocations, assessments, attendance, homework, extraLessons] = await Promise.all([
+      this.prisma.payment.count({ where: { recordedByUserId: userId } }),
+      this.prisma.tuitionAllocation.count({ where: { allocatedByUserId: userId } }),
+      this.prisma.assessment.count({ where: { evaluatedByUserId: userId } }),
+      this.prisma.studentAttendance.count({ where: { markedByUserId: userId } }),
+      this.prisma.homework.count({ where: { createdByUserId: userId } }),
+      this.prisma.extraLesson.count({ where: { createdByUserId: userId } }),
+    ]);
+    if (payments + allocations + assessments + attendance + homework + extraLessons > 0) {
+      throw new ConflictException("Bu login orqali to'lov, baho, davomat yoki uy ishi kiritilgan — uni o'chirib bo'lmaydi, bloklang");
+    }
+    // Audited here rather than with @Audited: the route's entity (a student / teacher) is not what gets deleted.
+    const deleted = await this.prisma.$transaction(async (tx) => {
+      const user = await tx.user.delete({ where: { id: userId }, select: { id: true, username: true, fullName: true } });
+      await tx.auditLog.create({
+        data: {
+          actorUserId: actor.id,
+          action: 'LOGIN_DELETE',
+          entityType: 'User',
+          entityId: user.id,
+          oldValue: { username: user.username, fullName: user.fullName },
+          description: `${actor.username} deleted the login ${user.username}`,
+        },
+      });
+      return user;
+    });
+    return { id: deleted.id, username: deleted.username };
+  }
+
+  /**
    * The login's current password, for an admin to read (null only when no
    * readable copy exists, e.g. a login created before this feature). Every
    * look-up is written to the audit log (once per admin and login per 30

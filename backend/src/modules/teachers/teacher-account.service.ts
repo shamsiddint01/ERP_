@@ -38,6 +38,11 @@ export class TeacherAccountService {
     return this.logins.resetPassword((await this.get(teacherProfileId))?.id);
   }
 
+  /** Deletes only the login; the teacher record and its history stay. A new login can be issued right after. */
+  async remove(teacherProfileId: string, actor: { id: string; username: string }) {
+    return this.logins.remove((await this.get(teacherProfileId))?.id, actor);
+  }
+
   async setActive(teacherProfileId: string, active: boolean) {
     return this.logins.setActive((await this.get(teacherProfileId))?.id, active);
   }

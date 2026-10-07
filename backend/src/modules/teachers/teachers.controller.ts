@@ -2,7 +2,9 @@ import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query
 import { PermissionAction } from '@prisma/client';
 import { ApiTags } from '@nestjs/swagger';
 import { Audited } from '../../shared/decorators/audited.decorator.js';
+import { CurrentUser } from '../../shared/decorators/current-user.decorator.js';
 import { RequirePermission } from '../../shared/decorators/require-permission.decorator.js';
+import type { AuthenticatedUser } from '../../shared/types/authenticated-request.js';
 import { CreateTeacherDto } from './dto/create-teacher.dto.js';
 import { QueryTeacherDto } from './dto/query-teacher.dto.js';
 import { UpdateTeacherDto } from './dto/update-teacher.dto.js';
@@ -75,6 +77,12 @@ export class TeachersController {
   @Audited('TeacherProfile', 'ACCOUNT_PASSWORD_RESET')
   resetAccountPassword(@Param('id', ParseUUIDPipe) id: string) {
     return this.teacherAccountService.resetPassword(id);
+  }
+
+  @Delete(':id/account')
+  @RequirePermission('teachers', PermissionAction.EDIT)
+  removeAccount(@Param('id', ParseUUIDPipe) id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.teacherAccountService.remove(id, user);
   }
 
   @Patch(':id/account')

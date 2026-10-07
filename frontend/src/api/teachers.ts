@@ -71,3 +71,8 @@ export async function setTeacherAccountActive(teacherId: string, active: boolean
   const { data } = await apiClient.patch<LoginAccount>(`/teachers/${teacherId}/account`, { active });
   return data;
 }
+
+/** Deletes only the login (the teacher record stays); a new one can be issued right after. */
+export async function deleteTeacherAccount(teacherId: string) {
+  await apiClient.delete(`/teachers/${teacherId}/account`);
+}

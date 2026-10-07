@@ -84,3 +84,8 @@ export async function setStudentAccountActive(studentId: string, active: boolean
   const { data } = await apiClient.patch<LoginAccount>(`/students/${studentId}/account`, { active });
   return data;
 }
+
+/** Deletes only the login (the student record stays); a new one can be issued right after. */
+export async function deleteStudentAccount(studentId: string) {
+  await apiClient.delete(`/students/${studentId}/account`);
+}
