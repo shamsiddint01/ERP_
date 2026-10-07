@@ -30,6 +30,8 @@ function write(key: string, mode: ThemeMode) {
 
 function apply(mode: ThemeMode) {
   document.documentElement.dataset.theme = mode;
+  // The phone browser's own bar follows the page colour.
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', mode === 'light' ? '#f5f3ef' : '#17181c');
 }
 
 interface ThemeState {

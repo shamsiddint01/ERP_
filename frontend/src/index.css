@@ -435,3 +435,52 @@ body {
     opacity: 1;
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * Phones (< 768px, same breakpoint where the sidebar becomes a drawer)
+ * ------------------------------------------------------------------------- */
+@media (max-width: 767px) {
+  /* Tables: one line per cell and a clean sideways scroll, instead of values
+     like "PAY-2026-000012" breaking over three lines and the last column
+     being cut off at the screen edge. */
+  .ant-table-wrapper .ant-table-thead > tr > th,
+  .ant-table-wrapper .ant-table-tbody > tr > td {
+    white-space: nowrap;
+    padding: 10px 12px;
+  }
+  .ant-table-wrapper .ant-table-content,
+  .ant-table-wrapper .ant-table-body {
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* iOS zooms the whole page into any input under 16px when it is tapped. */
+  .ant-input,
+  .ant-input-affix-wrapper input,
+  .ant-input-number-input,
+  .ant-select-selector,
+  .ant-picker-input > input,
+  textarea.ant-input {
+    font-size: 16px !important;
+  }
+
+  /* Side panels (homework answers, teacher salary…) never wider than the phone. */
+  .ant-drawer-right > .ant-drawer-content-wrapper,
+  .ant-drawer .ant-drawer-content-wrapper {
+    max-width: 100vw;
+  }
+  .ant-drawer-body {
+    padding: 16px;
+  }
+
+  /* Modals use the full width with a small margin. */
+  .ant-modal {
+    max-width: calc(100vw - 24px) !important;
+    margin: 12px auto;
+  }
+
+  /* Tab bars with many tabs (To'lovlar, Davomat) scroll sideways. */
+  .section-hub-tabs .ant-tabs-nav {
+    margin-bottom: 12px;
+  }
+}
