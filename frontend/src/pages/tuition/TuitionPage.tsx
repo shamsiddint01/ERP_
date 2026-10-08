@@ -74,13 +74,13 @@ export function TuitionPage() {
           { title: 'O\'quvchi', render: (_, record) => `${record.student.fullName} (${record.student.studentCode})` },
           { title: 'Guruh', render: (_, record) => record.enrollment.group.name },
           { title: 'Davr', dataIndex: 'billingPeriod' },
-          { title: 'Summa', dataIndex: 'amount', render: (v: string) => Number(v).toLocaleString('uz-UZ') },
-          { title: 'Chegirma', dataIndex: 'discountAmount', render: (v: string) => Number(v).toLocaleString('uz-UZ') },
+          { title: 'Summa', responsive: ['md'], dataIndex: 'amount', render: (v: string) => Number(v).toLocaleString('uz-UZ') },
+          { title: 'Chegirma', responsive: ['md'], dataIndex: 'discountAmount', render: (v: string) => Number(v).toLocaleString('uz-UZ') },
           { title: 'Sof summa', dataIndex: 'netAmount', render: (v: string) => Number(v).toLocaleString('uz-UZ') },
           { title: 'Muddati', dataIndex: 'dueDate', render: (v: string) => new Date(v).toLocaleDateString('uz-UZ') },
           { title: 'Status', render: (_, record) => <ChargeStateTag charge={record} /> },
           {
-            title: 'Amallar',
+            title: 'Amallar', responsive: ['md'],
             render: (_, record) => (
               <Button
                 size="small"

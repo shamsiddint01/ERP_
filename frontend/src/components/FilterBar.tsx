@@ -5,7 +5,9 @@ import type { ReactNode } from 'react';
 export function FilterBar({ children }: { children: ReactNode }) {
   return (
     <Card size="small" style={{ marginBottom: 16 }} styles={{ body: { padding: 12 } }}>
-      <Space wrap>{children}</Space>
+      <Space wrap className="filter-strip">
+        {children}
+      </Space>
     </Card>
   );
 }

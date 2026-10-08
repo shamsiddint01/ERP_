@@ -113,22 +113,22 @@ export function StudentFormModal({ open, onClose, student, onSaved }: StudentFor
             </Form.Item>
           )}
           <Row gutter={16}>
-            <Col span={12}>
+            <Col xs={24} sm={12}>
               <Form.Item name="firstName" label="Ism" rules={[{ required: true }]}>
                 <Input />
               </Form.Item>
             </Col>
-            <Col span={12}>
+            <Col xs={24} sm={12}>
               <Form.Item name="lastName" label="Familiya" rules={[{ required: true }]}>
                 <Input />
               </Form.Item>
             </Col>
-            <Col span={12}>
+            <Col xs={24} sm={12}>
               <Form.Item name="dateOfBirth" label="Tug'ilgan sana">
                 <DatePicker style={{ width: '100%' }} />
               </Form.Item>
             </Col>
-            <Col span={12}>
+            <Col xs={24} sm={12}>
               <Form.Item name="gender" label="Jinsi">
                 <Select
                   allowClear
@@ -146,22 +146,22 @@ export function StudentFormModal({ open, onClose, student, onSaved }: StudentFor
 
         <FormSection title="Aloqa va filial">
           <Row gutter={16}>
-            <Col span={12}>
+            <Col xs={24} sm={12}>
               <Form.Item name="phone" label="Telefon">
                 <Input placeholder="+998901234567" />
               </Form.Item>
             </Col>
-            <Col span={12}>
+            <Col xs={24} sm={12}>
               <Form.Item name="email" label="Email">
                 <Input />
               </Form.Item>
             </Col>
-            <Col span={12}>
+            <Col xs={24} sm={12}>
               <Form.Item name="address" label="Manzil">
                 <Input />
               </Form.Item>
             </Col>
-            <Col span={12}>
+            <Col xs={24} sm={12}>
               <Form.Item name="branchId" label="Filial">
                 <Select
                   allowClear
@@ -170,7 +170,7 @@ export function StudentFormModal({ open, onClose, student, onSaved }: StudentFor
                 />
               </Form.Item>
             </Col>
-            <Col span={12}>
+            <Col xs={24} sm={12}>
               <Form.Item name="emergencyContact" label="Favqulodda aloqa">
                 <Input />
               </Form.Item>
@@ -183,7 +183,7 @@ export function StudentFormModal({ open, onClose, student, onSaved }: StudentFor
         <FormSection title="Qo'shimcha">
           <Row gutter={16}>
             {isEdit && (
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item name="status" label="Status">
                   <Select options={STATUS_OPTIONS} />
                 </Form.Item>

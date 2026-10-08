@@ -1,6 +1,6 @@
 import { ArrowLeftOutlined, SaveOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Button, Card, Form, Input, Select, Space, Spin, Statistic, Table, Typography } from 'antd';
+import { App, Button, Card, Form, Grid, Input, Radio, Select, Space, Spin, Statistic, Table, Typography } from 'antd';
 import { EmptyState } from '../../components/EmptyState';
 import dayjs from 'dayjs';
 import { useEffect, useMemo } from 'react';
@@ -32,6 +32,7 @@ export function LessonAttendancePage() {
   const { message } = App.useApp();
   const queryClient = useQueryClient();
   const [form] = Form.useForm<FormValues>();
+  const isMobile = Grid.useBreakpoint().md === false;
   const watched = Form.useWatch([], form) as FormValues | undefined;
 
   const lessonQuery = useQuery({ queryKey: ['lesson', id], queryFn: () => getLesson(id!), enabled: !!id });
@@ -124,7 +125,7 @@ export function LessonAttendancePage() {
           {dayjs(lesson.scheduledStart).format('DD.MM.YYYY HH:mm')} – {dayjs(lesson.scheduledEnd).format('HH:mm')} · {lesson.teacherEmployee?.fullName ?? "O'qituvchisiz"}
         </Typography.Text>
 
-        <Space size={32} style={{ marginTop: 16 }}>
+        <Space wrap size={[28, 12]} style={{ marginTop: 16 }}>
           <Statistic title="Jami o'quvchilar" value={roster.length} />
           <Statistic title="Keldi" value={counts.present} styles={{ content: { color: palette.success } }} />
           <Statistic title="Kelmadi" value={counts.absent} styles={{ content: { color: palette.error } }} />
@@ -140,33 +141,64 @@ export function LessonAttendancePage() {
           <EmptyState title="Ushbu darsga yozilgan o'quvchilar topilmadi" />
         ) : (
           <Form form={form} onFinish={(values) => bulkMutation.mutate(values)}>
-            <Table
-              rowKey={(record) => record.student.id}
-              dataSource={roster}
-              pagination={false}
-              columns={[
-                { title: 'Kod', render: (_, record) => record.student.studentCode },
-                { title: "F.I.Sh.", render: (_, record) => record.student.fullName },
-                {
-                  title: 'Status',
-                  width: 200,
-                  render: (_, record) => (
-                    <Form.Item name={['status', record.student.id]} rules={[{ required: true, message: 'Tanlang' }]} style={{ marginBottom: 0 }}>
-                      <Select options={ATTENDANCE_STATUS_OPTIONS} style={{ width: 160 }} />
+            {isMobile ? (
+              // Phone: one card per student with four big status buttons — no sideways-scrolling table.
+              <div className="attendance-list">
+                {roster.map((record) => (
+                  <div key={record.student.id} className="attendance-row">
+                    <div style={{ marginBottom: 8 }}>
+                      <Typography.Text strong style={{ display: 'block', overflowWrap: 'anywhere' }}>
+                        {record.student.fullName}
+                      </Typography.Text>
+                      <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                        {record.student.studentCode}
+                      </Typography.Text>
+                    </div>
+                    <Form.Item name={['status', record.student.id]} rules={[{ required: true, message: 'Tanlang' }]} style={{ marginBottom: 8 }}>
+                      <Radio.Group className="attendance-choice" optionType="button" buttonStyle="solid" options={ATTENDANCE_STATUS_OPTIONS} />
                     </Form.Item>
-                  ),
-                },
-                {
-                  title: 'Izoh',
-                  render: (_, record) => (
                     <Form.Item name={['notes', record.student.id]} style={{ marginBottom: 0 }}>
                       <Input placeholder="Izoh (ixtiyoriy)" />
                     </Form.Item>
-                  ),
-                },
-              ]}
-            />
-            <Button type="primary" htmlType="submit" icon={<SaveOutlined />} loading={bulkMutation.isPending} style={{ marginTop: 16 }}>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <Table
+                rowKey={(record) => record.student.id}
+                dataSource={roster}
+                pagination={false}
+                columns={[
+                  { title: 'Kod', render: (_, record) => record.student.studentCode },
+                  { title: "F.I.Sh.", render: (_, record) => record.student.fullName },
+                  {
+                    title: 'Status',
+                    width: 200,
+                    render: (_, record) => (
+                      <Form.Item name={['status', record.student.id]} rules={[{ required: true, message: 'Tanlang' }]} style={{ marginBottom: 0 }}>
+                        <Select options={ATTENDANCE_STATUS_OPTIONS} style={{ width: 160 }} />
+                      </Form.Item>
+                    ),
+                  },
+                  {
+                    title: 'Izoh',
+                    render: (_, record) => (
+                      <Form.Item name={['notes', record.student.id]} style={{ marginBottom: 0 }}>
+                        <Input placeholder="Izoh (ixtiyoriy)" />
+                      </Form.Item>
+                    ),
+                  },
+                ]}
+              />
+            )}
+            <Button
+              type="primary"
+              htmlType="submit"
+              icon={<SaveOutlined />}
+              loading={bulkMutation.isPending}
+              className={isMobile ? 'attendance-save-mobile' : undefined}
+              style={{ marginTop: 16 }}
+            >
               Saqlash
             </Button>
           </Form>

@@ -134,12 +134,12 @@ export function StudentsPage() {
               </Space>
             ),
           },
-          { title: 'Filial', render: (_, record) => record.branch?.name ?? '—' },
+          { title: 'Filial', responsive: ['md'], render: (_, record) => record.branch?.name ?? '—' },
           { title: 'Telefon', dataIndex: 'phone', render: (v: string | null) => v ?? '—' },
           { title: 'Login', render: (_, record) => <LoginCell user={record.user} /> },
-          { title: "Yozilishlar", render: (_, record) => record._count.enrollments },
+          { title: "Yozilishlar", responsive: ['md'], render: (_, record) => record._count.enrollments },
           { title: 'Status', dataIndex: 'status', render: (v: StudentStatus) => <Tag color={STATUS_COLORS[v]}>{STATUS_LABELS[v]}</Tag> },
-          { title: "Ro'yxatga olingan sana", dataIndex: 'registrationDate', render: (v: string) => formatDate(v) },
+          { title: "Ro'yxatga olingan sana", responsive: ['md'], dataIndex: 'registrationDate', render: (v: string) => formatDate(v) },
         ]}
       />
 

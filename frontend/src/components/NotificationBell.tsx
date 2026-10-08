@@ -60,7 +60,7 @@ export function NotificationBell() {
   }, [unreadQuery.data]);
 
   const panel = (
-    <div className="notification-panel" style={{ width: 380, background: 'var(--color-surface-raised)', border: '1px solid var(--color-border)', borderRadius: 12, overflow: 'hidden' }}>
+    <div className="notification-panel" style={{ width: 'min(380px, calc(100vw - 24px))', background: 'var(--color-surface-raised)', border: '1px solid var(--color-border)', borderRadius: 12, overflow: 'hidden' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderBottom: '1px solid var(--color-border)' }}>
         <Typography.Text strong>Bildirishnomalar</Typography.Text>
         <Button

@@ -103,7 +103,7 @@ export function ClassroomDetailPage() {
       </Card>
 
       <Row gutter={16}>
-        <Col span={12}>
+        <Col xs={24} md={12}>
           <Card>
             <Statistic title="Joriy guruhlar soni" value={classroom._count.studentGroups} />
           </Card>

@@ -140,7 +140,7 @@ export function EducationReportsPage() {
   }
 
   const filterBar = (
-    <Space style={{ marginBottom: 16 }} wrap>
+    <Space style={{ marginBottom: 16 }} wrap className="filter-strip">
       <RangePicker value={range} onChange={setRange} />
       {canBranches && (
         <Select
@@ -199,7 +199,7 @@ export function EducationReportsPage() {
       label: 'O\'quvchilar',
       children: (
         <>
-          <Space style={{ marginBottom: 12 }}>
+          <Space wrap style={{ marginBottom: 12 }}>
             <Select placeholder="Status" allowClear style={{ width: 160 }} options={Object.entries(STUDENT_STATUS_LABELS).map(([value, label]) => ({ value, label }))} onChange={setStudentStatus} />
             <Button icon={<DownloadOutlined />} onClick={() => handleExport('students', 'csv', 'education-students')}>
               CSV
@@ -208,18 +208,18 @@ export function EducationReportsPage() {
               PDF
             </Button>
           </Space>
-          <Row gutter={16} style={{ marginBottom: 16 }}>
-            <Col span={8}>
+          <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+            <Col xs={24} sm={8}>
               <Card size="small">
                 <Statistic title="Jami o'quvchilar" value={studentsQuery.data?.totalStudents ?? 0} loading={studentsQuery.isLoading} />
               </Card>
             </Col>
-            <Col span={8}>
+            <Col xs={24} sm={8}>
               <Card size="small">
                 <Statistic title="Faol" value={studentsQuery.data?.activeStudents ?? 0} loading={studentsQuery.isLoading} styles={{ content: { color: palette.success } }} />
               </Card>
             </Col>
-            <Col span={8}>
+            <Col xs={24} sm={8}>
               <Card size="small">
                 <Statistic title="Nofaol" value={studentsQuery.data?.inactiveStudents ?? 0} loading={studentsQuery.isLoading} styles={{ content: { color: palette.error } }} />
               </Card>
@@ -236,8 +236,8 @@ export function EducationReportsPage() {
               </LineChart>
             </ResponsiveContainer>
           </Card>
-          <Row gutter={16} style={{ marginBottom: 16 }}>
-            <Col span={12}>
+          <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+            <Col xs={24} lg={12}>
               <Typography.Text strong>Filial bo'yicha</Typography.Text>
               <Table
                 rowKey="branchId"
@@ -251,7 +251,7 @@ export function EducationReportsPage() {
                 ]}
               />
             </Col>
-            <Col span={12}>
+            <Col xs={24} lg={12}>
               <Typography.Text strong>Kurs bo'yicha</Typography.Text>
               <Table
                 rowKey="courseId"
@@ -290,7 +290,7 @@ export function EducationReportsPage() {
       label: 'Guruhlar',
       children: (
         <>
-          <Space style={{ marginBottom: 12 }}>
+          <Space wrap style={{ marginBottom: 12 }}>
             <Select placeholder="Status" allowClear style={{ width: 160 }} options={Object.entries(GROUP_STATUS_LABELS).map(([value, label]) => ({ value, label }))} onChange={setGroupStatus} />
             <Button icon={<DownloadOutlined />} onClick={() => handleExport('groups', 'csv', 'education-groups')}>
               CSV
@@ -299,18 +299,18 @@ export function EducationReportsPage() {
               PDF
             </Button>
           </Space>
-          <Row gutter={16} style={{ marginBottom: 16 }}>
-            <Col span={8}>
+          <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+            <Col xs={24} sm={8}>
               <Card size="small">
                 <Statistic title="Guruhlar soni" value={groupsQuery.data?.groupCount ?? 0} loading={groupsQuery.isLoading} />
               </Card>
             </Col>
-            <Col span={8}>
+            <Col xs={24} sm={8}>
               <Card size="small">
                 <Statistic title="O'quvchilar soni" value={groupsQuery.data?.studentCount ?? 0} loading={groupsQuery.isLoading} />
               </Card>
             </Col>
-            <Col span={8}>
+            <Col xs={24} sm={8}>
               <Card size="small">
                 <Statistic title="O'rtacha to'ldirilish" value={groupsQuery.data?.averageUtilization ?? 0} suffix="%" loading={groupsQuery.isLoading} />
               </Card>
@@ -351,28 +351,28 @@ export function EducationReportsPage() {
       label: 'Davomat',
       children: (
         <>
-          <Space style={{ marginBottom: 12 }}>
+          <Space wrap style={{ marginBottom: 12 }}>
             <Button icon={<DownloadOutlined />} onClick={() => handleExport('attendance', 'csv', 'education-attendance')}>
               CSV
             </Button>
           </Space>
-          <Row gutter={16} style={{ marginBottom: 16 }}>
-            <Col span={6}>
+          <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+            <Col xs={12} lg={6}>
               <Card size="small">
                 <Statistic title="Davomat %" value={attendanceQuery.data?.overall.attendancePercentage ?? 0} suffix="%" loading={attendanceQuery.isLoading} />
               </Card>
             </Col>
-            <Col span={6}>
+            <Col xs={12} lg={6}>
               <Card size="small">
                 <Statistic title="Sababsiz qoldirish %" value={attendanceQuery.data?.overall.absenceRate ?? 0} suffix="%" loading={attendanceQuery.isLoading} styles={{ content: { color: palette.error } }} />
               </Card>
             </Col>
-            <Col span={6}>
+            <Col xs={12} lg={6}>
               <Card size="small">
                 <Statistic title="Kechikish %" value={attendanceQuery.data?.overall.lateRate ?? 0} suffix="%" loading={attendanceQuery.isLoading} styles={{ content: { color: palette.warning } }} />
               </Card>
             </Col>
-            <Col span={6}>
+            <Col xs={12} lg={6}>
               <Card size="small">
                 <Statistic title="Sababli qoldirish %" value={attendanceQuery.data?.overall.excusedRate ?? 0} suffix="%" loading={attendanceQuery.isLoading} />
               </Card>
@@ -457,36 +457,36 @@ export function EducationReportsPage() {
       label: 'Akademik',
       children: (
         <>
-          <Space style={{ marginBottom: 12 }}>
+          <Space wrap style={{ marginBottom: 12 }}>
             <Button icon={<DownloadOutlined />} onClick={() => handleExport('academic', 'csv', 'education-academic')}>
               CSV
             </Button>
           </Space>
           {academicQuery.data?.scope === 'student' ? (
             <>
-              <Row gutter={16} style={{ marginBottom: 16 }}>
-                <Col span={6}>
+              <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+                <Col xs={12} lg={6}>
                   <Card size="small">
                     <Statistic title="Imtihonlar" value={academicQuery.data.studentProgress.totalExams} />
                   </Card>
                 </Col>
-                <Col span={6}>
+                <Col xs={12} lg={6}>
                   <Card size="small">
                     <Statistic title="O'rtacha %" value={academicQuery.data.studentProgress.averagePercentage} suffix="%" />
                   </Card>
                 </Col>
-                <Col span={6}>
+                <Col xs={12} lg={6}>
                   <Card size="small">
                     <Statistic title="O'tish darajasi" value={academicQuery.data.studentProgress.passRate} suffix="%" />
                   </Card>
                 </Col>
-                <Col span={6}>
+                <Col xs={12} lg={6}>
                   <Card size="small">
                     <Statistic title="Davomat %" value={academicQuery.data.studentProgress.attendancePercentage} suffix="%" />
                   </Card>
                 </Col>
               </Row>
-              <Space style={{ marginBottom: 12 }}>
+              <Space wrap style={{ marginBottom: 12 }}>
                 <Link to={`/students/${studentId}?tab=progress`}>To'liq progress sahifasini ochish →</Link>
               </Space>
               <Table
@@ -504,13 +504,13 @@ export function EducationReportsPage() {
             </>
           ) : (
             <>
-              <Row gutter={16} style={{ marginBottom: 16 }}>
-                <Col span={12}>
+              <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+                <Col xs={24} lg={12}>
                   <Card size="small">
                     <Statistic title="O'rtacha ball %" value={academicQuery.data?.averageScore ?? 0} suffix="%" loading={academicQuery.isLoading} />
                   </Card>
                 </Col>
-                <Col span={12}>
+                <Col xs={24} lg={12}>
                   <Card size="small">
                     <Statistic title="O'tish darajasi" value={academicQuery.data?.passRate ?? 0} suffix="%" loading={academicQuery.isLoading} />
                   </Card>
@@ -553,28 +553,28 @@ export function EducationReportsPage() {
       label: "O'quv to'lovlari",
       children: (
         <>
-          <Space style={{ marginBottom: 12 }}>
+          <Space wrap style={{ marginBottom: 12 }}>
             <Button icon={<DownloadOutlined />} onClick={() => handleExport('tuition', 'csv', 'education-tuition')}>
               CSV
             </Button>
           </Space>
-          <Row gutter={16} style={{ marginBottom: 16 }}>
-            <Col span={6}>
+          <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+            <Col xs={12} lg={6}>
               <Card size="small">
                 <Statistic title="Hisoblangan" value={tuitionQuery.data?.billed.totalBilled ?? 0} formatter={(v) => money(Number(v))} loading={tuitionQuery.isLoading} />
               </Card>
             </Col>
-            <Col span={6}>
+            <Col xs={12} lg={6}>
               <Card size="small">
                 <Statistic title="Yig'ilgan" value={tuitionQuery.data?.collected.totalCollected ?? 0} formatter={(v) => money(Number(v))} loading={tuitionQuery.isLoading} styles={{ content: { color: palette.success } }} />
               </Card>
             </Col>
-            <Col span={6}>
+            <Col xs={12} lg={6}>
               <Card size="small">
                 <Statistic title="Qoldiq" value={tuitionQuery.data?.outstanding.totalOutstanding ?? 0} formatter={(v) => money(Number(v))} loading={tuitionQuery.isLoading} styles={{ content: { color: palette.error } }} />
               </Card>
             </Col>
-            <Col span={6}>
+            <Col xs={12} lg={6}>
               <Card size="small">
                 <Statistic title="Yig'ish darajasi" value={tuitionQuery.data?.collectionRate.collectionRate ?? 0} suffix="%" loading={tuitionQuery.isLoading} />
               </Card>
@@ -612,7 +612,7 @@ export function EducationReportsPage() {
       label: "O'qituvchilar",
       children: (
         <>
-          <Space style={{ marginBottom: 12 }}>
+          <Space wrap style={{ marginBottom: 12 }}>
             <Button icon={<DownloadOutlined />} onClick={() => handleExport('teachers', 'csv', 'education-teachers')}>
               CSV
             </Button>
@@ -655,7 +655,7 @@ export function EducationReportsPage() {
       label: 'Filiallar',
       children: (
         <>
-          <Space style={{ marginBottom: 12 }}>
+          <Space wrap style={{ marginBottom: 12 }}>
             <Button icon={<DownloadOutlined />} onClick={() => handleExport('branches', 'csv', 'education-branches')}>
               CSV
             </Button>

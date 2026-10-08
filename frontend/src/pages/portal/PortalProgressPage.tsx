@@ -39,7 +39,7 @@ export function PortalProgressPage() {
     <div>
       <PageHeader title="Ko'rsatkichlarim" subtitle="Davomat, imtihon va uy ishi natijalaringiz" />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 16, marginBottom: 20 }}>
+      <div className="kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 16, marginBottom: 20 }}>
         <StatCard icon={<CheckCircleOutlined />} title="Davomat" value={attendance.attendancePercentage} suffix="%" color={palette.success} />
         <StatCard icon={<FormOutlined />} title="Imtihon o'rtacha" value={totalExams ? averagePercentage : 0} suffix={totalExams ? '%' : undefined} formatter={(v) => (totalExams ? String(v) : '—')} color={palette.primary} />
         <StatCard

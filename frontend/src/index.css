@@ -436,13 +436,106 @@ body {
   }
 }
 
-/* ---------------------------------------------------------------------------
- * Phones (< 768px, same breakpoint where the sidebar becomes a drawer)
- * ------------------------------------------------------------------------- */
+/* ===========================================================================
+ * RESPONSIVE LAYER
+ * Desktop (1024px+) keeps its design untouched; everything below only
+ * applies under the breakpoints, through the shared components (AppShell,
+ * DetailHeader, FilterBar, Modal, Table…) rather than per-page hacks.
+ *   Phone  320–767px  · Tablet 768–1023px
+ * ========================================================================= */
+
+/* --- Everywhere: nothing may push the page sideways ------------------------ */
+/* clip (not hidden): no scroll container is created, so the sticky header keeps working. */
+html,
+body {
+  overflow-x: clip;
+}
+img,
+svg,
+video,
+canvas {
+  max-width: 100%;
+}
+/* Long filter/segment strips (homework filters, login kinds…) scroll inside
+   themselves instead of widening the page. */
+.ant-segmented {
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.ant-segmented::-webkit-scrollbar {
+  display: none;
+}
+.ant-statistic-content {
+  overflow-wrap: anywhere;
+}
+
+/* --- Detail page header (DetailHeader) -------------------------------------- */
+.detail-header-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px 16px;
+}
+.detail-header-title {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+  flex: 1 1 260px;
+}
+.detail-header-actions {
+  flex: 0 1 auto;
+  max-width: 100%;
+}
+
+/* --- Tablet and below (< 1024px) ------------------------------------------- */
+@media (max-width: 1023px) {
+  .ant-card .ant-card-head {
+    padding: 0 18px;
+  }
+  .ant-card .ant-card-body {
+    padding: 18px;
+  }
+}
+
+/* --- Phones (< 768px) --------------------------------------------------------- */
 @media (max-width: 767px) {
-  /* Tables: one line per cell and a clean sideways scroll, instead of values
-     like "PAY-2026-000012" breaking over three lines and the last column
-     being cut off at the screen edge. */
+  /* Typography: smaller headings, never smaller body text. */
+  h1.ant-typography,
+  .ant-typography h1 {
+    font-size: 26px;
+  }
+  h2.ant-typography,
+  .ant-typography h2 {
+    font-size: 22px;
+  }
+  h3.ant-typography,
+  .ant-typography h3 {
+    font-size: 20px;
+  }
+  h4.ant-typography,
+  .ant-typography h4 {
+    font-size: 18px;
+  }
+
+  /* Cards: tighter padding, long words wrap. */
+  .ant-card .ant-card-head {
+    padding: 0 14px;
+    min-height: 48px;
+  }
+  .ant-card .ant-card-body {
+    padding: 14px;
+  }
+  .ant-card {
+    overflow-wrap: anywhere;
+  }
+  .detail-header .detail-header-actions {
+    flex: 1 1 100%;
+  }
+
+  /* Tables: one line per cell and a sideways scroll inside the table only. */
   .ant-table-wrapper .ant-table-thead > tr > th,
   .ant-table-wrapper .ant-table-tbody > tr > td {
     white-space: nowrap;
@@ -452,6 +545,37 @@ body {
   .ant-table-wrapper .ant-table-body {
     overflow-x: auto !important;
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+  .ant-table-wrapper .ant-table-pagination.ant-pagination {
+    flex-wrap: wrap;
+    row-gap: 8px;
+    justify-content: center;
+  }
+
+  /* Filter strips (FilterBar and the pages' own filter rows): fields share the
+     row evenly and grow to full width instead of fixed desktop widths;
+     search boxes and date ranges take a whole row. */
+  .filter-strip.ant-space {
+    display: flex;
+    width: 100%;
+  }
+  .filter-strip > .ant-space-item {
+    flex: 1 1 140px;
+    min-width: 0;
+  }
+  .filter-strip > .ant-space-item:has(> .ant-picker-range),
+  .filter-strip > .ant-space-item:has(> .ant-input-affix-wrapper),
+  .filter-strip > .ant-space-item:has(> .ant-input-search) {
+    flex-basis: 100%;
+  }
+  .filter-strip > .ant-space-item > .ant-select,
+  .filter-strip > .ant-space-item > .ant-picker,
+  .filter-strip > .ant-space-item > .ant-input,
+  .filter-strip > .ant-space-item > .ant-input-affix-wrapper,
+  .filter-strip > .ant-space-item > .ant-input-search,
+  .filter-strip > .ant-space-item > .ant-btn {
+    width: 100% !important;
   }
 
   /* iOS zooms the whole page into any input under 16px when it is tapped. */
@@ -464,24 +588,122 @@ body {
     font-size: 16px !important;
   }
 
-  /* Side panels (homework answers, teacher salary…) never wider than the phone. */
-  .ant-drawer-right > .ant-drawer-content-wrapper,
+  /* Touch: every tappable thing gets a comfortable target. */
+  .ant-btn-sm {
+    min-height: 34px;
+  }
+  .ant-btn-sm.ant-btn-icon-only {
+    width: 36px;
+    min-width: 36px;
+    height: 36px;
+  }
+  .ant-pagination .ant-pagination-item,
+  .ant-pagination .ant-pagination-prev,
+  .ant-pagination .ant-pagination-next,
+  .ant-pagination .ant-pagination-jump-prev,
+  .ant-pagination .ant-pagination-jump-next {
+    min-width: 36px;
+    height: 36px;
+    line-height: 34px;
+  }
+  .ant-pagination .ant-pagination-item-link {
+    height: 36px;
+  }
+  .ant-typography-copy {
+    padding: 8px !important;
+    margin: -8px -4px -8px 0 !important;
+  }
+  .ant-input-password-icon {
+    padding: 8px;
+    margin: -8px;
+  }
+  .ant-tabs-tab {
+    padding-block: 12px !important;
+  }
+
+  /* Modals: nearly full-screen; the title and the Save/Cancel buttons stay
+     on screen while only the form in between scrolls. */
+  .ant-modal-root .ant-modal {
+    max-width: calc(100vw - 16px) !important;
+    margin: 8px auto;
+    top: 8px;
+    padding-bottom: 0;
+  }
+  .ant-modal-root .ant-modal .ant-modal-container {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100dvh - 16px);
+    padding: 18px 16px 14px;
+  }
+  .ant-modal-root .ant-modal .ant-modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    margin-inline: -4px;
+    padding-inline: 4px;
+  }
+  .ant-modal-root .ant-modal .ant-modal-footer {
+    flex-shrink: 0;
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .ant-modal-root .ant-modal .ant-modal-footer > .ant-btn {
+    flex: 1 1 0;
+    margin-inline-start: 0 !important;
+    height: 42px;
+  }
+  /* Confirm dialogs (Modal.confirm) keep their compact layout. */
+  .ant-modal-root .ant-modal.ant-modal-confirm .ant-modal-container {
+    max-height: none;
+  }
+
+  /* Side panels (homework answers, salary…) never wider than the phone. */
   .ant-drawer .ant-drawer-content-wrapper {
     max-width: 100vw;
+  }
+  .ant-drawer-right .ant-drawer-content-wrapper {
+    width: 100vw !important;
   }
   .ant-drawer-body {
     padding: 16px;
   }
-
-  /* Modals use the full width with a small margin. */
-  .ant-modal {
-    max-width: calc(100vw - 24px) !important;
-    margin: 12px auto;
+  /* The navigation drawer keeps its own width (not the full screen). */
+  .app-mobile-nav .ant-drawer-content-wrapper {
+    width: min(280px, 86vw) !important;
   }
 
-  /* Tab bars with many tabs (To'lovlar, Davomat) scroll sideways. */
+  /* Popovers / dropdowns stay inside the screen. */
+  .ant-dropdown,
+  .ant-popover {
+    max-width: calc(100vw - 16px);
+  }
+  .ant-picker-dropdown .ant-picker-panel-container {
+    max-width: calc(100vw - 16px);
+    overflow-x: auto;
+  }
+  .ant-picker-dropdown .ant-picker-panels {
+    flex-direction: column;
+  }
+
   .section-hub-tabs .ant-tabs-nav {
     margin-bottom: 12px;
+  }
+
+  /* Descriptions: label above value instead of a cramped two-column row. */
+  .ant-descriptions-item-container {
+    flex-wrap: wrap;
+  }
+}
+
+/* --- Very small phones (≤ 375px) ------------------------------------------- */
+@media (max-width: 375px) {
+  .ant-card .ant-card-body {
+    padding: 12px;
+  }
+  .ant-statistic .ant-statistic-content {
+    font-size: 20px;
   }
 }
 
@@ -596,5 +818,102 @@ body {
   .hero-action.ant-btn:not(:disabled):hover,
   .header-avatar.ant-avatar:hover {
     transform: none;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+ * Attendance on a phone (LessonAttendancePage): a card per student with four
+ * big status buttons, and a Save button that stays reachable at the bottom.
+ * ------------------------------------------------------------------------- */
+.attendance-list {
+  display: grid;
+  gap: 10px;
+}
+.attendance-row {
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: var(--color-surface);
+}
+.attendance-choice.ant-radio-group {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  width: 100%;
+}
+.attendance-choice .ant-radio-button-wrapper {
+  height: 40px;
+  line-height: 38px;
+  padding: 0 4px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+@media (max-width: 359px) {
+  .attendance-choice.ant-radio-group {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
+  .attendance-choice .ant-radio-button-wrapper {
+    border-radius: 8px !important;
+    border-inline-start-width: 1px;
+  }
+  .attendance-choice .ant-radio-button-wrapper::before {
+    display: none;
+  }
+}
+.attendance-save-mobile.ant-btn {
+  position: sticky;
+  bottom: 12px;
+  width: 100%;
+  height: 46px;
+  z-index: 2;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+
+/* Salary "Oxirgi 6 oy" rows (SalaryMonthDetail): month · bar · amount in one
+   row; on a phone the month and amount share a line with the bar below. */
+.salary-history-row {
+  display: grid;
+  grid-template-columns: 110px 1fr minmax(150px, auto);
+  grid-template-areas: 'month bar amount';
+  align-items: center;
+  gap: 12px;
+  padding: 6px 0;
+}
+.salary-history-month {
+  grid-area: month;
+}
+.salary-history-bar {
+  grid-area: bar;
+}
+.salary-history-amount {
+  grid-area: amount;
+}
+@media (max-width: 767px) {
+  .salary-history-row {
+    grid-template-columns: 1fr auto;
+    grid-template-areas:
+      'month amount'
+      'bar bar';
+    gap: 6px 12px;
+    padding: 8px 0;
+  }
+}
+
+/* KPI tiles (StatCard grids on every Bosh sahifa): two per row on a phone
+   instead of one long stack; desktop keeps its auto-fit grid. */
+@media (max-width: 767px) {
+  .kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+  .kpi-grid .stat-card .ant-card-body {
+    padding: 14px !important;
+  }
+}
+@media (max-width: 767px) {
+  .stat-card .stat-card-value {
+    font-size: 22px !important;
   }
 }

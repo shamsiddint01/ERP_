@@ -1,5 +1,5 @@
 import { LogoutOutlined, MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
-import { Avatar, Button, Drawer, Dropdown, Grid, Layout, Menu, Space, Tooltip, Typography } from 'antd';
+import { Avatar, Button, Drawer, Dropdown, Grid, Layout, Menu, Tooltip, Typography } from 'antd';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
@@ -53,10 +53,13 @@ export function AppShell({ mainItems, bottomItem, sectionBySegment, sectionLabel
   const clear = useAuthStore((state) => state.clear);
   const navigate = useNavigate();
   const location = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const screens = useBreakpoint();
   const isMobile = screens.md === false;
+  // Tablets (768–991px) start with the icon-only sidebar so the page keeps its room; the user's own toggle wins.
+  const isTablet = screens.md === true && screens.lg === false;
+  const [collapsedChoice, setCollapsedChoice] = useState<boolean | null>(null);
+  const collapsed = collapsedChoice ?? isTablet;
   const { data: branding } = useBranding();
 
   // Any navigation (menu click, back button, deep link) should close the
@@ -193,15 +196,16 @@ export function AppShell({ mainItems, bottomItem, sectionBySegment, sectionLabel
           onClose={() => setMobileMenuOpen(false)}
           closable={false}
           size={SIDEBAR_WIDTH}
+          rootClassName="app-mobile-nav"
           styles={{ body: { padding: 0, background: palette.sidebarBg } }}
         >
           {sidebarBody}
         </Drawer>
       )}
-      <Layout className="app-content-bg">
+      <Layout className="app-content-bg" style={{ minWidth: 0 }}>
         <Header
           style={{
-            padding: isMobile ? '0 12px' : '0 28px',
+            padding: isMobile ? '0 12px' : isTablet ? '0 20px' : '0 28px',
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -215,22 +219,22 @@ export function AppShell({ mainItems, bottomItem, sectionBySegment, sectionLabel
             zIndex: 10,
           }}
         >
-          <Space size={12} style={{ minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0, flex: 1 }}>
             <Button
               className="header-icon-btn"
               icon={(isMobile ? mobileMenuOpen : collapsed) ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-              onClick={() => (isMobile ? setMobileMenuOpen((prev) => !prev) : setCollapsed((prev) => !prev))}
+              onClick={() => (isMobile ? setMobileMenuOpen((prev) => !prev) : setCollapsedChoice(!collapsed))}
               aria-label="Menyuni ochish/yopish"
             />
-            <div className="eyebrow" style={{ fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <div className="eyebrow" style={{ fontSize: 11, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>
               {!isMobile && <span>Ta'lim markazi&nbsp;&nbsp;/&nbsp;&nbsp;</span>}
               <span style={{ color: palette.primary }}>{sectionLabels[selectedSection] ?? ''}</span>
             </div>
-          </Space>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 8, flexShrink: 0 }}>
             <ThemeModeSwitch />
             {showNotifications && <NotificationBell />}
-            <span className="header-divider" style={{ margin: '0 4px' }} />
+            {!isMobile && <span className="header-divider" style={{ margin: '0 4px' }} />}
             <Dropdown
               trigger={['click']}
               menu={{
@@ -247,7 +251,7 @@ export function AppShell({ mainItems, bottomItem, sectionBySegment, sectionLabel
             </Dropdown>
           </div>
         </Header>
-        <Content key={location.pathname} className="page-enter" style={{ padding: isMobile ? 12 : 28 }}>
+        <Content key={location.pathname} className="page-enter" style={{ padding: isMobile ? 12 : isTablet ? 20 : 28, minWidth: 0 }}>
           {isRouteAllowed ? <Outlet /> : <AccessDeniedPage />}
         </Content>
       </Layout>

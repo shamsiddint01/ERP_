@@ -172,7 +172,7 @@ export function ExtraLessonsPage() {
             ),
           },
           { title: 'Vaqt', render: (_, r) => `${formatDateTime(r.startsAt)} – ${dayjs(r.endsAt).format('HH:mm')}` },
-          { title: 'Joy', render: (_, r) => [r.branch?.name, r.room].filter(Boolean).join(' · ') || '—' },
+          { title: 'Joy', responsive: ['md'], render: (_, r) => [r.branch?.name, r.room].filter(Boolean).join(' · ') || '—' },
           {
             title: 'Yozilganlar',
             width: 160,

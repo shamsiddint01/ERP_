@@ -104,10 +104,10 @@ export function PaymentsPage() {
             render: (_, record) => (record.student ? <Link to={`/students/${record.student.id}?tab=finance`}>{record.student.fullName}</Link> : '—'),
           },
           { title: 'Summa', dataIndex: 'amount', render: (v: string) => Number(v).toLocaleString('uz-UZ') },
-          { title: 'Usul', dataIndex: 'method', render: (v: PaymentMethod) => METHOD_LABELS[v] },
+          { title: 'Usul', responsive: ['md'], dataIndex: 'method', render: (v: PaymentMethod) => METHOD_LABELS[v] },
           { title: 'Sana', dataIndex: 'createdAt', render: (v: string) => new Date(v).toLocaleString('uz-UZ') },
           { title: 'Status', dataIndex: 'status', render: (v: Payment['status']) => <PaymentStateTag status={v} /> },
-          { title: 'Kim yozgan', dataIndex: ['recordedBy', 'fullName'] },
+          { title: 'Kim yozgan', responsive: ['md'], dataIndex: ['recordedBy', 'fullName'] },
           {
             title: 'Amallar',
             render: (_, record) => (

@@ -105,7 +105,7 @@ export function TeacherSchedulePage() {
           <EmptyState title="Bu haftada dars yo'q" />
         </Card>
       ) : (
-        <div style={{ display: 'grid', gap: 12 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 12 }}>
           {days.map((day) => {
             const dayLessons = byDay(day);
             if (dayLessons.length === 0) return null;

@@ -38,7 +38,7 @@ export function LoginPage() {
 
   return (
     <div className="login-backdrop">
-      <Card style={{ width: 400, position: 'relative', zIndex: 1, boxShadow: elevation.level4 }} styles={{ body: { padding: 32 } }}>
+      <Card className="login-card" style={{ width: '100%', maxWidth: 400, position: 'relative', zIndex: 1, boxShadow: elevation.level4 }} styles={{ body: { padding: 32 } }}>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
           <BrandMark size={56} logoUrl={branding?.logoUrl} />
         </div>

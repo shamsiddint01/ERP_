@@ -84,7 +84,7 @@ export function DiscountsPage() {
         )}
       </Space>
 
-      <Space style={{ marginBottom: 16 }}>
+      <Space wrap style={{ marginBottom: 16 }} className="filter-strip">
         <Select
           value={showInactive}
           style={{ width: 220 }}
@@ -105,7 +105,7 @@ export function DiscountsPage() {
           { title: 'Nomi', dataIndex: 'name' },
           { title: 'Turi', dataIndex: 'type', render: (v: DiscountType) => TYPE_LABELS[v] },
           { title: 'Qiymati', dataIndex: 'value', render: (v: string, record) => (record.type === 'PERCENTAGE' ? `${Number(v)}%` : Number(v).toLocaleString('uz-UZ')) },
-          { title: 'Izoh', dataIndex: 'description' },
+          { title: 'Izoh', responsive: ['md'], dataIndex: 'description' },
           { title: 'Status', dataIndex: 'isActive', render: (v: boolean) => <Tag color={v ? 'green' : 'default'}>{v ? 'Faol' : 'Nofaol'}</Tag> },
           {
             title: 'Amallar',

@@ -33,13 +33,13 @@ export function StudentBalancesPage() {
         Qoldiq qarzi bor o'quvchilar ro'yxati — to'liq to'langan o'quvchilar bu ro'yxatda ko'rinmaydi.
       </Typography.Paragraph>
 
-      <Row gutter={16} style={{ marginBottom: 16 }}>
-        <Col span={6}>
+      <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>
+        <Col xs={12} lg={6}>
           <Card size="small">
             <Statistic title="Jami hisoblangan" value={debtQuery.data?.totalBilled ?? 0} formatter={(v) => formatCurrency(Number(v))} loading={debtQuery.isLoading} />
           </Card>
         </Col>
-        <Col span={6}>
+        <Col xs={12} lg={6}>
           <Card size="small">
             <Statistic
               title="To'langan"
@@ -50,12 +50,12 @@ export function StudentBalancesPage() {
             />
           </Card>
         </Col>
-        <Col span={6}>
+        <Col xs={12} lg={6}>
           <Card size="small">
             <Statistic title="Qoldiq" value={debtQuery.data?.outstanding ?? 0} formatter={(v) => formatCurrency(Number(v))} loading={debtQuery.isLoading} styles={{ content: { color: palette.warning } }} />
           </Card>
         </Col>
-        <Col span={6}>
+        <Col xs={12} lg={6}>
           <Card size="small">
             <Statistic
               title="Muddati o'tgan"
@@ -80,10 +80,10 @@ export function StudentBalancesPage() {
           locale={{ emptyText: "Qarzdor o'quvchilar yo'q" }}
           onRow={(record) => ({ onClick: () => navigate(`/students/${record.studentId}?tab=finance`), style: { cursor: 'pointer' } })}
           columns={[
-            { title: 'Kod', dataIndex: 'studentCode' },
+            { title: 'Kod', responsive: ['md'], dataIndex: 'studentCode' },
             { title: "F.I.Sh.", dataIndex: 'fullName' },
-            { title: 'Jami hisoblangan', dataIndex: 'totalBilled', align: 'right', render: (v: number) => formatCurrency(v) },
-            { title: 'Chegirmalar', dataIndex: 'discounts', align: 'right', render: (v: number) => formatCurrency(v) },
+            { title: 'Jami hisoblangan', responsive: ['md'], dataIndex: 'totalBilled', align: 'right', render: (v: number) => formatCurrency(v) },
+            { title: 'Chegirmalar', responsive: ['md'], dataIndex: 'discounts', align: 'right', render: (v: number) => formatCurrency(v) },
             { title: "To'langan", dataIndex: 'paid', align: 'right', render: (v: number) => formatCurrency(v) },
             { title: 'Qoldiq', dataIndex: 'outstanding', align: 'right', render: (v: number) => formatCurrency(v) },
             {

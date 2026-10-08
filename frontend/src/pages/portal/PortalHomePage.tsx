@@ -104,7 +104,7 @@ export function PortalHomePage() {
         </Col>
       </Row>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16, marginBottom: 20 }}>
+      <div className="kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16, marginBottom: 20 }}>
         <StatCard icon={<CheckCircleOutlined />} title="Davomat" value={attendancePercentage} suffix="%" color={palette.success} onClick={() => navigate('/progress')} />
         <StatCard
           icon={<BookOutlined />}

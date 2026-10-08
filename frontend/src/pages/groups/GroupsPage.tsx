@@ -77,7 +77,7 @@ export function GroupsPage() {
         )}
       </Space>
 
-      <Space style={{ marginBottom: 16 }} wrap>
+      <Space style={{ marginBottom: 16 }} wrap className="filter-strip">
         <Input
           placeholder="Qidirish: nomi yoki kodi"
           prefix={<SearchOutlined />}
@@ -149,12 +149,12 @@ export function GroupsPage() {
         onRow={(record) => ({ onClick: () => navigate(`/groups/${record.id}`), style: { cursor: 'pointer' } })}
         pagination={{ current: page, pageSize: 20, total: groupsQuery.data?.total, onChange: setPage }}
         columns={[
-          { title: 'Kod', dataIndex: 'code' },
+          { title: 'Kod', responsive: ['md'], dataIndex: 'code' },
           { title: 'Nomi', dataIndex: 'name' },
-          { title: 'Kurs', render: (_, record) => record.course.name },
+          { title: 'Kurs', responsive: ['md'], render: (_, record) => record.course.name },
           { title: "O'qituvchi", render: (_, record) => record.teacherEmployee?.fullName ?? '—' },
-          { title: 'Filial', render: (_, record) => record.branch.name },
-          { title: 'Xona', render: (_, record) => record.classroom?.name ?? '—' },
+          { title: 'Filial', responsive: ['md'], render: (_, record) => record.branch.name },
+          { title: 'Xona', responsive: ['md'], render: (_, record) => record.classroom?.name ?? '—' },
           {
             title: "Yozilgan/Sig'im",
             render: (_, record) => (
@@ -164,7 +164,7 @@ export function GroupsPage() {
               </span>
             ),
           },
-          { title: 'Boshlanish', dataIndex: 'startDate', render: (v: string) => dayjs(v).format('DD.MM.YYYY') },
+          { title: 'Boshlanish', responsive: ['md'], dataIndex: 'startDate', render: (v: string) => dayjs(v).format('DD.MM.YYYY') },
           {
             title: 'Status',
             dataIndex: 'status',

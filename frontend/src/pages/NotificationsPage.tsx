@@ -101,7 +101,7 @@ export function NotificationsPage() {
       </div>
 
       <Card size="small" style={{ marginBottom: 16 }}>
-        <Space wrap>
+        <Space wrap className="filter-strip">
           <Select
             value={readFilter}
             style={{ width: 160 }}

@@ -84,30 +84,30 @@ export function StudentAttendanceOverviewPage() {
 
       {summary && (
         <Card style={{ marginBottom: 16 }}>
-          <Row gutter={16}>
-            <Col span={4}>
+          <Row gutter={[12, 12]}>
+            <Col xs={12} sm={8} lg={4}>
               <Statistic title="Belgilangan" value={summary.totalMarked} />
             </Col>
-            <Col span={4}>
+            <Col xs={12} sm={8} lg={4}>
               <Statistic title="Keldi" value={summary.present} styles={{ content: { color: palette.success } }} />
             </Col>
-            <Col span={4}>
+            <Col xs={12} sm={8} lg={4}>
               <Statistic title="Kelmadi" value={summary.absent} styles={{ content: { color: palette.error } }} />
             </Col>
-            <Col span={4}>
+            <Col xs={12} sm={8} lg={4}>
               <Statistic title="Kech qoldi" value={summary.late} styles={{ content: { color: palette.warning } }} />
             </Col>
-            <Col span={4}>
+            <Col xs={12} sm={8} lg={4}>
               <Statistic title="Sababli" value={summary.excused} styles={{ content: { color: palette.info } }} />
             </Col>
-            <Col span={4}>
+            <Col xs={12} sm={8} lg={4}>
               <Statistic title="Davomat foizi" value={summary.markedAttendancePercentage} suffix="%" />
             </Col>
           </Row>
         </Card>
       )}
 
-      <Space style={{ marginBottom: 16 }} wrap>
+      <Space style={{ marginBottom: 16 }} wrap className="filter-strip">
         {canGroups && (
           <Select
             placeholder="Guruh"

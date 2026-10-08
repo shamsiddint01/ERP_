@@ -238,7 +238,7 @@ export function DashboardPage() {
         <Skeleton active paragraph={{ rows: 2 }} style={{ marginBottom: 20 }} />
       ) : (
         kpiTiles.length > 0 && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16, marginBottom: 20 }}>
+          <div className="kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 16, marginBottom: 20 }}>
             {kpiTiles.map((tile) => (
               <StatCard key={tile.key} icon={tile.icon} title={tile.title} value={tile.value} color={tile.color} onClick={() => navigate(tile.to)} />
             ))}

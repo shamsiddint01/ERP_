@@ -63,7 +63,7 @@ export function AllLoginsCard() {
       <Typography.Paragraph type="secondary" style={{ fontSize: 13 }}>
         Tizimdagi barcha loginlar va ularning joriy parollari (har bir necha soniyada o'zi yangilanadi). Parollarni ko'rish audit jurnaliga yoziladi.
       </Typography.Paragraph>
-      <Space wrap style={{ marginBottom: 12 }}>
+      <Space wrap style={{ marginBottom: 12 }} className="filter-strip">
         <Segmented<Kind>
           value={kind}
           onChange={setKind}
@@ -98,7 +98,7 @@ export function AllLoginsCard() {
               ),
           },
           {
-            title: 'Kim',
+            title: 'Kim', responsive: ['md'],
             render: (_, u) => {
               const k = kindOf(u);
               return k === 'student' ? <Tag color="blue">O'quvchi</Tag> : k === 'teacher' ? <Tag color="purple">O'qituvchi</Tag> : <Tag>{u.role.name}</Tag>;
@@ -108,7 +108,7 @@ export function AllLoginsCard() {
             title: 'Holat',
             render: (_, u) => (u.status === 'ACTIVE' ? <Tag color="green">Faol</Tag> : u.status === 'SUSPENDED' ? <Tag color="red">Bloklangan</Tag> : <Tag>Faol emas</Tag>),
           },
-          { title: 'Oxirgi kirish', render: (_, u) => (u.lastActiveAt ? formatDateTime(u.lastActiveAt) : '—') },
+          { title: 'Oxirgi kirish', responsive: ['md'], render: (_, u) => (u.lastActiveAt ? formatDateTime(u.lastActiveAt) : '—') },
           {
             title: '',
             render: (_, u) =>

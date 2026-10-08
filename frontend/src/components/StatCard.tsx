@@ -35,6 +35,7 @@ export function StatCard({ icon, title, value, loading, color = palette.primary,
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
             <div
               ref={countRef}
+              className="stat-card-value"
               title={`${formatter ? formatter(animated) : animated.toLocaleString('uz-UZ')}${suffix ?? ''}`}
               style={{ fontSize: 26, fontWeight: 700, lineHeight: 1.25, letterSpacing: '-0.01em', color: palette.text, overflowWrap: 'anywhere' }}
             >

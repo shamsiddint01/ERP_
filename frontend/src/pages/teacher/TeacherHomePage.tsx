@@ -65,7 +65,7 @@ export function TeacherHomePage() {
         </div>
       </Card>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 16, marginBottom: 20 }}>
+      <div className="kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 16, marginBottom: 20 }}>
         <StatCard icon={<CalendarOutlined />} title="Bugungi darslar" value={lessons.length} loading={todayQuery.isLoading} color={palette.primary} onClick={() => navigate('/schedule')} />
         <StatCard icon={<BookOutlined />} title="Tekshirilmagan uy ishi" value={ungraded} loading={homeworkQuery.isLoading} color={ungraded > 0 ? palette.ember : palette.success} onClick={() => navigate('/homework')} />
         <StatCard icon={<GroupOutlined />} title="Faol guruhlarim" value={overviewQuery.data?.kpis.activeGroups ?? 0} loading={overviewQuery.isLoading} color={palette.info} onClick={() => navigate('/groups')} />

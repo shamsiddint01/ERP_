@@ -158,9 +158,9 @@ export function LessonsPage() {
           { title: 'Sana', dataIndex: 'scheduledStart', render: (v: string) => dayjs(v).format('DD.MM.YYYY') },
           { title: 'Vaqti', render: (_, record) => `${dayjs(record.scheduledStart).format('HH:mm')}–${dayjs(record.scheduledEnd).format('HH:mm')}` },
           { title: "O'qituvchi", render: (_, record) => record.teacherEmployee?.fullName ?? '—' },
-          { title: 'Xona', render: (_, record) => record.classroom?.name ?? '—' },
-          { title: 'Filial', render: (_, record) => record.branch.name },
-          { title: 'Mavzu', dataIndex: 'topic', render: (v: string | null) => v ?? '—' },
+          { title: 'Xona', responsive: ['md'], render: (_, record) => record.classroom?.name ?? '—' },
+          { title: 'Filial', responsive: ['md'], render: (_, record) => record.branch.name },
+          { title: 'Mavzu', responsive: ['md'], dataIndex: 'topic', render: (v: string | null) => v ?? '—' },
           { title: 'Status', dataIndex: 'status', render: (v: LessonStatus) => <Tag color={STATUS_COLORS[v]}>{STATUS_LABELS[v]}</Tag> },
         ]}
       />

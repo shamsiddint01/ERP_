@@ -31,7 +31,7 @@ export function PortalPaymentsPage() {
     <div>
       <PageHeader title="To'lovlarim" subtitle="Hisoblangan to'lovlar, to'langanlari va qarzdorlik (so'mda)" />
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 16, marginBottom: 20 }}>
+      <div className="kpi-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 16, marginBottom: 20 }}>
         <StatCard icon={<FileTextOutlined />} title="Jami hisoblangan" value={balance.totalBilled} formatter={money} color={palette.info} />
         <StatCard icon={<CheckCircleOutlined />} title="To'langan" value={balance.paid} formatter={money} color={palette.success} />
         <StatCard icon={<WalletOutlined />} title="Qarzdorlik" value={balance.outstanding} formatter={money} color={balance.outstanding > 0 ? palette.primary : palette.success} />

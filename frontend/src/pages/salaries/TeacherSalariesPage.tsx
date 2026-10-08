@@ -140,9 +140,9 @@ export function TeacherSalariesPage() {
                 `${r.percent}%`
               ),
           },
-          { title: "Yig'ilgan", align: 'right', render: (_, r) => formatNumber(r.collected) },
+          { title: "Yig'ilgan", responsive: ['md'], align: 'right', render: (_, r) => formatNumber(r.collected) },
           { title: 'Maosh', align: 'right', render: (_, r) => <strong>{formatNumber(r.earned)}</strong> },
-          { title: "To'langan", align: 'right', render: (_, r) => <span style={{ color: r.paid > 0 ? palette.success : undefined }}>{formatNumber(r.paid)}</span> },
+          { title: "To'langan", responsive: ['md'], align: 'right', render: (_, r) => <span style={{ color: r.paid > 0 ? palette.success : undefined }}>{formatNumber(r.paid)}</span> },
           {
             title: 'Qoldiq',
             align: 'right',

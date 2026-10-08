@@ -130,22 +130,22 @@ export function GroupFormModal({ open, onClose, group }: GroupFormModalProps) {
       <Form form={form} layout="vertical" onFinish={(values) => mutation.mutate(values)} initialValues={{ capacity: 12 }}>
         <FormSection title="Asosiy ma'lumotlar">
           <Row gutter={16}>
-            <Col span={12}>
+            <Col xs={24} sm={12}>
               <Form.Item name="code" label="Kod" rules={[{ required: true }]}>
                 <Input placeholder="Masalan: ENG-A1-03" />
               </Form.Item>
             </Col>
-            <Col span={12}>
+            <Col xs={24} sm={12}>
               <Form.Item name="name" label="Nomi" rules={[{ required: true }]}>
                 <Input />
               </Form.Item>
             </Col>
-            <Col span={12}>
+            <Col xs={24} sm={12}>
               <Form.Item name="courseId" label="Kurs" rules={[{ required: true }]}>
                 <Select loading={coursesQuery.isLoading} options={coursesQuery.data?.items.map((c) => ({ value: c.id, label: c.name }))} />
               </Form.Item>
             </Col>
-            <Col span={12}>
+            <Col xs={24} sm={12}>
               <Form.Item name="branchId" label="Filial" rules={[{ required: true }]}>
                 <Select
                   loading={branchesQuery.isLoading}
@@ -159,7 +159,7 @@ export function GroupFormModal({ open, onClose, group }: GroupFormModalProps) {
 
         <FormSection title="Joylashuv va o'qituvchi">
           <Row gutter={16}>
-            <Col span={12}>
+            <Col xs={24} sm={12}>
               <Form.Item name="classroomId" label="Xona">
                 <Select
                   allowClear
@@ -171,7 +171,7 @@ export function GroupFormModal({ open, onClose, group }: GroupFormModalProps) {
               </Form.Item>
             </Col>
             {canTeachers && (
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item name="teacherEmployeeId" label="O'qituvchi">
                   <Select
                     allowClear
@@ -184,17 +184,17 @@ export function GroupFormModal({ open, onClose, group }: GroupFormModalProps) {
                 </Form.Item>
               </Col>
             )}
-            <Col span={12}>
+            <Col xs={24} sm={12}>
               <Form.Item name="capacity" label="Sig'imi" rules={[{ type: 'number', min: 1, message: "Sig'im musbat son bo'lishi kerak" }]}>
                 <InputNumber min={1} style={{ width: '100%' }} />
               </Form.Item>
             </Col>
-            <Col span={12}>
+            <Col xs={24} sm={12}>
               <Form.Item name="tuitionAmount" label="O'quv to'lovi (so'm)">
                 <InputNumber min={0} style={{ width: '100%' }} />
               </Form.Item>
             </Col>
-            <Col span={12}>
+            <Col xs={24} sm={12}>
               <Form.Item name="level" label="Daraja" style={{ marginBottom: 0 }}>
                 <Select allowClear options={LEVEL_OPTIONS} />
               </Form.Item>
@@ -204,18 +204,18 @@ export function GroupFormModal({ open, onClose, group }: GroupFormModalProps) {
 
         <FormSection title="Muddat va status">
           <Row gutter={16}>
-            <Col span={12}>
+            <Col xs={24} sm={12}>
               <Form.Item name="startDate" label="Boshlanish sanasi" rules={[{ required: true }]}>
                 <DatePicker style={{ width: '100%' }} />
               </Form.Item>
             </Col>
-            <Col span={12}>
+            <Col xs={24} sm={12}>
               <Form.Item name="endDate" label="Tugash sanasi">
                 <DatePicker style={{ width: '100%' }} />
               </Form.Item>
             </Col>
             {isEdit && (
-              <Col span={12}>
+              <Col xs={24} sm={12}>
                 <Form.Item name="status" label="Status">
                   <Select options={STATUS_OPTIONS} />
                 </Form.Item>

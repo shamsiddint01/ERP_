@@ -80,11 +80,11 @@ export function ExamsPage() {
         onRow={(record) => ({ onClick: () => navigate(`/exams/${record.id}`), style: { cursor: 'pointer' } })}
         columns={[
           { title: 'Sarlavha', dataIndex: 'title' },
-          { title: 'Kurs', render: (_, record) => record.course.name },
+          { title: 'Kurs', responsive: ['md'], render: (_, record) => record.course.name },
           { title: 'Guruh', render: (_, record) => record.group.name },
-          { title: 'Turi', dataIndex: 'type', render: (v: ExamType) => TYPE_LABELS[v] },
+          { title: 'Turi', responsive: ['md'], dataIndex: 'type', render: (v: ExamType) => TYPE_LABELS[v] },
           { title: 'Sana', dataIndex: 'date', render: (v: string) => new Date(v).toLocaleDateString('uz-UZ') },
-          { title: "O'qituvchi", render: (_, record) => record.teacherEmployee?.fullName ?? '—' },
+          { title: "O'qituvchi", responsive: ['md'], render: (_, record) => record.teacherEmployee?.fullName ?? '—' },
           { title: 'Baholangan', render: (_, record) => record._count.assessments },
           { title: 'Status', dataIndex: 'status', render: (v: ExamStatus) => <Tag color={STATUS_COLORS[v]}>{STATUS_LABELS[v]}</Tag> },
           {

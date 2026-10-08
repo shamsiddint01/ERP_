@@ -25,7 +25,7 @@ export function SalaryMonthDetail({ data, onDeletePayment, deleting }: { data: T
   const maxEarned = Math.max(...data.history.map((h) => h.earned), 1);
 
   return (
-    <div style={{ display: 'grid', gap: 16 }}>
+    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: 16 }}>
       {data.percent === null && <Alert type="warning" showIcon message="Maosh foizi hali belgilanmagan" description="Foizni markaz ma'muriyati ustoz ma'lumotlarida belgilaydi." />}
       <Row gutter={[12, 12]}>
         <Col xs={12} md={6}>
@@ -88,12 +88,14 @@ export function SalaryMonthDetail({ data, onDeletePayment, deleting }: { data: T
 
       <Card size="small" title="Oxirgi 6 oy">
         {data.history.map((month) => (
-          <div key={month.period} style={{ display: 'grid', gridTemplateColumns: '110px 1fr auto', alignItems: 'center', gap: 12, padding: '6px 0' }}>
-            <Typography.Text style={{ fontSize: 13 }}>{periodLabel(month.period)}</Typography.Text>
-            <div style={{ height: 8, borderRadius: 4, background: palette.surfaceRaised, overflow: 'hidden' }}>
+          <div key={month.period} className="salary-history-row">
+            <Typography.Text className="salary-history-month" style={{ fontSize: 13 }}>
+              {periodLabel(month.period)}
+            </Typography.Text>
+            <div className="salary-history-bar" style={{ height: 8, borderRadius: 4, background: palette.surfaceRaised, overflow: 'hidden' }}>
               <div style={{ width: `${(month.earned / maxEarned) * 100}%`, height: '100%', borderRadius: 4, background: palette.primary }} />
             </div>
-            <div style={{ fontSize: 13, textAlign: 'right', minWidth: 150 }}>
+            <div className="salary-history-amount" style={{ fontSize: 13, textAlign: 'right' }}>
               <strong>{som(month.earned)}</strong>
               {month.earned > 0 && (
                 <span style={{ color: month.remaining > 0 ? palette.ember : palette.success, marginLeft: 6, fontSize: 12 }}>
