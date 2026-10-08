@@ -3,13 +3,11 @@ import {
   CalendarOutlined,
   CheckCircleOutlined,
   DollarOutlined,
-  ExclamationCircleOutlined,
   FormOutlined,
   GroupOutlined,
   TeamOutlined,
   UserAddOutlined,
   UserSwitchOutlined,
-  WarningOutlined,
 } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import { Avatar, Button, Card, Col, Row, Skeleton, Table, Tag, Typography } from 'antd';
@@ -39,13 +37,6 @@ const LESSON_STATUS_COLORS: Record<string, string> = {
   IN_PROGRESS: 'processing',
   COMPLETED: 'green',
   CANCELLED: 'default',
-};
-
-const ACTION_REQUIRED_LABELS: Record<string, string> = {
-  overdueTuition: "Muddati o'tgan to'lovlar",
-  absentStudentsToday: "Bugun kelmagan o'quvchilar",
-  upcomingExams: 'Kutilayotgan testlar',
-  unreadNotifications: "O'qilmagan bildirishnomalar",
 };
 
 const METHOD_LABELS: Record<PaymentMethod, string> = {
@@ -124,7 +115,6 @@ export function DashboardPage() {
   const chartsQuery = useQuery({ queryKey: ['dashboard', 'charts'], queryFn: getDashboardCharts, staleTime: 60_000 });
 
   const kpis = overviewQuery.data?.kpis;
-  const actionRequired = overviewQuery.data?.actionRequired ?? [];
   const charts = chartsQuery.data;
   const today = todayQuery.data;
 
@@ -368,9 +358,9 @@ export function DashboardPage() {
         )}
       </Row>
 
-      {/* TODAY'S SCHEDULE + ACTION REQUIRED */}
+      {/* TODAY'S SCHEDULE */}
       <Row gutter={[20, 20]} style={{ marginBottom: 20 }}>
-        <Col xs={24} xl={actionRequired.length > 0 ? 16 : 24}>
+        <Col xs={24}>
           <Panel title="Bugungi dars jadvali" bodyStyle={{ paddingTop: 8 }}>
             {todayQuery.isLoading ? (
               <Skeleton active paragraph={{ rows: 3 }} />
@@ -395,48 +385,6 @@ export function DashboardPage() {
             )}
           </Panel>
         </Col>
-        {actionRequired.length > 0 && (
-          <Col xs={24} xl={8}>
-            <Panel title="E'tibor talab qiladi">
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {actionRequired.map((item) => (
-                  <div
-                    key={item.key}
-                    className="hover-lift"
-                    onClick={() => navigate(item.to)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 12,
-                      padding: '12px 14px',
-                      borderRadius: 12,
-                      cursor: 'pointer',
-                      background: palette.surfaceRaised,
-                      border: `1px solid ${palette.border}`,
-                    }}
-                  >
-                    <div
-                      style={{
-                        width: 32,
-                        height: 32,
-                        borderRadius: 10,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: item.key === 'overdueTuition' || item.key === 'absentStudentsToday' ? palette.error : palette.primary,
-                        background: item.key === 'overdueTuition' || item.key === 'absentStudentsToday' ? 'rgba(242,92,74,0.12)' : 'rgba(245,165,36,0.12)',
-                      }}
-                    >
-                      {item.key === 'overdueTuition' ? <WarningOutlined /> : <ExclamationCircleOutlined />}
-                    </div>
-                    <span style={{ flex: 1, fontSize: 13, color: palette.textSecondary }}>{ACTION_REQUIRED_LABELS[item.key] ?? item.key}</span>
-                    <span style={{ fontWeight: 700 }}>{item.key === 'overdueTuition' ? compactMoney(item.value) : item.value}</span>
-                  </div>
-                ))}
-              </div>
-            </Panel>
-          </Col>
-        )}
       </Row>
 
       {/* SECONDARY CHARTS */}
@@ -499,17 +447,6 @@ export function DashboardPage() {
                   />
                   <Bar dataKey="utilizationPercentage" fill={palette.ember} radius={[0, 4, 4, 0]} maxBarSize={22} />
                 </BarChart>
-              </ChartPanel>
-            )}
-            {charts.academicPerformance && (
-              <ChartPanel title="O'rtacha test natijasi">
-                <LineChart data={charts.academicPerformance} margin={{ top: 10, right: 8, left: -12, bottom: 0 }}>
-                  <CartesianGrid vertical={false} stroke={chartGridStroke} />
-                  <XAxis dataKey="month" tickFormatter={monthLabel} tick={chartAxisTick} axisLine={false} tickLine={false} />
-                  <YAxis tick={chartAxisTick} axisLine={false} tickLine={false} domain={[0, 100]} />
-                  <Tooltip contentStyle={chartTooltipStyle} labelStyle={chartTooltipLabelStyle} labelFormatter={(v) => monthLabel(String(v))} formatter={(v) => [v, "O'rtacha ball"]} cursor={{ stroke: palette.primary, strokeOpacity: 0.4 }} />
-                  <Line type="monotone" dataKey="averageScore" stroke={palette.info} strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 5, stroke: palette.surface, strokeWidth: 2 }} connectNulls={false} />
-                </LineChart>
               </ChartPanel>
             )}
           </Row>
