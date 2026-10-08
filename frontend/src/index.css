@@ -708,32 +708,31 @@ canvas {
 }
 
 /* ---------------------------------------------------------------------------
- * Top bar: every action (menu, light/dark, notifications, profile) is the
- * same 38px rounded tile, so the row reads as one calm group.
+ * Top bar: quiet, borderless icon buttons (menu, light/dark, notifications)
+ * that only get a soft background on hover, and the profile as a small
+ * round avatar with the name beside it.
  * ------------------------------------------------------------------------- */
 .header-icon-btn.ant-btn {
-  width: 38px;
-  height: 38px;
-  min-width: 38px;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
   padding: 0;
-  border-radius: 11px;
-  border: 1px solid var(--color-border);
-  background: var(--color-surface);
+  border: none;
+  border-radius: 10px;
+  background: transparent;
   color: var(--color-text-secondary);
   box-shadow: none;
   transition:
     background-color var(--motion-fast) var(--motion-ease),
-    border-color var(--motion-fast) var(--motion-ease),
     color var(--motion-fast) var(--motion-ease);
 }
 .header-icon-btn.ant-btn .anticon {
-  font-size: 17px;
+  font-size: 18px;
 }
 .header-icon-btn.ant-btn:not(:disabled):hover,
 .header-icon-btn.ant-btn:focus-visible {
   background: var(--color-surface-hover) !important;
-  border-color: var(--color-border-strong) !important;
-  color: var(--color-primary) !important;
+  color: var(--color-text) !important;
 }
 /* The light/dark icon turns in when it changes. */
 .theme-toggle-icon {
@@ -750,23 +749,38 @@ canvas {
     opacity: 1;
   }
 }
-.header-divider {
-  width: 1px;
-  height: 24px;
-  background: var(--color-border);
-}
-.header-avatar.ant-avatar {
-  width: 38px;
-  height: 38px;
-  line-height: 38px;
-  border-radius: 11px;
-  font-weight: 700;
+.header-profile {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  margin-left: 4px;
+  padding: 0 10px 0 3px;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-text);
+  font: inherit;
   cursor: pointer;
-  box-shadow: 0 0 0 2px var(--color-surface);
-  transition: transform var(--motion-fast) var(--motion-ease);
+  transition: background-color var(--motion-fast) var(--motion-ease);
 }
-.header-avatar.ant-avatar:hover {
-  transform: translateY(-1px);
+.header-profile:hover,
+.header-profile:focus-visible {
+  background: var(--color-surface-hover);
+  outline: none;
+}
+.header-profile-name {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 500;
+}
+@media (max-width: 767px) {
+  .header-profile {
+    padding: 0 3px;
+  }
 }
 
 /* ---------------------------------------------------------------------------
@@ -815,8 +829,7 @@ canvas {
   .theme-toggle-icon {
     animation: none;
   }
-  .hero-action.ant-btn:not(:disabled):hover,
-  .header-avatar.ant-avatar:hover {
+  .hero-action.ant-btn:not(:disabled):hover {
     transform: none;
   }
 }

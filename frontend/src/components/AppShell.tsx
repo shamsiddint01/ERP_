@@ -4,7 +4,7 @@ import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { logout } from '../api/auth';
-import { palette } from '../theme';
+import { palette, tint } from '../theme';
 import { avatarColor } from '../utils/avatarColor';
 import { AccessDeniedPage } from '../pages/AccessDeniedPage';
 import { useAuthStore } from '../store/auth.store';
@@ -38,6 +38,12 @@ interface AppShellProps {
   isRouteAllowed?: boolean;
   /** Show the notification bell in the header. */
   showNotifications?: boolean;
+}
+
+/** "Akmal Rahimov" → "AR", "admin" → "A". */
+function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  return ((parts[0]?.[0] ?? '') + (parts.length > 1 ? parts[1][0] : '')).toUpperCase();
 }
 
 const SIDEBAR_WIDTH = 248;
@@ -231,12 +237,12 @@ export function AppShell({ mainItems, bottomItem, sectionBySegment, sectionLabel
               <span style={{ color: palette.primary }}>{sectionLabels[selectedSection] ?? ''}</span>
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 6 : 8, flexShrink: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
             <ThemeModeSwitch />
             {showNotifications && <NotificationBell />}
-            {!isMobile && <span className="header-divider" style={{ margin: '0 4px' }} />}
             <Dropdown
               trigger={['click']}
+              placement="bottomRight"
               menu={{
                 items: [
                   { key: 'who', label: <span style={{ fontWeight: 600 }}>{userName}</span>, disabled: true },
@@ -245,9 +251,12 @@ export function AppShell({ mainItems, bottomItem, sectionBySegment, sectionLabel
                 ],
               }}
             >
-              <Avatar className="header-avatar" shape="square" style={{ background: avatarColor(userName) }} aria-label="Profil">
-                {userName.charAt(0)}
-              </Avatar>
+              <button type="button" className="header-profile" aria-label="Profil">
+                <Avatar size={30} style={{ background: tint(avatarColor(userName), 18), color: avatarColor(userName), fontWeight: 700, fontSize: 12 }}>
+                  {initials(userName)}
+                </Avatar>
+                {!isMobile && <span className="header-profile-name">{userName}</span>}
+              </button>
             </Dropdown>
           </div>
         </Header>
