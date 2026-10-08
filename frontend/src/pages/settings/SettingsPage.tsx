@@ -1,6 +1,6 @@
 import { BankOutlined, DeleteOutlined, SaveOutlined, UploadOutlined } from '@ant-design/icons';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { App, Button, Card, Col, Form, Input, Popconfirm, Row, Select, Skeleton, Space, Typography, Upload } from 'antd';
+import { App, Button, Card, Form, Input, Popconfirm, Skeleton, Space, Typography, Upload } from 'antd';
 import { useEffect } from 'react';
 import { getSettings, removeLogo, updateSettings, uploadLogo } from '../../api/settings';
 import { AllLoginsCard } from '../../components/AllLoginsCard';
@@ -14,20 +14,7 @@ import { palette } from '../../theme';
 import type { CompanySettings } from '../../types';
 import { formatDateTime } from '../../utils/format';
 
-type FormValues = Pick<CompanySettings, 'companyName' | 'currency' | 'defaultLanguage'>;
-
-// Must stay in sync with backend/src/modules/settings/dto/update-settings.dto.ts.
-const CURRENCY_OPTIONS = [
-  { value: 'UZS', label: "UZS — O'zbek so'mi" },
-  { value: 'USD', label: 'USD — AQSh dollari' },
-  { value: 'EUR', label: 'EUR — Yevro' },
-  { value: 'RUB', label: 'RUB — Rossiya rubli' },
-];
-const LANGUAGE_OPTIONS = [
-  { value: 'uz', label: "O'zbekcha" },
-  { value: 'ru', label: 'Русский' },
-  { value: 'en', label: 'English' },
-];
+type FormValues = Pick<CompanySettings, 'companyName'>;
 
 // Must stay in sync with backend/src/modules/settings/logo-image.util.ts (the server re-checks every one of these).
 const LOGO_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
@@ -193,24 +180,9 @@ export function SettingsPage() {
 
           <Form form={form} layout="vertical" disabled={!canEdit} requiredMark={false} onFinish={(values) => updateMutation.mutate(values)}>
             <FormSection title="O'quv markazi">
-              <Form.Item name="companyName" label="Markaz nomi" rules={[{ required: true, whitespace: true, message: 'Markaz nomini kiriting' }]} style={{ marginBottom: 0 }}>
+              <Form.Item name="companyName" label="Markaz nomi" rules={[{ required: true, whitespace: true, message: 'Markaz nomini kiriting' }]} style={{ marginBottom: 0, maxWidth: 420 }}>
                 <Input prefix={<BankOutlined />} placeholder="Masalan: Bilim o'quv markazi" />
               </Form.Item>
-            </FormSection>
-
-            <FormSection title="Mintaqa">
-              <Row gutter={16}>
-                <Col xs={24} md={12}>
-                  <Form.Item name="currency" label="Valyuta" style={{ marginBottom: 0 }}>
-                    <Select options={CURRENCY_OPTIONS} />
-                  </Form.Item>
-                </Col>
-                <Col xs={24} md={12}>
-                  <Form.Item name="defaultLanguage" label="Til" style={{ marginBottom: 0 }}>
-                    <Select options={LANGUAGE_OPTIONS} />
-                  </Form.Item>
-                </Col>
-              </Row>
             </FormSection>
           </Form>
         </Card>
