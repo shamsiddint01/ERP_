@@ -71,8 +71,8 @@ export function AppLayout() {
     ];
     return {
       mainItems: main.filter((item) => item.show),
-      // Sozlamalar = center settings and/or everyone's logins — shown to whoever may see either.
-      settingsItem: hasPermission('settings', 'VIEW') || hasPermission('users', 'VIEW') ? { key: '/settings', icon: <SettingOutlined />, label: 'Sozlamalar' } : null,
+      // Sozlamalar = the center settings (logo, name) — shown to whoever may see them.
+      settingsItem: hasPermission('settings', 'VIEW') ? { key: '/settings', icon: <SettingOutlined />, label: 'Sozlamalar' } : null,
     };
   }, [hasPermission]);
 

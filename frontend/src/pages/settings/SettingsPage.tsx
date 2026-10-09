@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { App, Button, Card, Form, Input, Popconfirm, Skeleton, Space, Typography, Upload } from 'antd';
 import { useEffect } from 'react';
 import { getSettings, removeLogo, updateSettings, uploadLogo } from '../../api/settings';
-import { AllLoginsCard } from '../../components/AllLoginsCard';
 import { BrandMark } from '../../components/BrandMark';
 import { FormSection } from '../../components/FormSection';
 import { PageErrorState } from '../../components/PageErrorState';
@@ -46,7 +45,6 @@ export function SettingsPage() {
   const { message } = App.useApp();
   const queryClient = useQueryClient();
   const canEdit = useAuthStore((state) => state.hasPermission('settings', 'EDIT'));
-  const canViewUsers = useAuthStore((state) => state.hasPermission('users', 'VIEW'));
   const canViewCenter = useAuthStore((state) => state.hasPermission('settings', 'VIEW'));
   const [form] = Form.useForm<FormValues>();
   const companyName = Form.useWatch('companyName', form);
@@ -120,7 +118,7 @@ export function SettingsPage() {
   const settings = settingsQuery.data;
   const displayName = companyName || settings?.companyName || '';
 
-  if (!canViewCenter && !canViewUsers) return <AccessDeniedPage />;
+  if (!canViewCenter) return <AccessDeniedPage />;
 
   return (
     <div style={{ maxWidth: 1100 }}>
@@ -187,8 +185,6 @@ export function SettingsPage() {
           </Form>
         </Card>
       )}
-
-      {canViewUsers && <AllLoginsCard />}
     </div>
   );
 }

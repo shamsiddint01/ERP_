@@ -1,10 +1,5 @@
 import { apiClient } from './client';
-import type { IssuedLogin, LoginAccount, UserListItem } from '../types';
-
-export async function listUsers() {
-  const { data } = await apiClient.get<UserListItem[]>('/users');
-  return data;
-}
+import type { IssuedLogin, LoginAccount } from '../types';
 
 /** Admin-only: the login's current password (null only if no readable copy exists). Each call is audited. */
 export async function getUserCredentials(userId: string) {
